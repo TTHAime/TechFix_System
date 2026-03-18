@@ -40,3 +40,5 @@ lib-cov/
 uploads/
 tmp/
 temp/
+/generated/prisma
+
