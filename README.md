@@ -47,6 +47,7 @@ docker compose up -d
 ```bash
 npx prisma generate
 npx prisma db push
+npx prisma db seed
 ```
 
 ### 5. Run the app

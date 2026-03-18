@@ -22,7 +22,9 @@ async function main() {
   const statuses = await Promise.all(
     ['open', 'in_progress', 'resolved', 'closed'].map((name) =>
       prisma.requestStatus.upsert({
-        where: { id: ['open', 'in_progress', 'resolved', 'closed'].indexOf(name) + 1 },
+        where: {
+          id: ['open', 'in_progress', 'resolved', 'closed'].indexOf(name) + 1,
+        },
         update: {},
         create: { name },
       }),
@@ -59,7 +61,8 @@ async function main() {
 
   // ─── Users ───
   // password hash for "P@ssw0rd" (bcrypt, 10 rounds) — ใช้สำหรับ seed เท่านั้น
-  const demoHash = '$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36Kz7aOBfBhq1sW5pFdWzWu';
+  const demoHash =
+    '$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36Kz7aOBfBhq1sW5pFdWzWu';
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@company.com' },
