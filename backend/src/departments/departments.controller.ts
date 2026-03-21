@@ -17,30 +17,35 @@ export class DepartmentsController {
   constructor(private readonly departmentsService: DepartmentsService) {}
 
   @Post()
-  create(@Body() createDepartmentDto: CreateDepartmentDto) {
-    return this.departmentsService.create(createDepartmentDto);
+  async create(@Body() createDepartmentDto: CreateDepartmentDto) {
+    const data = await this.departmentsService.create(createDepartmentDto);
+    return { data, message: 'Department created successfully' };
   }
 
   @Get()
-  findAll() {
-    return this.departmentsService.findAll();
+  async findAll() {
+    const data = await this.departmentsService.findAll();
+    return { data, message: 'Departments retrieved successfully' };
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.departmentsService.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.departmentsService.findOne(id);
+    return { data, message: 'Department retrieved successfully' };
   }
 
   @Patch(':id')
-  update(
+  async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDepartmentDto: UpdateDepartmentDto,
   ) {
-    return this.departmentsService.update(id, updateDepartmentDto);
+    const data = await this.departmentsService.update(id, updateDepartmentDto);
+    return { data, message: 'Department updated successfully' };
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.departmentsService.remove(id);
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.departmentsService.remove(id);
+    return { data, message: 'Department deleted successfully' };
   }
 }

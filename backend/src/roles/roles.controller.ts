@@ -17,30 +17,35 @@ export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 
   @Post()
-  create(@Body() createRoleDto: CreateRoleDto) {
-    return this.rolesService.create(createRoleDto);
+  async create(@Body() createRoleDto: CreateRoleDto) {
+    const data = await this.rolesService.create(createRoleDto);
+    return { data, message: 'Role created successfully' };
   }
 
   @Get()
-  findAll() {
-    return this.rolesService.findAll();
+  async findAll() {
+    const data = await this.rolesService.findAll();
+    return { data, message: 'Roles retrieved successfully' };
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.rolesService.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.rolesService.findOne(id);
+    return { data, message: 'Role retrieved successfully' };
   }
 
   @Patch(':id')
-  update(
+  async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateRoleDto: UpdateRoleDto,
   ) {
-    return this.rolesService.update(id, updateRoleDto);
+    const data = await this.rolesService.update(id, updateRoleDto);
+    return { data, message: 'Role updated successfully' };
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.rolesService.remove(id);
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.rolesService.remove(id);
+    return { data, message: 'Role deleted successfully' };
   }
 }

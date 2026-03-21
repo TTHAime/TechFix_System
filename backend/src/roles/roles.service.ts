@@ -1,29 +1,71 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { PrismaClientKnownRequestError } from '../generated/prisma/internal/prismaNamespace.js';
 
 @Injectable()
 export class RolesService {
   constructor(private prisma: PrismaService) {}
 
-  create(createRoleDto: CreateRoleDto) {
-    return this.prisma.role.create({ data: createRoleDto });
+  async create(createRoleDto: CreateRoleDto) {
+    try {
+      return await this.prisma.role.create({ data: createRoleDto });
+    } catch (error) {
+      if (
+        error instanceof PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('Role name already exists');
+      }
+      throw error;
+    }
   }
 
-  findAll() {
-    return this.prisma.role.findMany();
+  async findAll() {
+    return await this.prisma.role.findMany();
   }
 
-  findOne(id: number) {
-    return this.prisma.role.findUnique({ where: { id } });
+  async findOne(id: number) {
+    const role = await this.prisma.role.findUnique({ where: { id } });
+    if (!role) {
+      throw new NotFoundException(`Role #${id} not found`);
+    }
+    return role;
   }
 
-  update(id: number, updateRoleDto: UpdateRoleDto) {
-    return this.prisma.role.update({ where: { id }, data: updateRoleDto });
+  async update(id: number, updateRoleDto: UpdateRoleDto) {
+    try {
+      return await this.prisma.role.update({
+        where: { id },
+        data: updateRoleDto,
+      });
+    } catch (error) {
+      if (
+        error instanceof PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException(`Role #${id} not found`);
+      }
+      throw error;
+    }
   }
 
-  remove(id: number) {
-    return this.prisma.role.delete({ where: { id } });
+  async remove(id: number) {
+    try {
+      return await this.prisma.role.delete({ where: { id } });
+    } catch (error) {
+      if (
+        error instanceof PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException(`Role #${id} not found`);
+      }
+      throw error;
+    }
   }
 }
