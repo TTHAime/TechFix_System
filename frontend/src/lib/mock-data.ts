@@ -6,6 +6,8 @@ import type {
   Equipment,
   RequestStatus,
   RepairRequest,
+  StatusLog,
+  AuditLog,
 } from '@/types';
 
 // ─── Roles ───
@@ -179,5 +181,76 @@ export const mockRepairRequests: RepairRequest[] = [
       equipment: mockEquipment[4],
     }],
     assignmentLogs: [],
+  },
+];
+
+// ─── Status Logs ───
+export const mockStatusLogs: StatusLog[] = [
+  {
+    id: 1, requestId: 2, changedBy: 1, oldStatusId: 1, newStatusId: 2,
+    note: 'Assigned to technician, starting diagnosis.',
+    changedAt: '2025-06-03T08:00:00Z',
+    changer: mockUsers[0],
+    oldStatus: mockStatuses[0], newStatus: mockStatuses[1],
+  },
+  {
+    id: 2, requestId: 3, changedBy: 1, oldStatusId: 1, newStatusId: 2,
+    note: 'Technician dispatched.',
+    changedAt: '2025-06-02T09:00:00Z',
+    changer: mockUsers[0],
+    oldStatus: mockStatuses[0], newStatus: mockStatuses[1],
+  },
+  {
+    id: 3, requestId: 3, changedBy: 4, oldStatusId: 2, newStatusId: 3,
+    note: 'Replaced pickup roller and separation pad. Test prints OK.',
+    changedAt: '2025-06-04T14:00:00Z',
+    changer: mockUsers[3],
+    oldStatus: mockStatuses[1], newStatus: mockStatuses[2],
+  },
+];
+
+// ─── Audit Logs ───
+export const mockAuditLogs: AuditLog[] = [
+  {
+    id: 1, actorId: 1, entityType: 'user', entityId: 5, action: 'created',
+    oldValue: null,
+    newValue: { name: 'Somjai', email: 'somjai@company.com', roleId: 4, deptId: 3 },
+    loggedAt: '2025-01-02T09:00:00Z',
+    actor: mockUsers[0],
+  },
+  {
+    id: 2, actorId: 1, entityType: 'user', entityId: 6, action: 'created',
+    oldValue: null,
+    newValue: { name: 'Somsri', email: 'somsri@company.com', roleId: 4, deptId: 4 },
+    loggedAt: '2025-01-02T09:05:00Z',
+    actor: mockUsers[0],
+  },
+  {
+    id: 3, actorId: 1, entityType: 'equipment', entityId: 1, action: 'created',
+    oldValue: null,
+    newValue: { name: 'Dell OptiPlex 7090', serialNo: 'DL-OPT-7090-001' },
+    loggedAt: '2025-01-03T10:00:00Z',
+    actor: mockUsers[0],
+  },
+  {
+    id: 4, actorId: 1, entityType: 'department', entityId: 5, action: 'created',
+    oldValue: null,
+    newValue: { name: 'Operations', location: 'Building C, Floor 1' },
+    loggedAt: '2025-01-01T08:00:00Z',
+    actor: mockUsers[0],
+  },
+  {
+    id: 5, actorId: 2, entityType: 'user', entityId: 7, action: 'updated',
+    oldValue: { deptId: 4 },
+    newValue: { deptId: 5 },
+    loggedAt: '2025-03-15T11:00:00Z',
+    actor: mockUsers[1],
+  },
+  {
+    id: 6, actorId: 1, entityType: 'user', entityId: 3, action: 'updated',
+    oldValue: { isActive: true },
+    newValue: { isActive: false },
+    loggedAt: '2025-05-20T16:00:00Z',
+    actor: mockUsers[0],
   },
 ];

@@ -10,7 +10,7 @@ import * as Yup from 'yup';
 import { FormikInput } from '@/components/ui/FormikInput';
 import { FormikSelect } from '@/components/ui/FormikSelect';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Plus, Pencil } from 'lucide-react';
+import { Plus, Pencil, KeyRound, UserX, UserCheck } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
 
 interface UserFormValues {
@@ -29,9 +29,22 @@ const userSchema = Yup.object({
   password: Yup.string().min(8, 'Password must be at least 8 characters').required('Password is required'),
 });
 
+const editUserSchema = Yup.object({
+  name: Yup.string().required('Name is required'),
+  email: Yup.string().email('Invalid email').required('Email is required'),
+  roleId: Yup.string().required('Role is required'),
+  deptId: Yup.string().required('Department is required'),
+});
+
 export default function UsersPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<typeof mockUsers[0] | null>(null);
   const { hasRole } = useAuthStore();
+
+  const canManageUsers = hasRole('admin', 'hr');
+  const isAdmin = hasRole('admin');
 
   const roleOptions = mockRoles.map((r) => ({ value: String(r.id), label: r.name }));
   const deptOptions = mockDepartments.map((d) => ({ value: String(d.id), label: d.name }));
@@ -42,20 +55,26 @@ export default function UsersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Users</h1>
-          <p className="text-muted-foreground">Manage user accounts</p>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {isAdmin ? 'User Management' : 'Employees'}
+          </h1>
+          <p className="text-muted-foreground">
+            {isAdmin ? 'Manage user accounts, roles and permissions' : 'Manage employee information'}
+          </p>
         </div>
-        {hasRole('admin') && (
+        {canManageUsers && (
           <Button onClick={() => setDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Add User
+            {isAdmin ? 'Add User' : 'Add Employee'}
           </Button>
         )}
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>All Users ({mockUsers.length})</CardTitle>
+          <CardTitle>
+            {isAdmin ? `All Users (${mockUsers.length})` : `All Employees (${mockUsers.length})`}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -66,7 +85,7 @@ export default function UsersPage() {
                 <TableHead>Role</TableHead>
                 <TableHead>Department</TableHead>
                 <TableHead>Status</TableHead>
-                {hasRole('admin') && <TableHead className="w-20">Actions</TableHead>}
+                {canManageUsers && <TableHead className="w-32">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -92,11 +111,40 @@ export default function UsersPage() {
                         {u.isActive ? 'Active' : 'Inactive'}
                       </Badge>
                     </TableCell>
-                    {hasRole('admin') && (
+                    {canManageUsers && (
                       <TableCell>
-                        <Button variant="ghost" size="icon">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Edit"
+                            onClick={() => { setSelectedUser(u); setEditDialogOpen(true); }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          {isAdmin && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Reset Password"
+                                onClick={() => { setSelectedUser(u); setResetDialogOpen(true); }}
+                              >
+                                <KeyRound className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title={u.isActive ? 'Deactivate' : 'Activate'}
+                              >
+                                {u.isActive
+                                  ? <UserX className="h-4 w-4 text-destructive" />
+                                  : <UserCheck className="h-4 w-4 text-emerald-600" />
+                                }
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </TableCell>
                     )}
                   </TableRow>
@@ -111,8 +159,10 @@ export default function UsersPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add User</DialogTitle>
-            <DialogDescription>Create a new user account</DialogDescription>
+            <DialogTitle>{isAdmin ? 'Add User' : 'Add Employee'}</DialogTitle>
+            <DialogDescription>
+              {isAdmin ? 'Create a new user account with role assignment' : 'Add a new employee record'}
+            </DialogDescription>
           </DialogHeader>
           <Formik<UserFormValues>
             initialValues={initialValues}
@@ -129,12 +179,116 @@ export default function UsersPage() {
                 <FormikInput name="name" label="Name" placeholder="Full name" />
                 <FormikInput name="email" label="Email" type="email" placeholder="user@company.com" />
                 <FormikInput name="password" label="Password" type="password" placeholder="Min 8 characters" />
-                <FormikSelect name="roleId" label="Role" placeholder="Select role..." options={roleOptions} />
+                {isAdmin ? (
+                  <FormikSelect name="roleId" label="Role" placeholder="Select role..." options={roleOptions} />
+                ) : (
+                  <FormikSelect
+                    name="roleId"
+                    label="Role"
+                    placeholder="Select role..."
+                    options={roleOptions.filter((r) => r.label !== 'admin')}
+                  />
+                )}
                 <FormikSelect name="deptId" label="Department" placeholder="Select department..." options={deptOptions} />
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
                   <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? 'Creating...' : 'Create User'}
+                    {isSubmitting ? 'Creating...' : 'Create'}
+                  </Button>
+                </DialogFooter>
+              </Form>
+            )}
+          </Formik>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit user dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit {selectedUser?.name}</DialogTitle>
+            <DialogDescription>
+              {isAdmin ? 'Update account details and role' : 'Update employee information'}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedUser && (
+            <Formik
+              initialValues={{
+                name: selectedUser.name,
+                email: selectedUser.email,
+                roleId: String(selectedUser.roleId),
+                deptId: String(selectedUser.deptId),
+              }}
+              validationSchema={editUserSchema}
+              onSubmit={(_values, { setSubmitting }) => {
+                setTimeout(() => {
+                  setSubmitting(false);
+                  setEditDialogOpen(false);
+                  setSelectedUser(null);
+                }, 500);
+              }}
+            >
+              {({ isSubmitting }) => (
+                <Form className="space-y-4">
+                  <FormikInput name="name" label="Name" placeholder="Full name" />
+                  <FormikInput name="email" label="Email" type="email" placeholder="user@company.com" />
+                  {isAdmin ? (
+                    <FormikSelect name="roleId" label="Role" placeholder="Select role..." options={roleOptions} />
+                  ) : (
+                    <FormikSelect
+                      name="roleId"
+                      label="Role"
+                      placeholder="Select role..."
+                      options={roleOptions.filter((r) => r.label !== 'admin')}
+                    />
+                  )}
+                  <FormikSelect name="deptId" label="Department" placeholder="Select department..." options={deptOptions} />
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                      {isSubmitting ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                  </DialogFooter>
+                </Form>
+              )}
+            </Formik>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset password dialog — admin only */}
+      <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Set a new password for {selectedUser?.name} ({selectedUser?.email})
+            </DialogDescription>
+          </DialogHeader>
+          <Formik
+            initialValues={{ newPassword: '', confirmPassword: '' }}
+            validationSchema={Yup.object({
+              newPassword: Yup.string().min(8, 'Min 8 characters').required('Required'),
+              confirmPassword: Yup.string()
+                .oneOf([Yup.ref('newPassword')], 'Passwords must match')
+                .required('Required'),
+            })}
+            onSubmit={(_values, { setSubmitting }) => {
+              setTimeout(() => {
+                setSubmitting(false);
+                setResetDialogOpen(false);
+                setSelectedUser(null);
+              }, 500);
+            }}
+          >
+            {({ isSubmitting }) => (
+              <Form className="space-y-4">
+                <FormikInput name="newPassword" label="New Password" type="password" placeholder="Min 8 characters" />
+                <FormikInput name="confirmPassword" label="Confirm Password" type="password" placeholder="Repeat password" />
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setResetDialogOpen(false)}>Cancel</Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? 'Resetting...' : 'Reset Password'}
                   </Button>
                 </DialogFooter>
               </Form>

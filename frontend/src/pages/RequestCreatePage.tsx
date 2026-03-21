@@ -6,6 +6,8 @@ import { FormikSelect } from '@/components/ui/FormikSelect';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { mockEquipment } from '@/lib/mock-data';
+import { useAuthStore } from '@/stores/auth';
+import { useRepairRequestStore } from '@/stores/repair-requests';
 import { ArrowLeft } from 'lucide-react';
 
 interface RequestCreateValues {
@@ -22,6 +24,8 @@ const requestCreateSchema = Yup.object({
 
 export default function RequestCreatePage() {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const addRequest = useRepairRequestStore((s) => s.addRequest);
 
   const equipmentOptions = mockEquipment.map((e) => ({
     value: String(e.id),
@@ -55,12 +59,16 @@ export default function RequestCreatePage() {
           <Formik<RequestCreateValues>
             initialValues={initialValues}
             validationSchema={requestCreateSchema}
-            onSubmit={(_values, { setSubmitting }) => {
-              // TODO: call API
-              setTimeout(() => {
-                setSubmitting(false);
-                navigate('/requests');
-              }, 500);
+            onSubmit={(values, { setSubmitting }) => {
+              if (!user) return;
+              addRequest({
+                requesterId: user.id,
+                description: values.description,
+                equipmentId: Number(values.equipmentId),
+                issueDetail: values.issueDetail,
+              });
+              setSubmitting(false);
+              navigate('/requests');
             }}
           >
             {({ isSubmitting }) => (

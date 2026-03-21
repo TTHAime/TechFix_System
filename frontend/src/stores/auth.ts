@@ -7,6 +7,7 @@ interface AuthState {
   accessToken: string | null;
   isAuthenticated: boolean;
   login: (email: string, _password: string) => Promise<boolean>;
+  loginWithGoogle: () => Promise<boolean>;
   logout: () => void;
   hasRole: (...roles: RoleName[]) => boolean;
 }
@@ -24,6 +25,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({
       user,
       accessToken: 'mock-jwt-token',
+      isAuthenticated: true,
+    });
+    return true;
+  },
+
+  loginWithGoogle: async () => {
+    // TODO: replace with real Google OAuth flow
+    // Real flow: redirect to backend /auth/google → callback → receive JWT
+    // Mock: simulate Google login as admin user (provider: 'google')
+    const user = mockUsers.find((u) => u.email === 'admin@company.com');
+    if (!user) return false;
+
+    set({
+      user: { ...user, provider: 'google' },
+      accessToken: 'mock-google-jwt-token',
       isAuthenticated: true,
     });
     return true;

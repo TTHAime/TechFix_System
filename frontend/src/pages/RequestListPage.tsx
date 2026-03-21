@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuthStore } from '@/stores/auth';
-import { mockRepairRequests } from '@/lib/mock-data';
+import { useRepairRequestStore } from '@/stores/repair-requests';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus } from 'lucide-react';
+import { Plus, Hand } from 'lucide-react';
 import type { RequestStatusName } from '@/types';
 
 const statusVariantMap: Record<RequestStatusName, 'warning' | 'default' | 'success' | 'secondary'> = {
@@ -19,23 +19,32 @@ const statusVariantMap: Record<RequestStatusName, 'warning' | 'default' | 'succe
 export default function RequestListPage() {
   const navigate = useNavigate();
   const { user, hasRole } = useAuthStore();
+  const { requests: allRequests, claimRequest } = useRepairRequestStore();
   const [statusFilter, setStatusFilter] = useState<RequestStatusName | 'all'>('all');
 
   if (!user) return null;
 
   // Filter by role
   let requests = hasRole('user')
-    ? mockRepairRequests.filter((r) => r.requesterId === user.id)
+    ? allRequests.filter((r) => r.requesterId === user.id)
     : hasRole('technician')
-      ? mockRepairRequests.filter((r) =>
-          r.assignmentLogs.some((a) => a.technicianId === user.id && a.action === 'assigned'),
+      ? allRequests.filter((r) =>
+          // Show assigned to me OR open & unassigned (claimable)
+          r.assignmentLogs.some((a) => a.technicianId === user.id && a.action === 'assigned')
+          || (r.status.name === 'open' && r.assignmentLogs.length === 0),
         )
-      : mockRepairRequests;
+      : allRequests;
 
   // Filter by status
   if (statusFilter !== 'all') {
     requests = requests.filter((r) => r.status.name === statusFilter);
   }
+
+  const isAssignedToMe = (req: typeof allRequests[0]) =>
+    req.assignmentLogs.some((a) => a.technicianId === user.id && a.action === 'assigned');
+
+  const isClaimable = (req: typeof allRequests[0]) =>
+    hasRole('technician') && req.status.name === 'open' && req.assignmentLogs.length === 0;
 
   return (
     <div className="space-y-6">
@@ -43,7 +52,7 @@ export default function RequestListPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Repair Requests</h1>
           <p className="text-muted-foreground">
-            {hasRole('user') ? 'Your submitted requests' : hasRole('technician') ? 'Your assigned repairs' : 'All repair requests'}
+            {hasRole('user') ? 'Your submitted requests' : hasRole('technician') ? 'Your repairs & open requests' : 'All repair requests'}
           </p>
         </div>
         {hasRole('user', 'admin') && (
@@ -82,6 +91,7 @@ export default function RequestListPage() {
                 {!hasRole('user') && <TableHead>Requester</TableHead>}
                 <TableHead>Status</TableHead>
                 <TableHead>Created</TableHead>
+                {hasRole('technician') && <TableHead className="w-24">Action</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -96,18 +106,40 @@ export default function RequestListPage() {
                   <TableCell>{req.requestEquipment.map((e) => e.equipment.name).join(', ')}</TableCell>
                   {!hasRole('user') && <TableCell>{req.requester.name}</TableCell>}
                   <TableCell>
-                    <Badge variant={statusVariantMap[req.status.name]}>
-                      {req.status.name.replace('_', ' ')}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={statusVariantMap[req.status.name]}>
+                        {req.status.name.replace('_', ' ')}
+                      </Badge>
+                      {hasRole('technician') && isAssignedToMe(req) && (
+                        <Badge variant="outline" className="text-xs">mine</Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {new Date(req.createdAt).toLocaleDateString()}
                   </TableCell>
+                  {hasRole('technician') && (
+                    <TableCell>
+                      {isClaimable(req) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            claimRequest(req.id, user.id);
+                          }}
+                        >
+                          <Hand className="mr-1 h-3 w-3" />
+                          Claim
+                        </Button>
+                      )}
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
               {requests.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                     No requests found.
                   </TableCell>
                 </TableRow>

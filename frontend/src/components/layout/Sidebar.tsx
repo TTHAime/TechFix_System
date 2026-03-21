@@ -8,6 +8,7 @@ import {
   Building2,
   Shield,
   LogOut,
+  ScrollText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -49,6 +50,11 @@ export function Sidebar() {
   // Roles — admin only
   if (hasRole('admin')) {
     navItems.push({ to: '/roles', label: 'Roles', icon: <Shield className="h-4 w-4" /> });
+  }
+
+  // System Logs — admin only
+  if (hasRole('admin')) {
+    navItems.push({ to: '/logs', label: 'System Logs', icon: <ScrollText className="h-4 w-4" /> });
   }
 
   const initials = user.name

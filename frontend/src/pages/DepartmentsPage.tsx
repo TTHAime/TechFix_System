@@ -22,7 +22,11 @@ const departmentSchema = Yup.object({
 
 export default function DepartmentsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedDept, setSelectedDept] = useState<typeof mockDepartments[0] | null>(null);
   const { hasRole } = useAuthStore();
+
+  const canManage = hasRole('admin', 'hr');
 
   const initialValues: DepartmentFormValues = { name: '', location: '' };
 
@@ -33,7 +37,7 @@ export default function DepartmentsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Departments</h1>
           <p className="text-muted-foreground">Manage organization departments</p>
         </div>
-        {hasRole('admin') && (
+        {canManage && (
           <Button onClick={() => setDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Add Department
@@ -52,7 +56,7 @@ export default function DepartmentsPage() {
                 <TableHead>ID</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Location</TableHead>
-                {hasRole('admin') && <TableHead className="w-20">Actions</TableHead>}
+                {canManage && <TableHead className="w-20">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -66,9 +70,13 @@ export default function DepartmentsPage() {
                       {dept.location}
                     </div>
                   </TableCell>
-                  {hasRole('admin') && (
+                  {canManage && (
                     <TableCell>
-                      <Button variant="ghost" size="icon">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => { setSelectedDept(dept); setEditDialogOpen(true); }}
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </TableCell>
@@ -80,6 +88,7 @@ export default function DepartmentsPage() {
         </CardContent>
       </Card>
 
+      {/* Add department dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -109,6 +118,42 @@ export default function DepartmentsPage() {
               </Form>
             )}
           </Formik>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit department dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Department</DialogTitle>
+            <DialogDescription>Update department information</DialogDescription>
+          </DialogHeader>
+          {selectedDept && (
+            <Formik<DepartmentFormValues>
+              initialValues={{ name: selectedDept.name, location: selectedDept.location }}
+              validationSchema={departmentSchema}
+              onSubmit={(_values, { setSubmitting }) => {
+                setTimeout(() => {
+                  setSubmitting(false);
+                  setEditDialogOpen(false);
+                  setSelectedDept(null);
+                }, 500);
+              }}
+            >
+              {({ isSubmitting }) => (
+                <Form className="space-y-4">
+                  <FormikInput name="name" label="Department Name" placeholder="e.g. IT" />
+                  <FormikInput name="location" label="Location" placeholder="e.g. Building A, Floor 3" />
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                      {isSubmitting ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                  </DialogFooter>
+                </Form>
+              )}
+            </Formik>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -1,11 +1,12 @@
 import { useParams, useNavigate } from 'react-router';
 import { useAuthStore } from '@/stores/auth';
-import { mockRepairRequests, mockUsers } from '@/lib/mock-data';
+import { useRepairRequestStore } from '@/stores/repair-requests';
+import { mockUsers } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, User, Monitor, Clock, Wrench } from 'lucide-react';
+import { ArrowLeft, User, Monitor, Clock, Wrench, Hand } from 'lucide-react';
 import type { RequestStatusName } from '@/types';
 
 const statusVariantMap: Record<RequestStatusName, 'warning' | 'default' | 'success' | 'secondary'> = {
@@ -18,9 +19,10 @@ const statusVariantMap: Record<RequestStatusName, 'warning' | 'default' | 'succe
 export default function RequestDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { hasRole } = useAuthStore();
+  const { user, hasRole } = useAuthStore();
+  const { requests, claimRequest, assignRequest, updateStatus } = useRepairRequestStore();
 
-  const request = mockRepairRequests.find((r) => r.id === Number(id));
+  const request = requests.find((r) => r.id === Number(id));
 
   if (!request) {
     return (
@@ -33,6 +35,8 @@ export default function RequestDetailPage() {
 
   const assignedTech = request.assignmentLogs.find((a) => a.action === 'assigned')?.technician;
   const technicians = mockUsers.filter((u) => u.role.name === 'technician');
+  const isUnassigned = request.status.name === 'open' && request.assignmentLogs.length === 0;
+  const isMyRequest = hasRole('technician') && assignedTech?.id === user?.id;
 
   return (
     <div className="space-y-6">
@@ -133,11 +137,31 @@ export default function RequestDetailPage() {
               ) : (
                 <p className="text-sm text-muted-foreground">Not assigned</p>
               )}
-              {hasRole('admin') && !assignedTech && (
+
+              {/* Technician can claim unassigned requests */}
+              {hasRole('technician') && isUnassigned && user && (
+                <Button
+                  className="w-full mt-3"
+                  size="sm"
+                  onClick={() => claimRequest(request.id, user.id)}
+                >
+                  <Hand className="mr-2 h-4 w-4" />
+                  Claim This Request
+                </Button>
+              )}
+
+              {/* Admin can assign technician */}
+              {hasRole('admin') && isUnassigned && user && (
                 <div className="mt-3 space-y-2">
                   <p className="text-xs font-medium text-muted-foreground">Assign to:</p>
                   {technicians.map((tech) => (
-                    <Button key={tech.id} variant="outline" size="sm" className="w-full justify-start">
+                    <Button
+                      key={tech.id}
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={() => assignRequest(request.id, tech.id, user.id)}
+                    >
                       {tech.name}
                     </Button>
                   ))}
@@ -163,7 +187,11 @@ export default function RequestDetailPage() {
               {request.assignmentLogs.map((log) => (
                 <div key={log.id} className="flex items-center gap-2 text-sm">
                   <div className="h-2 w-2 rounded-full bg-blue-500" />
-                  <span>{log.action} to {log.technician.name}</span>
+                  <span>
+                    {log.actorId === log.technicianId
+                      ? `${log.technician.name} claimed`
+                      : `${log.action} to ${log.technician.name}`}
+                  </span>
                   <span className="ml-auto text-muted-foreground text-xs">
                     {new Date(log.loggedAt).toLocaleDateString()}
                   </span>
@@ -181,22 +209,42 @@ export default function RequestDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Admin/Tech status actions */}
-          {hasRole('admin', 'technician') && request.status.name !== 'closed' && (
+          {/* Status actions */}
+          {hasRole('admin', 'technician') && request.status.name !== 'closed' && user && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Actions</CardTitle>
                 <CardDescription>Update request status</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                {request.status.name === 'open' && (
-                  <Button className="w-full" size="sm">Mark In Progress</Button>
+                {request.status.name === 'open' && hasRole('admin') && (
+                  <Button
+                    className="w-full"
+                    size="sm"
+                    onClick={() => updateStatus(request.id, 'in_progress', user.id)}
+                  >
+                    Mark In Progress
+                  </Button>
                 )}
-                {request.status.name === 'in_progress' && (
-                  <Button className="w-full" size="sm" variant="default">Mark Resolved</Button>
+                {request.status.name === 'in_progress' && (hasRole('admin') || isMyRequest) && (
+                  <Button
+                    className="w-full"
+                    size="sm"
+                    variant="default"
+                    onClick={() => updateStatus(request.id, 'resolved', user.id)}
+                  >
+                    Mark Resolved
+                  </Button>
                 )}
                 {request.status.name === 'resolved' && hasRole('admin') && (
-                  <Button className="w-full" size="sm" variant="secondary">Close Request</Button>
+                  <Button
+                    className="w-full"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => updateStatus(request.id, 'closed', user.id)}
+                  >
+                    Close Request
+                  </Button>
                 )}
               </CardContent>
             </Card>
