@@ -102,6 +102,23 @@ export class UsersService {
     }
   }
 
+  async findByEmailForAuth(email: string) {
+    return this.prisma.user.findUnique({
+      where: { email },
+    });
+  }
+
+  async updateLoginAttempt(
+    id: number,
+    failedAttempts: number,
+    lockedUntil: Date | null,
+  ) {
+    await this.prisma.user.update({
+      where: { id },
+      data: { failedAttempts, lockedUntil },
+    });
+  }
+
   async remove(id: number) {
     try {
       await this.prisma.user.update({

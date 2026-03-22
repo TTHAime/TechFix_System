@@ -7,6 +7,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { RolesModule } from './roles/roles.module';
 import { DepartmentsModule } from './departments/departments.module';
 import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
 import 'dotenv/config';
 
 @Module({
@@ -16,6 +17,7 @@ import 'dotenv/config';
     RolesModule,
     DepartmentsModule,
     UsersModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

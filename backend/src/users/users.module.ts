@@ -8,5 +8,6 @@ import { HashModule } from 'src/common/services/hash.module';
   imports: [PrismaModule, HashModule],
   controllers: [UsersController],
   providers: [UsersService],
+  exports: [UsersService],
 })
 export class UsersModule {}
