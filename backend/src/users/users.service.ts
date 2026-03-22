@@ -10,13 +10,16 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from 'src/generated/prisma/client';
 import { AuthProvider } from 'src/common/enums/auth-provider.enum';
-import * as bcrypt from 'bcrypt';
+import { HashService } from 'src/common/services/hash.service';
 
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly hashService: HashService,
+  ) {}
   async create(createUserDto: CreateUserDto) {
     if (
       createUserDto.provider === AuthProvider.LOCAL &&
@@ -26,7 +29,9 @@ export class UsersService {
     }
 
     const { password, ...rest } = createUserDto;
-    const passwordHash = password ? await bcrypt.hash(password, 12) : null;
+    const passwordHash = password
+      ? await this.hashService.hash(password)
+      : null;
 
     try {
       const user = await this.prisma.user.create({
@@ -74,7 +79,9 @@ export class UsersService {
 
   async update(id: number, updateUserDto: UpdateUserDto) {
     const { password, ...rest } = updateUserDto;
-    const passwordHash = password ? await bcrypt.hash(password, 12) : undefined;
+    const passwordHash = password
+      ? await this.hashService.hash(password)
+      : undefined;
 
     try {
       const user = await this.prisma.user.update({
