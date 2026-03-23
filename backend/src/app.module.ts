@@ -8,7 +8,6 @@ import { RolesModule } from './roles/roles.module';
 import { DepartmentsModule } from './departments/departments.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
-import 'dotenv/config';
 
 @Module({
   imports: [

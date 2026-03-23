@@ -1,9 +1,20 @@
 import { PrismaClient } from '../generated/prisma/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
+import * as argon2 from 'argon2';
 import 'dotenv/config';
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
+
+async function hashPassword(password: string): Promise<string> {
+  const pepper = process.env.PEPPER ?? '';
+  return argon2.hash(`${pepper}:${password}`, {
+    type: argon2.argon2id,
+    memoryCost: 2 ** 16,
+    timeCost: 3,
+    parallelism: 1,
+  });
+}
 
 async function main() {
   // ─── Roles ───
@@ -60,13 +71,11 @@ async function main() {
   });
 
   // ─── Users ───
-  // password hash for "P@ssw0rd" (bcrypt, 10 rounds) — ใช้สำหรับ seed เท่านั้น
-  const demoHash =
-    '$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36Kz7aOBfBhq1sW5pFdWzWu';
+  const demoHash = await hashPassword('P@ssw0rd');
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@company.com' },
-    update: {},
+    update: { passwordHash: demoHash },
     create: {
       name: 'สมชาย แอดมิน',
       email: 'admin@company.com',
@@ -79,7 +88,7 @@ async function main() {
 
   const hr = await prisma.user.upsert({
     where: { email: 'hr@company.com' },
-    update: {},
+    update: { passwordHash: demoHash },
     create: {
       name: 'สมหญิง เอชอาร์',
       email: 'hr@company.com',
@@ -92,7 +101,7 @@ async function main() {
 
   const tech1 = await prisma.user.upsert({
     where: { email: 'tech1@company.com' },
-    update: {},
+    update: { passwordHash: demoHash },
     create: {
       name: 'สมศักดิ์ ช่างคอม',
       email: 'tech1@company.com',
@@ -105,7 +114,7 @@ async function main() {
 
   const tech2 = await prisma.user.upsert({
     where: { email: 'tech2@company.com' },
-    update: {},
+    update: { passwordHash: demoHash },
     create: {
       name: 'สมปอง ช่างเน็ต',
       email: 'tech2@company.com',
@@ -118,7 +127,7 @@ async function main() {
 
   const user1 = await prisma.user.upsert({
     where: { email: 'somjai@company.com' },
-    update: {},
+    update: { passwordHash: demoHash },
     create: {
       name: 'สมใจ พนักงาน',
       email: 'somjai@company.com',
@@ -131,7 +140,7 @@ async function main() {
 
   const user2 = await prisma.user.upsert({
     where: { email: 'somsri@company.com' },
-    update: {},
+    update: { passwordHash: demoHash },
     create: {
       name: 'สมศรี การตลาด',
       email: 'somsri@company.com',
@@ -144,7 +153,7 @@ async function main() {
 
   const user3 = await prisma.user.upsert({
     where: { email: 'somsak@company.com' },
-    update: {},
+    update: { passwordHash: demoHash },
     create: {
       name: 'สมศักดิ์ ปฏิบัติการ',
       email: 'somsak@company.com',
