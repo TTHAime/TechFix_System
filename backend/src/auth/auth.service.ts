@@ -1,4 +1,8 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { createHash, randomBytes } from 'crypto';
 import { HashService } from 'src/common/services/hash.service';
@@ -146,6 +150,41 @@ export class AuthService {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
     });
+  }
+
+  async googleLogin(
+    googleUser: { providerUid: string; email: string; name: string },
+    res: Response,
+  ) {
+    const user = await this.usersService.findByEmailForAuth(googleUser.email);
+
+    if (!user) {
+      throw new UnauthorizedException(
+        'No account found — please contact HR to be onboarded first',
+      );
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('Account is deactivated');
+    }
+
+    // Link providerUid on first Google login if not set yet
+    if (!user.providerUid) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { provider: 'google', providerUid: googleUser.providerUid },
+      });
+    }
+
+    return this.login(
+      {
+        id: user.id,
+        email: user.email,
+        roleId: user.roleId,
+        roleName: user.role.name,
+      },
+      res,
+    );
   }
 
   async getMe(userId: number) {

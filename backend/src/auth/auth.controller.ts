@@ -12,6 +12,7 @@ import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { GoogleAuthGuard } from './guards/google-auth.guard';
 import type { JwtPayload } from 'src/common/interfaces/jwt-payload.interface';
 
 @Controller('auth')
@@ -55,6 +56,26 @@ export class AuthController {
     if (!rawToken) throw new UnauthorizedException('No refresh token');
     const user = req.user as JwtPayload;
     return this.authService.logout(user.sub, rawToken, res);
+  }
+
+  @Get('google')
+  @UseGuards(GoogleAuthGuard)
+  googleAuth() {
+    // Passport redirects to Google — this method body is never called
+  }
+
+  @Get('google/callback')
+  @UseGuards(GoogleAuthGuard)
+  googleCallback(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const googleUser = req.user as {
+      providerUid: string;
+      email: string;
+      name: string;
+    };
+    return this.authService.googleLogin(googleUser, res);
   }
 
   @Get('me')
