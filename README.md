@@ -34,6 +34,19 @@ POSTGRES_PASSWORD=yourpassword
 POSTGRES_DB=techfix_db
 DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}
 
+JWT_SECRET=
+PEPPER=
+NODE_ENV=
+
+```
+Generate secrets using these commands:
+
+```bash
+# JWT secret (64 bytes, base64url — for HS512)
+node -e "console.log(require('crypto').randomBytes(64).toString('base64url'))"
+
+# Pepper secret (32 bytes minimum)
+node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 ```
 
 ### 3. Start PostgreSQL (Docker)
