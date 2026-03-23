@@ -1,5 +1,5 @@
 import {
-  IsEmail,
+  IsBoolean,
   IsInt,
   IsOptional,
   IsString,
@@ -7,23 +7,19 @@ import {
   MinLength,
 } from 'class-validator';
 
-export class UpdateUserDto {
+export class HRUpdateUserDto {
   @IsString()
   @MaxLength(100)
   @IsOptional()
   name?: string;
 
-  @IsEmail()
-  @IsOptional()
-  email?: string;
-
-  @IsInt()
-  @IsOptional()
-  roleId?: number;
-
   @IsInt()
   @IsOptional()
   deptId?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean;
 
   @IsString()
   @MinLength(15)

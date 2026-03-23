@@ -5,6 +5,7 @@ interface JwtPayload {
   sub: number;
   email: string;
   roleId: number;
+  roleName: string;
 }
 
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -16,6 +17,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   validate(payload: JwtPayload): unknown {
-    return { sub: payload.sub, email: payload.email, roleId: payload.roleId };
+    return {
+      sub: payload.sub,
+      email: payload.email,
+      roleId: payload.roleId,
+      roleName: payload.roleName,
+    };
   }
 }

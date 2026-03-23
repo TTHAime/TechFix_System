@@ -1,29 +1,27 @@
 import {
   IsEmail,
+  IsEnum,
   IsInt,
   IsOptional,
   IsString,
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { AuthProvider } from 'src/common/enums/auth-provider.enum';
 
-export class UpdateUserDto {
+export class HRCreateUserDto {
   @IsString()
   @MaxLength(100)
-  @IsOptional()
-  name?: string;
+  name: string;
 
   @IsEmail()
-  @IsOptional()
-  email?: string;
+  email: string;
 
   @IsInt()
-  @IsOptional()
-  roleId?: number;
+  deptId: number;
 
-  @IsInt()
-  @IsOptional()
-  deptId?: number;
+  @IsEnum(AuthProvider)
+  provider: AuthProvider;
 
   @IsString()
   @MinLength(15)

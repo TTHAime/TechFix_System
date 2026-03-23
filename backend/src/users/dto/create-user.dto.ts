@@ -32,7 +32,8 @@ export class CreateUserDto {
   providerUid?: string;
 
   @IsString()
-  @MinLength(8)
+  @MinLength(15)
+  @MaxLength(64)
   @IsOptional()
   password?: string;
 }

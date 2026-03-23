@@ -57,13 +57,14 @@ export class AuthService {
   }
 
   async login(
-    user: { id: number; email: string; roleId: number },
+    user: { id: number; email: string; roleId: number; roleName: string },
     res: Response,
   ) {
     const accessToken = this.jwtService.sign({
       sub: user.id,
       email: user.email,
       roleId: user.roleId,
+      roleName: user.roleName,
     });
 
     const rawRefreshToken = randomBytes(40).toString('hex');

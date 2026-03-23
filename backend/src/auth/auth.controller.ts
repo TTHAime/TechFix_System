@@ -17,12 +17,14 @@ interface LocalUser {
   id: number;
   email: string;
   roleId: number;
+  roleName: string;
 }
 
 interface JwtUser {
   sub: number;
   email: string;
   roleId: number;
+  roleName: string;
 }
 
 @Controller('auth')
