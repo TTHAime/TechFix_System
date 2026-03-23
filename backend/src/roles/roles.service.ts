@@ -1,12 +1,13 @@
 import {
+  ConflictException,
   Injectable,
   NotFoundException,
-  ConflictException,
 } from '@nestjs/common';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import { PrismaClientKnownRequestError } from '../generated/prisma/internal/prismaNamespace.js';
+import { Prisma } from '../generated/prisma/client';
+import type { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 @Injectable()
 export class RolesService {
@@ -17,7 +18,7 @@ export class RolesService {
       return await this.prisma.role.create({ data: createRoleDto });
     } catch (error) {
       if (
-        error instanceof PrismaClientKnownRequestError &&
+        error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
         throw new ConflictException('Role name already exists');
@@ -26,8 +27,21 @@ export class RolesService {
     }
   }
 
-  async findAll() {
-    return await this.prisma.role.findMany();
+  async findAll(query: PaginationQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.prisma.role.findMany({
+        skip,
+        take: limit,
+        orderBy: { id: 'asc' },
+      }),
+      this.prisma.role.count(),
+    ]);
+
+    return { data, meta: { page, limit, total } };
   }
 
   async findOne(id: number) {
@@ -45,11 +59,11 @@ export class RolesService {
         data: updateRoleDto,
       });
     } catch (error) {
-      if (
-        error instanceof PrismaClientKnownRequestError &&
-        error.code === 'P2025'
-      ) {
-        throw new NotFoundException(`Role #${id} not found`);
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025')
+          throw new NotFoundException(`Role #${id} not found`);
+        if (error.code === 'P2002')
+          throw new ConflictException('Role name already exists');
       }
       throw error;
     }
@@ -59,11 +73,13 @@ export class RolesService {
     try {
       return await this.prisma.role.delete({ where: { id } });
     } catch (error) {
-      if (
-        error instanceof PrismaClientKnownRequestError &&
-        error.code === 'P2025'
-      ) {
-        throw new NotFoundException(`Role #${id} not found`);
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025')
+          throw new NotFoundException(`Role #${id} not found`);
+        if (error.code === 'P2003')
+          throw new ConflictException(
+            'Cannot delete role: it still has users assigned',
+          );
       }
       throw error;
     }

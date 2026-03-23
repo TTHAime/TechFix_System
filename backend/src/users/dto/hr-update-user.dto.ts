@@ -4,8 +4,8 @@ import {
   IsOptional,
   IsString,
   MaxLength,
-  MinLength,
 } from 'class-validator';
+import { IsStrongPassword } from 'src/common/validators/is-strong-password.validator';
 
 export class HRUpdateUserDto {
   @IsString()
@@ -21,9 +21,7 @@ export class HRUpdateUserDto {
   @IsOptional()
   isActive?: boolean;
 
-  @IsString()
-  @MinLength(15)
-  @MaxLength(64)
+  @IsStrongPassword()
   @IsOptional()
   password?: string;
 }

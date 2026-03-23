@@ -1,12 +1,13 @@
 import {
+  ConflictException,
   Injectable,
   NotFoundException,
-  ConflictException,
 } from '@nestjs/common';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import { PrismaClientKnownRequestError } from '../generated/prisma/internal/prismaNamespace.js';
+import { Prisma } from '../generated/prisma/client';
+import type { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 @Injectable()
 export class DepartmentsService {
@@ -17,7 +18,7 @@ export class DepartmentsService {
       return await this.prisma.department.create({ data: createDepartmentDto });
     } catch (error) {
       if (
-        error instanceof PrismaClientKnownRequestError &&
+        error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
         throw new ConflictException('Department name already exists');
@@ -26,8 +27,21 @@ export class DepartmentsService {
     }
   }
 
-  async findAll() {
-    return await this.prisma.department.findMany();
+  async findAll(query: PaginationQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.prisma.department.findMany({
+        skip,
+        take: limit,
+        orderBy: { id: 'asc' },
+      }),
+      this.prisma.department.count(),
+    ]);
+
+    return { data, meta: { page, limit, total } };
   }
 
   async findOne(id: number) {
@@ -47,11 +61,11 @@ export class DepartmentsService {
         data: updateDepartmentDto,
       });
     } catch (error) {
-      if (
-        error instanceof PrismaClientKnownRequestError &&
-        error.code === 'P2025'
-      ) {
-        throw new NotFoundException(`Department #${id} not found`);
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025')
+          throw new NotFoundException(`Department #${id} not found`);
+        if (error.code === 'P2002')
+          throw new ConflictException('Department name already exists');
       }
       throw error;
     }
@@ -61,11 +75,13 @@ export class DepartmentsService {
     try {
       return await this.prisma.department.delete({ where: { id } });
     } catch (error) {
-      if (
-        error instanceof PrismaClientKnownRequestError &&
-        error.code === 'P2025'
-      ) {
-        throw new NotFoundException(`Department #${id} not found`);
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025')
+          throw new NotFoundException(`Department #${id} not found`);
+        if (error.code === 'P2003')
+          throw new ConflictException(
+            'Cannot delete department: it still has users or equipment',
+          );
       }
       throw error;
     }

@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Req,
+  Query,
   ParseIntPipe,
 } from '@nestjs/common';
 import type { Request } from 'express';
@@ -21,13 +22,8 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/enums/role.enum';
-
-interface JwtUser {
-  sub: number;
-  email: string;
-  roleId: number;
-  roleName: string;
-}
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import type { JwtPayload } from 'src/common/interfaces/jwt-payload.interface';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -35,60 +31,73 @@ interface JwtUser {
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  // /me routes must be declared before :id routes
   @Get('me')
   @Roles(Role.Admin, Role.HR, Role.Technician, Role.User)
-  getMe(@Req() req: Request & { user: JwtUser }) {
-    return this.usersService.findOne(req.user.sub);
+  async getMe(@Req() req: Request & { user: JwtPayload }) {
+    const data = await this.usersService.findOne(req.user.sub);
+    return { data, message: 'User retrieved successfully' };
   }
 
   @Patch('me')
   @Roles(Role.Admin, Role.HR, Role.Technician, Role.User)
-  updateMe(
-    @Req() req: Request & { user: JwtUser },
+  async updateMe(
+    @Req() req: Request & { user: JwtPayload },
     @Body() dto: UpdateProfileDto,
   ) {
-    return this.usersService.updateProfile(req.user.sub, dto);
+    const data = await this.usersService.updateProfile(req.user.sub, dto);
+    return { data, message: 'Profile updated successfully' };
   }
 
   @Post('onboard')
   @Roles(Role.HR)
-  hrCreate(@Body() hrCreateDto: HRCreateUserDto) {
-    return this.usersService.hrCreate(hrCreateDto);
+  async hrCreate(@Body() hrCreateDto: HRCreateUserDto) {
+    const data = await this.usersService.hrCreate(hrCreateDto);
+    return { data, message: 'User onboarded successfully' };
   }
 
   @Patch(':id/profile')
   @Roles(Role.Admin, Role.HR)
-  hrUpdate(
+  async hrUpdate(
     @Param('id', ParseIntPipe) id: number,
     @Body() hrUpdateDto: HRUpdateUserDto,
   ) {
-    return this.usersService.hrUpdate(id, hrUpdateDto);
+    const data = await this.usersService.hrUpdate(id, hrUpdateDto);
+    return { data, message: 'User updated successfully' };
   }
 
   @Post()
-  create(@Body() dto: CreateUserDto) {
-    return this.usersService.create(dto);
+  async create(@Body() dto: CreateUserDto) {
+    const data = await this.usersService.create(dto);
+    return { data, message: 'User created successfully' };
   }
 
   @Get()
-  findAll() {
-    return this.usersService.findAll();
+  async findAll(@Query() query: PaginationQueryDto) {
+    const result = await this.usersService.findAll(query);
+    return { ...result, message: 'Users retrieved successfully' };
   }
 
   @Get(':id')
   @Roles(Role.Admin, Role.HR, Role.Technician)
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.usersService.findOne(id);
+    return { data, message: 'User retrieved successfully' };
   }
 
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateUserDto) {
-    return this.usersService.update(id, dto);
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateUserDto,
+  ) {
+    const data = await this.usersService.update(id, dto);
+    return { data, message: 'User updated successfully' };
   }
 
   @Delete(':id')
   @Roles(Role.Admin, Role.HR)
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.remove(id);
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    await this.usersService.remove(id);
+    return { data: null, message: 'User deleted successfully' };
   }
 }

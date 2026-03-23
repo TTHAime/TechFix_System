@@ -5,35 +5,33 @@ import {
   IsOptional,
   IsString,
   MaxLength,
-  MinLength,
 } from 'class-validator';
 import { AuthProvider } from 'src/common/enums/auth-provider.enum';
+import { IsStrongPassword } from 'src/common/validators/is-strong-password.validator';
 
 export class CreateUserDto {
   @IsString()
   @MaxLength(100)
-  name: string;
+  declare name: string;
 
   @IsEmail()
-  email: string;
+  declare email: string;
 
   @IsInt()
-  roleId: number;
+  declare roleId: number;
 
   @IsInt()
-  deptId: number;
+  declare deptId: number;
 
   @IsEnum(AuthProvider)
-  provider: AuthProvider;
+  declare provider: AuthProvider;
 
   @IsString()
   @MaxLength(100)
   @IsOptional()
   providerUid?: string;
 
-  @IsString()
-  @MinLength(15)
-  @MaxLength(64)
+  @IsStrongPassword()
   @IsOptional()
   password?: string;
 }

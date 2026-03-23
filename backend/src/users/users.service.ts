@@ -16,6 +16,7 @@ import { AuthProvider } from 'src/common/enums/auth-provider.enum';
 import { Role } from 'src/common/enums/role.enum';
 import { HashService } from 'src/common/services/hash.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import type { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 @Injectable()
 export class UsersService {
@@ -25,6 +26,7 @@ export class UsersService {
     private readonly prisma: PrismaService,
     private readonly hashService: HashService,
   ) {}
+
   async create(createUserDto: CreateUserDto) {
     if (
       createUserDto.provider === AuthProvider.LOCAL &&
@@ -40,7 +42,8 @@ export class UsersService {
 
     try {
       const user = await this.prisma.user.create({
-        data: { ...rest, passwordHash: passwordHash },
+        data: { ...rest, passwordHash },
+        include: { role: true, department: true },
         omit: { passwordHash: true },
       });
       this.logger.log(`User created: ${user.id}`);
@@ -56,30 +59,33 @@ export class UsersService {
     }
   }
 
-  async findAll() {
-    try {
-      return await this.prisma.user.findMany({
+  async findAll(query: PaginationQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.prisma.user.findMany({
+        skip,
+        take: limit,
+        orderBy: { id: 'asc' },
+        include: { role: true, department: true },
         omit: { passwordHash: true },
-      });
-    } catch (e) {
-      this.logger.error('Failed to fetch users', e);
-      throw e;
-    }
+      }),
+      this.prisma.user.count(),
+    ]);
+
+    return { data, meta: { page, limit, total } };
   }
 
   async findOne(id: number) {
-    try {
-      const user = await this.prisma.user.findUnique({
-        where: { id },
-        omit: { passwordHash: true },
-      });
-      if (!user) throw new NotFoundException('User not found');
-      return user;
-    } catch (e) {
-      if (e instanceof NotFoundException) throw e;
-      this.logger.error(`Failed to fetch user ${id}`, e);
-      throw e;
-    }
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: { role: true, department: true },
+      omit: { passwordHash: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+    return user;
   }
 
   async update(id: number, updateUserDto: UpdateUserDto) {
@@ -92,6 +98,7 @@ export class UsersService {
       const user = await this.prisma.user.update({
         where: { id },
         data: { ...rest, ...(passwordHash && { passwordHash }) },
+        include: { role: true, department: true },
         omit: { passwordHash: true },
       });
       this.logger.log(`User updated: ${id}`);
@@ -127,6 +134,7 @@ export class UsersService {
     try {
       const user = await this.prisma.user.create({
         data: { ...rest, roleId: defaultRole.id, passwordHash },
+        include: { role: true, department: true },
         omit: { passwordHash: true },
       });
       this.logger.log(`User onboarded by HR: ${user.id}`);
@@ -152,16 +160,16 @@ export class UsersService {
       const user = await this.prisma.user.update({
         where: { id },
         data: { ...rest, ...(passwordHash && { passwordHash }) },
+        include: { role: true, department: true },
         omit: { passwordHash: true },
       });
-      this.logger.log(`User updated by HR: ${id}`);
+      this.logger.log(`User updated by HR/Admin: ${id}`);
       return user;
     } catch (e) {
-      if (
-        e instanceof Prisma.PrismaClientKnownRequestError &&
-        e.code === 'P2025'
-      ) {
-        throw new NotFoundException('User not found');
+      if (e instanceof Prisma.PrismaClientKnownRequestError) {
+        if (e.code === 'P2025') throw new NotFoundException('User not found');
+        if (e.code === 'P2002')
+          throw new ConflictException('Email already in use');
       }
       throw e;
     }
@@ -175,11 +183,12 @@ export class UsersService {
 
     try {
       const user = await this.prisma.user.update({
-        where: { id: id },
+        where: { id },
         data: { ...rest, ...(passwordHash && { passwordHash }) },
+        include: { role: true, department: true },
         omit: { passwordHash: true },
       });
-      this.logger.log(`User updated: ${id}`);
+      this.logger.log(`Profile updated: ${id}`);
       return user;
     } catch (e) {
       if (
@@ -196,17 +205,6 @@ export class UsersService {
     return this.prisma.user.findUnique({
       where: { email },
       include: { role: true },
-    });
-  }
-
-  async updateLoginAttempt(
-    id: number,
-    failedAttempts: number,
-    lockedUntil: Date | null,
-  ) {
-    await this.prisma.user.update({
-      where: { id },
-      data: { failedAttempts, lockedUntil },
     });
   }
 

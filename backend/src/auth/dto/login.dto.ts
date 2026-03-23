@@ -7,10 +7,10 @@ export class LoginDto {
   )
   @IsEmail()
   @MaxLength(100)
-  email: string;
+  declare email: string;
 
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
-  password: string;
+  declare password: string;
 }

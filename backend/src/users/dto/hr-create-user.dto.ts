@@ -5,9 +5,9 @@ import {
   IsOptional,
   IsString,
   MaxLength,
-  MinLength,
 } from 'class-validator';
 import { AuthProvider } from 'src/common/enums/auth-provider.enum';
+import { IsStrongPassword } from 'src/common/validators/is-strong-password.validator';
 
 export class HRCreateUserDto {
   @IsString()
@@ -23,9 +23,7 @@ export class HRCreateUserDto {
   @IsEnum(AuthProvider)
   provider: AuthProvider;
 
-  @IsString()
-  @MinLength(15)
-  @MaxLength(64)
+  @IsStrongPassword()
   @IsOptional()
   password?: string;
 }

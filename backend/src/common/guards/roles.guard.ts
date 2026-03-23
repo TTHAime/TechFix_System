@@ -3,22 +3,13 @@ import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 import { ROLES_KEY } from 'src/common/decorators/roles.decorator';
 import { Role } from '../enums/role.enum';
-import { PrismaService } from 'src/prisma/prisma.service';
-
-interface JwtUser {
-  sub: number;
-  email: string;
-  roleId: number;
-}
+import type { JwtPayload } from 'src/common/interfaces/jwt-payload.interface';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(
-    private reflector: Reflector,
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private reflector: Reflector) {}
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
+  canActivate(context: ExecutionContext): boolean {
     const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -27,12 +18,10 @@ export class RolesGuard implements CanActivate {
 
     const { user } = context
       .switchToHttp()
-      .getRequest<Request & { user: JwtUser }>();
-    const dbUser = await this.prisma.user.findUnique({
-      where: { id: user.sub },
-      include: { role: true },
-    });
+      .getRequest<Request & { user: JwtPayload }>();
 
-    return requiredRoles.includes(dbUser?.role.name as Role);
+    if (!user?.roleName) return false;
+
+    return requiredRoles.includes(user.roleName as Role);
   }
 }

@@ -1,4 +1,5 @@
-import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsStrongPassword } from 'src/common/validators/is-strong-password.validator';
 
 export class UpdateProfileDto {
   @IsString()
@@ -6,9 +7,7 @@ export class UpdateProfileDto {
   @IsOptional()
   name?: string;
 
-  @IsString()
-  @MinLength(15)
-  @MaxLength(64)
+  @IsStrongPassword()
   @IsOptional()
   password?: string;
 }

@@ -12,20 +12,7 @@ import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-
-interface LocalUser {
-  id: number;
-  email: string;
-  roleId: number;
-  roleName: string;
-}
-
-interface JwtUser {
-  sub: number;
-  email: string;
-  roleId: number;
-  roleName: string;
-}
+import type { JwtPayload } from 'src/common/interfaces/jwt-payload.interface';
 
 @Controller('auth')
 export class AuthController {
@@ -35,7 +22,29 @@ export class AuthController {
   @HttpCode(200)
   @UseGuards(LocalAuthGuard)
   login(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    return this.authService.login(req.user as LocalUser, res);
+    const user = req.user as {
+      id: number;
+      email: string;
+      roleId: number;
+      role: { name: string };
+    };
+    return this.authService.login(
+      {
+        id: user.id,
+        email: user.email,
+        roleId: user.roleId,
+        roleName: user.role.name,
+      },
+      res,
+    );
+  }
+
+  @Post('refresh')
+  @HttpCode(200)
+  refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const rawToken = req.cookies['refresh_token'] as string | undefined;
+    if (!rawToken) throw new UnauthorizedException('No refresh token');
+    return this.authService.refresh(rawToken, res);
   }
 
   @Post('logout')
@@ -44,14 +53,15 @@ export class AuthController {
   logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const rawToken = req.cookies['refresh_token'] as string | undefined;
     if (!rawToken) throw new UnauthorizedException('No refresh token');
-
-    const user = req.user as JwtUser;
+    const user = req.user as JwtPayload;
     return this.authService.logout(user.sub, rawToken, res);
   }
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  me(@Req() req: Request) {
-    return { data: req.user as JwtUser };
+  async me(@Req() req: Request) {
+    const user = req.user as JwtPayload;
+    const data = await this.authService.getMe(user.sub);
+    return { data, message: 'User retrieved successfully' };
   }
 }

@@ -6,13 +6,22 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { Role } from 'src/common/enums/role.enum';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 @Controller('roles')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.Admin)
 export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 
@@ -23,9 +32,9 @@ export class RolesController {
   }
 
   @Get()
-  async findAll() {
-    const data = await this.rolesService.findAll();
-    return { data, message: 'Roles retrieved successfully' };
+  async findAll(@Query() query: PaginationQueryDto) {
+    const result = await this.rolesService.findAll(query);
+    return { ...result, message: 'Roles retrieved successfully' };
   }
 
   @Get(':id')

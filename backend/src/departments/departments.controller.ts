@@ -6,13 +6,22 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { DepartmentsService } from './departments.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { Role } from 'src/common/enums/role.enum';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 @Controller('departments')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.Admin)
 export class DepartmentsController {
   constructor(private readonly departmentsService: DepartmentsService) {}
 
@@ -23,9 +32,9 @@ export class DepartmentsController {
   }
 
   @Get()
-  async findAll() {
-    const data = await this.departmentsService.findAll();
-    return { data, message: 'Departments retrieved successfully' };
+  async findAll(@Query() query: PaginationQueryDto) {
+    const result = await this.departmentsService.findAll(query);
+    return { ...result, message: 'Departments retrieved successfully' };
   }
 
   @Get(':id')
