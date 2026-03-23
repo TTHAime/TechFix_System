@@ -38,7 +38,22 @@ JWT_SECRET=
 PEPPER=
 NODE_ENV=
 
+# Google OAuth (SSO)
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_CALLBACK_URL=http://localhost:3000/auth/google/callback
 ```
+
+#### Google OAuth Setup
+
+1. ไปที่ [Google Cloud Console](https://console.cloud.google.com/)
+2. สร้าง Project ใหม่ (หรือเลือก project ที่มีอยู่)
+3. ไปที่ **APIs & Services → OAuth consent screen** → เลือก External → กรอก App name, email
+4. ไปที่ **APIs & Services → Credentials** → Create Credentials → **OAuth client ID**
+5. เลือก Application type: **Web application**
+6. เพิ่ม Authorized redirect URI: `http://localhost:3000/auth/google/callback`
+7. Copy **Client ID** และ **Client Secret** ใส่ `.env`
+
 Generate secrets using these commands:
 
 ```bash
