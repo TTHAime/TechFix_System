@@ -1,4 +1,4 @@
-import { mockRoles } from '@/lib/mock-data';
+import { useRolesQuery } from '@/features/roles/hooks';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -46,6 +46,18 @@ const roleDescriptions: Record<string, { label: string; permissions: string[] }>
 };
 
 export default function RolesPage() {
+  const { data: response, isLoading, isError } = useRolesQuery();
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center p-8">Loading roles...</div>;
+  }
+
+  if (isError) {
+    return <div className="flex items-center justify-center p-8 text-destructive">Failed to load roles</div>;
+  }
+
+  const roles = response?.data ?? [];
+
   return (
     <div className="space-y-6">
       <div>
@@ -57,7 +69,7 @@ export default function RolesPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
-            All Roles ({mockRoles.length})
+            All Roles ({roles.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -71,7 +83,7 @@ export default function RolesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockRoles.map((role) => {
+              {roles.map((role) => {
                 const desc = roleDescriptions[role.name];
                 return (
                   <TableRow key={role.id}>

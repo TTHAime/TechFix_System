@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import { useAuthStore } from '@/stores/auth';
@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Wrench } from 'lucide-react';
 import { useState } from 'react';
+import { isAxiosError } from 'axios';
 
 interface LoginValues {
   email: string;
@@ -32,10 +33,12 @@ function GoogleIcon() {
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const login = useAuthStore((s) => s.login);
   const loginWithGoogle = useAuthStore((s) => s.loginWithGoogle);
   const [googleLoading, setGoogleLoading] = useState(false);
 
+  const googleError = searchParams.get('error');
   const initialValues: LoginValues = { email: '', password: '' };
 
   return (
@@ -49,15 +52,29 @@ export default function LoginPage() {
           <CardDescription>Sign in to the repair management system</CardDescription>
         </CardHeader>
         <CardContent>
+          {googleError && (
+            <div className="mb-4 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+              {googleError}
+            </div>
+          )}
           <Formik<LoginValues>
             initialValues={initialValues}
             validationSchema={loginSchema}
             onSubmit={async (values, { setSubmitting, setFieldError }) => {
-              const success = await login(values.email, values.password);
-              if (success) {
+              try {
+                await login(values.email, values.password);
                 navigate('/dashboard');
-              } else {
-                setFieldError('email', 'Invalid email or password');
+              } catch (error) {
+                if (isAxiosError(error) && error.response) {
+                  const msg = error.response.data?.message;
+                  if (typeof msg === 'string' && msg.includes('locked')) {
+                    setFieldError('email', 'Account temporarily locked. Try again later.');
+                  } else {
+                    setFieldError('email', 'Invalid email or password');
+                  }
+                } else {
+                  setFieldError('email', 'Cannot connect to server');
+                }
               }
               setSubmitting(false);
             }}
@@ -82,17 +99,13 @@ export default function LoginPage() {
                   variant="outline"
                   className="w-full gap-2"
                   disabled={googleLoading}
-                  onClick={async () => {
+                  onClick={() => {
                     setGoogleLoading(true);
-                    const success = await loginWithGoogle();
-                    if (success) {
-                      navigate('/dashboard');
-                    }
-                    setGoogleLoading(false);
+                    loginWithGoogle();
                   }}
                 >
                   <GoogleIcon />
-                  {googleLoading ? 'Signing in...' : 'Sign in with Google'}
+                  {googleLoading ? 'Redirecting...' : 'Sign in with Google'}
                 </Button>
               </Form>
             )}
@@ -105,7 +118,7 @@ export default function LoginPage() {
               <p><span className="font-medium">HR:</span> hr@company.com</p>
               <p><span className="font-medium">Technician:</span> tech1@company.com</p>
               <p><span className="font-medium">User:</span> somjai@company.com</p>
-              <p className="text-muted-foreground/70">Password: any (mock)</p>
+              <p className="text-muted-foreground/70">Password: P@ssw0rd</p>
             </div>
           </div>
         </CardContent>

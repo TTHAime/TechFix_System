@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { mockDepartments } from '@/lib/mock-data';
+import { useDepartmentsQuery, useCreateDepartmentMutation, useUpdateDepartmentMutation } from '@/features/departments/hooks';
+import type { Department } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -23,12 +24,26 @@ const departmentSchema = Yup.object({
 export default function DepartmentsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [selectedDept, setSelectedDept] = useState<typeof mockDepartments[0] | null>(null);
+  const [selectedDept, setSelectedDept] = useState<Department | null>(null);
   const { hasRole } = useAuthStore();
+
+  const { data: response, isLoading, isError } = useDepartmentsQuery();
+  const createMutation = useCreateDepartmentMutation();
+  const updateMutation = useUpdateDepartmentMutation();
 
   const canManage = hasRole('admin', 'hr');
 
   const initialValues: DepartmentFormValues = { name: '', location: '' };
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center p-8">Loading departments...</div>;
+  }
+
+  if (isError) {
+    return <div className="flex items-center justify-center p-8 text-destructive">Failed to load departments</div>;
+  }
+
+  const departments = response?.data ?? [];
 
   return (
     <div className="space-y-6">
@@ -47,7 +62,7 @@ export default function DepartmentsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All Departments ({mockDepartments.length})</CardTitle>
+          <CardTitle>All Departments ({departments.length})</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -60,7 +75,7 @@ export default function DepartmentsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockDepartments.map((dept) => (
+              {departments.map((dept) => (
                 <TableRow key={dept.id}>
                   <TableCell className="font-medium">{dept.id}</TableCell>
                   <TableCell className="font-medium">{dept.name}</TableCell>
@@ -98,11 +113,14 @@ export default function DepartmentsPage() {
           <Formik<DepartmentFormValues>
             initialValues={initialValues}
             validationSchema={departmentSchema}
-            onSubmit={(_values, { setSubmitting }) => {
-              setTimeout(() => {
-                setSubmitting(false);
-                setDialogOpen(false);
-              }, 500);
+            onSubmit={(values, { setSubmitting, resetForm }) => {
+              createMutation.mutate(values, {
+                onSuccess: () => {
+                  resetForm();
+                  setDialogOpen(false);
+                },
+                onSettled: () => setSubmitting(false),
+              });
             }}
           >
             {({ isSubmitting }) => (
@@ -132,12 +150,17 @@ export default function DepartmentsPage() {
             <Formik<DepartmentFormValues>
               initialValues={{ name: selectedDept.name, location: selectedDept.location }}
               validationSchema={departmentSchema}
-              onSubmit={(_values, { setSubmitting }) => {
-                setTimeout(() => {
-                  setSubmitting(false);
-                  setEditDialogOpen(false);
-                  setSelectedDept(null);
-                }, 500);
+              onSubmit={(values, { setSubmitting }) => {
+                updateMutation.mutate(
+                  { id: selectedDept.id, payload: values },
+                  {
+                    onSuccess: () => {
+                      setEditDialogOpen(false);
+                      setSelectedDept(null);
+                    },
+                    onSettled: () => setSubmitting(false),
+                  },
+                );
               }}
             >
               {({ isSubmitting }) => (

@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import { mockUsers, mockRoles, mockDepartments } from '@/lib/mock-data';
+import { useUsersQuery } from '@/features/users/hooks';
+import { useRolesQuery } from '@/features/roles/hooks';
+import { useDepartmentsQuery } from '@/features/departments/hooks';
+import type { User } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,16 +43,24 @@ export default function UsersPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<typeof mockUsers[0] | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const { hasRole } = useAuthStore();
 
+  const { data: usersResponse, isLoading, isError } = useUsersQuery();
+  const { data: rolesResponse } = useRolesQuery();
+  const { data: deptsResponse } = useDepartmentsQuery();
+
+  const users = usersResponse?.data ?? [];
   const canManageUsers = hasRole('admin', 'hr');
   const isAdmin = hasRole('admin');
 
-  const roleOptions = mockRoles.map((r) => ({ value: String(r.id), label: r.name }));
-  const deptOptions = mockDepartments.map((d) => ({ value: String(d.id), label: d.name }));
+  const roleOptions = (rolesResponse?.data ?? []).map((r) => ({ value: String(r.id), label: r.name }));
+  const deptOptions = (deptsResponse?.data ?? []).map((d) => ({ value: String(d.id), label: d.name }));
 
   const initialValues: UserFormValues = { name: '', email: '', roleId: '', deptId: '', password: '' };
+
+  if (isLoading) return <div className="flex items-center justify-center p-8">Loading users...</div>;
+  if (isError) return <div className="flex items-center justify-center p-8 text-destructive">Failed to load users</div>;
 
   return (
     <div className="space-y-6">
@@ -73,7 +84,7 @@ export default function UsersPage() {
       <Card>
         <CardHeader>
           <CardTitle>
-            {isAdmin ? `All Users (${mockUsers.length})` : `All Employees (${mockUsers.length})`}
+            {isAdmin ? `All Users (${users.length})` : `All Employees (${users.length})`}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -89,7 +100,7 @@ export default function UsersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockUsers.map((u) => {
+              {users.map((u) => {
                 const initials = u.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
                 return (
                   <TableRow key={u.id}>

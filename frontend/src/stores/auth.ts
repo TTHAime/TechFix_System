@@ -1,14 +1,17 @@
 import { create } from 'zustand';
 import type { User, RoleName } from '@/types';
-import { mockUsers } from '@/lib/mock-data';
+import { loginApi, logoutApi, getMeApi, refreshTokenApi } from '@/features/auth/api';
+import { isAxiosError } from 'axios';
 
 interface AuthState {
   user: User | null;
   accessToken: string | null;
   isAuthenticated: boolean;
-  login: (email: string, _password: string) => Promise<boolean>;
-  loginWithGoogle: () => Promise<boolean>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: () => void;
+  logout: () => Promise<void>;
+  fetchMe: () => Promise<void>;
+  refreshToken: () => Promise<string | null>;
   hasRole: (...roles: RoleName[]) => boolean;
 }
 
@@ -17,40 +20,48 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   accessToken: null,
   isAuthenticated: false,
 
-  login: async (email: string, _password: string) => {
-    // Mock login — find user by email
-    const user = mockUsers.find((u) => u.email === email);
-    if (!user) return false;
+  login: async (email: string, password: string) => {
+    const { accessToken } = await loginApi(email, password);
+    set({ accessToken, isAuthenticated: true });
 
-    set({
-      user,
-      accessToken: 'mock-jwt-token',
-      isAuthenticated: true,
-    });
-    return true;
+    // Fetch user profile after login
+    const { data: user } = await getMeApi();
+    set({ user });
   },
 
-  loginWithGoogle: async () => {
-    // TODO: replace with real Google OAuth flow
-    // Real flow: redirect to backend /auth/google → callback → receive JWT
-    // Mock: simulate Google login as admin user (provider: 'google')
-    const user = mockUsers.find((u) => u.email === 'admin@company.com');
-    if (!user) return false;
-
-    set({
-      user: { ...user, provider: 'google' },
-      accessToken: 'mock-google-jwt-token',
-      isAuthenticated: true,
-    });
-    return true;
+  loginWithGoogle: () => {
+    // Redirect to backend Google OAuth endpoint
+    const baseUrl = import.meta.env.VITE_API_BASE_URL as string;
+    window.location.href = `${baseUrl}/auth/google`;
   },
 
-  logout: () => {
-    set({
-      user: null,
-      accessToken: null,
-      isAuthenticated: false,
-    });
+  logout: async () => {
+    try {
+      await logoutApi();
+    } catch {
+      // Clear state even if API fails
+    }
+    set({ user: null, accessToken: null, isAuthenticated: false });
+  },
+
+  fetchMe: async () => {
+    try {
+      const { data: user } = await getMeApi();
+      set({ user, isAuthenticated: true });
+    } catch {
+      set({ user: null, accessToken: null, isAuthenticated: false });
+    }
+  },
+
+  refreshToken: async () => {
+    try {
+      const { accessToken } = await refreshTokenApi();
+      set({ accessToken, isAuthenticated: true });
+      return accessToken;
+    } catch {
+      set({ user: null, accessToken: null, isAuthenticated: false });
+      return null;
+    }
   },
 
   hasRole: (...roles: RoleName[]) => {

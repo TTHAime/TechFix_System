@@ -66,7 +66,7 @@ export class AuthController {
 
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
-  googleCallback(
+  async googleCallback(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
@@ -75,7 +75,27 @@ export class AuthController {
       email: string;
       name: string;
     };
-    return this.authService.googleLogin(googleUser, res);
+
+    const frontendUrl =
+      process.env.CORS_ORIGIN ?? 'http://localhost:5173';
+
+    try {
+      const { accessToken } = await this.authService.googleLogin(
+        googleUser,
+        res,
+      );
+      res.redirect(
+        `${frontendUrl}/auth/google/callback?token=${accessToken}`,
+      );
+    } catch (error) {
+      const message =
+        error instanceof UnauthorizedException
+          ? error.message
+          : 'Login failed';
+      res.redirect(
+        `${frontendUrl}/login?error=${encodeURIComponent(message)}`,
+      );
+    }
   }
 
   @Get('me')

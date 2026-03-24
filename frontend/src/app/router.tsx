@@ -3,6 +3,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { RequireAuth } from '@/components/layout/RequireAuth';
 
 import LoginPage from '@/pages/LoginPage';
+import GoogleCallbackPage from '@/pages/GoogleCallbackPage';
 import UnauthorizedPage from '@/pages/UnauthorizedPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 import DashboardPage from '@/pages/DashboardPage';
@@ -18,6 +19,7 @@ import SystemLogsPage from '@/pages/SystemLogsPage';
 export const router = createBrowserRouter([
   // Public routes
   { path: '/login', element: <LoginPage /> },
+  { path: '/auth/google/callback', element: <GoogleCallbackPage /> },
   { path: '/unauthorized', element: <UnauthorizedPage /> },
 
   // Protected routes — all authenticated users

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { mockEquipment, mockCategories, mockDepartments } from '@/lib/mock-data';
+import { useEquipmentQuery, useEquipmentCategoriesQuery } from '@/features/equipment/hooks';
+import { useDepartmentsQuery } from '@/features/departments/hooks';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,10 +31,18 @@ export default function EquipmentPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { hasRole } = useAuthStore();
 
-  const categoryOptions = mockCategories.map((c) => ({ value: String(c.id), label: c.name }));
-  const deptOptions = mockDepartments.map((d) => ({ value: String(d.id), label: d.name }));
+  const { data: eqResponse, isLoading, isError } = useEquipmentQuery();
+  const { data: catResponse } = useEquipmentCategoriesQuery();
+  const { data: deptResponse } = useDepartmentsQuery();
+
+  const equipment = eqResponse?.data ?? [];
+  const categoryOptions = (catResponse?.data ?? []).map((c) => ({ value: String(c.id), label: c.name }));
+  const deptOptions = (deptResponse?.data ?? []).map((d) => ({ value: String(d.id), label: d.name }));
 
   const initialValues: EquipmentFormValues = { name: '', serialNo: '', categoryId: '', deptId: '' };
+
+  if (isLoading) return <div className="flex items-center justify-center p-8">Loading equipment...</div>;
+  if (isError) return <div className="flex items-center justify-center p-8 text-destructive">Failed to load equipment</div>;
 
   return (
     <div className="space-y-6">
@@ -52,7 +61,7 @@ export default function EquipmentPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All Equipment ({mockEquipment.length})</CardTitle>
+          <CardTitle>All Equipment ({equipment.length})</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -67,7 +76,7 @@ export default function EquipmentPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockEquipment.map((eq) => (
+              {equipment.map((eq) => (
                 <TableRow key={eq.id}>
                   <TableCell className="font-medium">{eq.name}</TableCell>
                   <TableCell className="font-mono text-xs">{eq.serialNo}</TableCell>
