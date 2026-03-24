@@ -67,13 +67,14 @@ export default function LoginPage() {
               } catch (error) {
                 if (isAxiosError(error) && error.response) {
                   const msg = error.response.data?.message;
-                  if (typeof msg === 'string' && msg.includes('locked')) {
-                    setFieldError('email', 'Account temporarily locked. Try again later.');
+                  const msgStr = typeof msg === 'string' ? msg : typeof msg?.message === 'string' ? msg.message : '';
+                  if (msgStr.toLowerCase().includes('locked')) {
+                    setFieldError('email', 'Account temporarily locked due to too many failed attempts. Please try again in 15 minutes.');
                   } else {
                     setFieldError('email', 'Invalid email or password');
                   }
                 } else {
-                  setFieldError('email', 'Cannot connect to server');
+                  setFieldError('email', 'Cannot connect to server. Please try again.');
                 }
               }
               setSubmitting(false);
