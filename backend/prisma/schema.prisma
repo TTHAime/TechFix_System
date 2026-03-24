@@ -78,7 +78,7 @@ model RefreshToken {
 
 model EquipmentCategory {
   id   Int    @id @default(autoincrement())
-  name String @db.VarChar(100)
+  name String @unique @db.VarChar(100)
 
   equipment        Equipment[]
  

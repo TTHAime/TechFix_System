@@ -8,6 +8,9 @@ import { RolesModule } from './roles/roles.module';
 import { DepartmentsModule } from './departments/departments.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
+import { EquipmentCategoriesModule } from './equipment-categories/equipment-categories.module';
+import { EquipmentModule } from './equipment/equipment.module';
+import { RepairRequestsModule } from './repair-requests/repair-requests.module';
 
 @Module({
   imports: [
@@ -17,6 +20,9 @@ import { AuthModule } from './auth/auth.module';
     DepartmentsModule,
     UsersModule,
     AuthModule,
+    EquipmentCategoriesModule,
+    EquipmentModule,
+    RepairRequestsModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
