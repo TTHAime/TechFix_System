@@ -5,6 +5,7 @@ import {
   IsPositive,
   IsString,
 } from 'class-validator';
+import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 
 export class UpdateRepairRequestDto {
   @IsOptional()
@@ -14,10 +15,12 @@ export class UpdateRepairRequestDto {
 
   @IsOptional()
   @IsString()
+  @Sanitize()
   declare partsUsed?: string;
 
   @IsOptional()
   @IsString()
+  @Sanitize()
   declare repairSummary?: string;
 
   @IsOptional()

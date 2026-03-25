@@ -7,11 +7,13 @@ import {
   MaxLength,
 } from 'class-validator';
 import { AuthProvider } from 'src/common/enums/auth-provider.enum';
+import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 import { IsStrongPassword } from 'src/common/validators/is-strong-password.validator';
 
 export class HRCreateUserDto {
   @IsString()
   @MaxLength(100)
+  @Sanitize()
   name: string;
 
   @IsEmail()

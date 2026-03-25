@@ -1,4 +1,5 @@
 import { IsInt, IsNotEmpty, IsPositive, IsString } from 'class-validator';
+import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 
 export class RequestEquipmentDto {
   @IsInt()
@@ -7,5 +8,6 @@ export class RequestEquipmentDto {
 
   @IsString()
   @IsNotEmpty()
+  @Sanitize()
   declare issueDetail: string;
 }
