@@ -51,24 +51,35 @@ export class UsersController {
 
   @Post('onboard')
   @Roles(Role.HR)
-  async hrCreate(@Body() hrCreateDto: HRCreateUserDto) {
-    const data = await this.usersService.hrCreate(hrCreateDto);
+  async hrCreate(
+    @Req() req: Request & { user: JwtPayload },
+    @Body() hrCreateDto: HRCreateUserDto,
+  ) {
+    const data = await this.usersService.hrCreate(hrCreateDto, req.user.sub);
     return { data, message: 'User onboarded successfully' };
   }
 
   @Patch(':id/profile')
   @Roles(Role.Admin, Role.HR)
   async hrUpdate(
+    @Req() req: Request & { user: JwtPayload },
     @Param('id', ParseIntPipe) id: number,
     @Body() hrUpdateDto: HRUpdateUserDto,
   ) {
-    const data = await this.usersService.hrUpdate(id, hrUpdateDto);
+    const data = await this.usersService.hrUpdate(
+      id,
+      hrUpdateDto,
+      req.user.sub,
+    );
     return { data, message: 'User updated successfully' };
   }
 
   @Post()
-  async create(@Body() dto: CreateUserDto) {
-    const data = await this.usersService.create(dto);
+  async create(
+    @Req() req: Request & { user: JwtPayload },
+    @Body() dto: CreateUserDto,
+  ) {
+    const data = await this.usersService.create(dto, req.user.sub);
     return { data, message: 'User created successfully' };
   }
 
@@ -87,17 +98,21 @@ export class UsersController {
 
   @Patch(':id')
   async update(
+    @Req() req: Request & { user: JwtPayload },
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateUserDto,
   ) {
-    const data = await this.usersService.update(id, dto);
+    const data = await this.usersService.update(id, dto, req.user.sub);
     return { data, message: 'User updated successfully' };
   }
 
   @Delete(':id')
   @Roles(Role.Admin, Role.HR)
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    await this.usersService.remove(id);
+  async remove(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    await this.usersService.remove(id, req.user.sub);
     return { data: null, message: 'User deleted successfully' };
   }
 }

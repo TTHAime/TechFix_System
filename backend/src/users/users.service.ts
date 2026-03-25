@@ -15,6 +15,7 @@ import { Prisma } from 'src/generated/prisma/client';
 import { AuthProvider } from 'src/common/enums/auth-provider.enum';
 import { Role } from 'src/common/enums/role.enum';
 import { HashService } from 'src/common/services/hash.service';
+import { AuditLogsService } from 'src/audit-logs/audit-logs.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import type { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
@@ -25,9 +26,10 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly hashService: HashService,
+    private readonly auditLogsService: AuditLogsService,
   ) {}
 
-  async create(createUserDto: CreateUserDto) {
+  async create(createUserDto: CreateUserDto, actorId: number) {
     if (
       createUserDto.provider === AuthProvider.LOCAL &&
       !createUserDto.password
@@ -46,7 +48,14 @@ export class UsersService {
         include: { role: true, department: true },
         omit: { passwordHash: true },
       });
-      this.logger.log(`User created: ${user.id}`);
+      this.logger.log(`User created: ${user.id} by actor ${actorId}`);
+      await this.auditLogsService.create({
+        actorId,
+        entityType: 'user',
+        entityId: user.id,
+        action: 'created',
+        newValue: user,
+      });
       return user;
     } catch (e) {
       if (
@@ -88,7 +97,8 @@ export class UsersService {
     return user;
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto) {
+  async update(id: number, updateUserDto: UpdateUserDto, actorId: number) {
+    const oldUser = await this.findOne(id);
     const { password, ...rest } = updateUserDto;
     const passwordHash = password
       ? await this.hashService.hash(password)
@@ -101,7 +111,15 @@ export class UsersService {
         include: { role: true, department: true },
         omit: { passwordHash: true },
       });
-      this.logger.log(`User updated: ${id}`);
+      this.logger.log(`User updated: ${id} by actor ${actorId}`);
+      await this.auditLogsService.create({
+        actorId,
+        entityType: 'user',
+        entityId: id,
+        action: 'updated',
+        oldValue: oldUser,
+        newValue: user,
+      });
       return user;
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError) {
@@ -114,7 +132,7 @@ export class UsersService {
     }
   }
 
-  async hrCreate(hrCreateDto: HRCreateUserDto) {
+  async hrCreate(hrCreateDto: HRCreateUserDto, actorId: number) {
     if (hrCreateDto.provider === AuthProvider.LOCAL && !hrCreateDto.password) {
       throw new BadRequestException('Password is required for local accounts');
     }
@@ -137,7 +155,14 @@ export class UsersService {
         include: { role: true, department: true },
         omit: { passwordHash: true },
       });
-      this.logger.log(`User onboarded by HR: ${user.id}`);
+      this.logger.log(`User onboarded by HR: ${user.id} by actor ${actorId}`);
+      await this.auditLogsService.create({
+        actorId,
+        entityType: 'user',
+        entityId: user.id,
+        action: 'created',
+        newValue: user,
+      });
       return user;
     } catch (e) {
       if (
@@ -150,7 +175,8 @@ export class UsersService {
     }
   }
 
-  async hrUpdate(id: number, hrUpdateDto: HRUpdateUserDto) {
+  async hrUpdate(id: number, hrUpdateDto: HRUpdateUserDto, actorId: number) {
+    const oldUser = await this.findOne(id);
     const { password, ...rest } = hrUpdateDto;
     const passwordHash = password
       ? await this.hashService.hash(password)
@@ -163,7 +189,15 @@ export class UsersService {
         include: { role: true, department: true },
         omit: { passwordHash: true },
       });
-      this.logger.log(`User updated by HR/Admin: ${id}`);
+      this.logger.log(`User updated by HR/Admin: ${id} by actor ${actorId}`);
+      await this.auditLogsService.create({
+        actorId,
+        entityType: 'user',
+        entityId: id,
+        action: 'updated',
+        oldValue: oldUser,
+        newValue: user,
+      });
       return user;
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError) {
@@ -176,6 +210,7 @@ export class UsersService {
   }
 
   async updateProfile(id: number, updateProfileDto: UpdateProfileDto) {
+    const oldUser = await this.findOne(id);
     const { password, ...rest } = updateProfileDto;
     const passwordHash = password
       ? await this.hashService.hash(password)
@@ -189,6 +224,14 @@ export class UsersService {
         omit: { passwordHash: true },
       });
       this.logger.log(`Profile updated: ${id}`);
+      await this.auditLogsService.create({
+        actorId: id,
+        entityType: 'user',
+        entityId: id,
+        action: 'updated',
+        oldValue: oldUser,
+        newValue: user,
+      });
       return user;
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError) {
@@ -207,13 +250,21 @@ export class UsersService {
     });
   }
 
-  async remove(id: number) {
+  async remove(id: number, actorId: number) {
+    const oldUser = await this.findOne(id);
     try {
       await this.prisma.user.update({
         where: { id },
         data: { isActive: false },
       });
-      this.logger.log(`User soft-deleted: ${id}`);
+      this.logger.log(`User soft-deleted: ${id} by actor ${actorId}`);
+      await this.auditLogsService.create({
+        actorId,
+        entityType: 'user',
+        entityId: id,
+        action: 'deleted',
+        oldValue: oldUser,
+      });
     } catch (e) {
       if (
         e instanceof Prisma.PrismaClientKnownRequestError &&

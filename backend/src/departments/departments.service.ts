@@ -1,21 +1,41 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '../generated/prisma/client';
+import { AuditLogsService } from 'src/audit-logs/audit-logs.service';
 import type { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 @Injectable()
 export class DepartmentsService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(DepartmentsService.name);
 
-  async create(createDepartmentDto: CreateDepartmentDto) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLogsService: AuditLogsService,
+  ) {}
+
+  async create(createDepartmentDto: CreateDepartmentDto, actorId: number) {
     try {
-      return await this.prisma.department.create({ data: createDepartmentDto });
+      const department = await this.prisma.department.create({
+        data: createDepartmentDto,
+      });
+      this.logger.log(
+        `Department created: ${department.id} by actor ${actorId}`,
+      );
+      await this.auditLogsService.create({
+        actorId,
+        entityType: 'department',
+        entityId: department.id,
+        action: 'created',
+        newValue: department,
+      });
+      return department;
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -54,12 +74,27 @@ export class DepartmentsService {
     return department;
   }
 
-  async update(id: number, updateDepartmentDto: UpdateDepartmentDto) {
+  async update(
+    id: number,
+    updateDepartmentDto: UpdateDepartmentDto,
+    actorId: number,
+  ) {
+    const oldDepartment = await this.findOne(id);
     try {
-      return await this.prisma.department.update({
+      const department = await this.prisma.department.update({
         where: { id },
         data: updateDepartmentDto,
       });
+      this.logger.log(`Department updated: ${id} by actor ${actorId}`);
+      await this.auditLogsService.create({
+        actorId,
+        entityType: 'department',
+        entityId: id,
+        action: 'updated',
+        oldValue: oldDepartment,
+        newValue: department,
+      });
+      return department;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2025')
@@ -71,9 +106,19 @@ export class DepartmentsService {
     }
   }
 
-  async remove(id: number) {
+  async remove(id: number, actorId: number) {
+    const oldDepartment = await this.findOne(id);
     try {
-      return await this.prisma.department.delete({ where: { id } });
+      const result = await this.prisma.department.delete({ where: { id } });
+      this.logger.log(`Department deleted: ${id} by actor ${actorId}`);
+      await this.auditLogsService.create({
+        actorId,
+        entityType: 'department',
+        entityId: id,
+        action: 'deleted',
+        oldValue: oldDepartment,
+      });
+      return result;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2025')

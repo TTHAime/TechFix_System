@@ -2,24 +2,40 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { CreateEquipmentDto } from './dto/create-equipment.dto';
 import { UpdateEquipmentDto } from './dto/update-equipment.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from 'src/generated/prisma/client';
+import { AuditLogsService } from 'src/audit-logs/audit-logs.service';
 import type { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 @Injectable()
 export class EquipmentService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(EquipmentService.name);
 
-  async create(createEquipmentDto: CreateEquipmentDto) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLogsService: AuditLogsService,
+  ) {}
+
+  async create(createEquipmentDto: CreateEquipmentDto, actorId: number) {
     try {
-      return await this.prisma.equipment.create({
+      const equipment = await this.prisma.equipment.create({
         data: { ...createEquipmentDto },
         include: { department: true, category: true },
       });
+      this.logger.log(`Equipment created: ${equipment.id} by actor ${actorId}`);
+      await this.auditLogsService.create({
+        actorId,
+        entityType: 'equipment',
+        entityId: equipment.id,
+        action: 'created',
+        newValue: equipment,
+      });
+      return equipment;
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError) {
         if (e.code === 'P2002') {
@@ -62,13 +78,28 @@ export class EquipmentService {
     return equipment;
   }
 
-  async update(id: number, updateEquipmentDto: UpdateEquipmentDto) {
+  async update(
+    id: number,
+    updateEquipmentDto: UpdateEquipmentDto,
+    actorId: number,
+  ) {
+    const oldEquipment = await this.findOne(id);
     try {
-      return await this.prisma.equipment.update({
+      const equipment = await this.prisma.equipment.update({
         where: { id },
         data: { ...updateEquipmentDto },
         include: { department: true, category: true },
       });
+      this.logger.log(`Equipment updated: ${id} by actor ${actorId}`);
+      await this.auditLogsService.create({
+        actorId,
+        entityType: 'equipment',
+        entityId: id,
+        action: 'updated',
+        oldValue: oldEquipment,
+        newValue: equipment,
+      });
+      return equipment;
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError) {
         if (e.code === 'P2025')
@@ -80,9 +111,19 @@ export class EquipmentService {
     }
   }
 
-  async remove(id: number) {
+  async remove(id: number, actorId: number) {
+    const oldEquipment = await this.findOne(id);
     try {
-      return await this.prisma.equipment.delete({ where: { id } });
+      const result = await this.prisma.equipment.delete({ where: { id } });
+      this.logger.log(`Equipment deleted: ${id} by actor ${actorId}`);
+      await this.auditLogsService.create({
+        actorId,
+        entityType: 'equipment',
+        entityId: id,
+        action: 'deleted',
+        oldValue: oldEquipment,
+      });
+      return result;
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError) {
         if (e.code === 'P2025')
