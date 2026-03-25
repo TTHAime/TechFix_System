@@ -1,0 +1,15 @@
+meta {
+  name: Delete Category
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{base_url}}/equipment-categories/5
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}

@@ -1,0 +1,31 @@
+meta {
+  name: Create Request - Multiple Equipment
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/repair-requests
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{user_token}}
+}
+
+body:json {
+  {
+    "description": "หลายอุปกรณ์มีปัญหาพร้อมกัน",
+    "equipments": [
+      {
+        "equipmentId": 1,
+        "issueDetail": "คอมเปิดไม่ติด"
+      },
+      {
+        "equipmentId": 3,
+        "issueDetail": "เครื่องพิมพ์กระดาษติด"
+      }
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+meta {
+  name: Update User Profile - Deactivate
+  type: http
+  seq: 13
+}
+
+patch {
+  url: {{base_url}}/users/8/profile
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+body:json {
+  {
+    "isActive": false
+  }
+}

@@ -1,0 +1,15 @@
+meta {
+  name: Get Equipment by ID
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{base_url}}/equipment/1
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}

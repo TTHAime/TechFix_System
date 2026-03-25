@@ -1,0 +1,15 @@
+meta {
+  name: Delete Equipment
+  type: http
+  seq: 10
+}
+
+delete {
+  url: {{base_url}}/equipment/6
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}

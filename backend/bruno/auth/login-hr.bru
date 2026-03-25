@@ -1,0 +1,25 @@
+meta {
+  name: Login HR
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "{{hr_email}}",
+    "password": "{{hr_password}}"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setEnvVar("hr_token", res.body.accessToken);
+    bru.setEnvVar("access_token", res.body.accessToken);
+  }
+}

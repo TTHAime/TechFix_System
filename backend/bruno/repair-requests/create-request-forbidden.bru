@@ -1,0 +1,27 @@
+meta {
+  name: Create Request - Technician Role (403)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{base_url}}/repair-requests
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tech_token}}
+}
+
+body:json {
+  {
+    "description": "test",
+    "equipments": [
+      {
+        "equipmentId": 1,
+        "issueDetail": "test"
+      }
+    ]
+  }
+}

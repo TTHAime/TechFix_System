@@ -1,0 +1,15 @@
+meta {
+  name: Get Request - Not Found (404)
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{base_url}}/repair-requests/999
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}

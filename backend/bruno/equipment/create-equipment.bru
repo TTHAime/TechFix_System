@@ -1,0 +1,24 @@
+meta {
+  name: Create Equipment
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/equipment
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+body:json {
+  {
+    "name": "HP LaserJet Pro M404dn",
+    "serialNo": "HP-TEST-001",
+    "categoryId": 2,
+    "deptId": 1
+  }
+}

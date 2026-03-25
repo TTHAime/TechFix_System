@@ -1,0 +1,15 @@
+meta {
+  name: Delete Department - Has Users (409)
+  type: http
+  seq: 10
+}
+
+delete {
+  url: {{base_url}}/departments/1
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}

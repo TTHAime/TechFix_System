@@ -1,0 +1,15 @@
+meta {
+  name: Get Role - Not Found (404)
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{base_url}}/roles/999
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}

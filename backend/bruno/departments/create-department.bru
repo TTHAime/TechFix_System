@@ -1,0 +1,22 @@
+meta {
+  name: Create Department
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/departments
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+body:json {
+  {
+    "name": "Engineering",
+    "location": "Building A, Floor 3"
+  }
+}

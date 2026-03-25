@@ -1,0 +1,26 @@
+meta {
+  name: Create User - Duplicate Email (409)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/users
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+body:json {
+  {
+    "name": "Duplicate",
+    "email": "admin@company.com",
+    "roleId": 4,
+    "deptId": 1,
+    "provider": "local",
+    "password": "Str0ngP@ss1234"
+  }
+}

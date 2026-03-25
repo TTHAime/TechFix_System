@@ -1,0 +1,21 @@
+meta {
+  name: Create Status - Duplicate (409)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/request-status
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+body:json {
+  {
+    "name": "open"
+  }
+}

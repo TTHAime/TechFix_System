@@ -1,0 +1,15 @@
+meta {
+  name: Get Assignment Logs - User Role (403)
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{base_url}}/repair-requests/2/assignment-logs
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{user_token}}
+}

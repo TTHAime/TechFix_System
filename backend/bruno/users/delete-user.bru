@@ -1,0 +1,15 @@
+meta {
+  name: Delete User (Soft Delete)
+  type: http
+  seq: 17
+}
+
+delete {
+  url: {{base_url}}/users/8
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}

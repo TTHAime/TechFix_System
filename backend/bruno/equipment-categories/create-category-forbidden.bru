@@ -1,0 +1,21 @@
+meta {
+  name: Create Category - User Role (403)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/equipment-categories
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{user_token}}
+}
+
+body:json {
+  {
+    "name": "test"
+  }
+}

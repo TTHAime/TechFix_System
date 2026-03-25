@@ -1,0 +1,15 @@
+meta {
+  name: Get Category - Not Found (404)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{base_url}}/equipment-categories/999
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}

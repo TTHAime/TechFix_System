@@ -1,0 +1,15 @@
+meta {
+  name: Get Audit Logs - HR Role (403)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/audit-logs
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{hr_token}}
+}

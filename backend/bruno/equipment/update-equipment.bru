@@ -1,0 +1,21 @@
+meta {
+  name: Update Equipment
+  type: http
+  seq: 8
+}
+
+patch {
+  url: {{base_url}}/equipment/6
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+body:json {
+  {
+    "name": "HP LaserJet Updated"
+  }
+}

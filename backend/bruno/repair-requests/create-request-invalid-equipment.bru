@@ -1,0 +1,27 @@
+meta {
+  name: Create Request - Invalid Equipment (400)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/repair-requests
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{user_token}}
+}
+
+body:json {
+  {
+    "description": "test",
+    "equipments": [
+      {
+        "equipmentId": 999,
+        "issueDetail": "not found equipment"
+      }
+    ]
+  }
+}

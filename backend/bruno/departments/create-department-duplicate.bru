@@ -1,0 +1,22 @@
+meta {
+  name: Create Department - Duplicate (409)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/departments
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+body:json {
+  {
+    "name": "ฝ่ายเทคโนโลยีสารสนเทศ",
+    "location": "test"
+  }
+}

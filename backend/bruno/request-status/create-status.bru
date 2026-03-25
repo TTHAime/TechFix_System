@@ -1,0 +1,21 @@
+meta {
+  name: Create Request Status
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/request-status
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+body:json {
+  {
+    "name": "pending_review"
+  }
+}

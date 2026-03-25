@@ -1,0 +1,21 @@
+meta {
+  name: Update Category
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{base_url}}/equipment-categories/5
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+body:json {
+  {
+    "name": "เครื่องเสียงอัปเดต"
+  }
+}

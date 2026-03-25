@@ -1,0 +1,26 @@
+meta {
+  name: Create User (Admin)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/users
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+body:json {
+  {
+    "name": "Test User",
+    "email": "testuser@company.com",
+    "roleId": 4,
+    "deptId": 1,
+    "provider": "local",
+    "password": "Str0ngP@ss1234"
+  }
+}

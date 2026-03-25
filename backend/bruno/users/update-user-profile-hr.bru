@@ -1,0 +1,22 @@
+meta {
+  name: Update User Profile (HR)
+  type: http
+  seq: 12
+}
+
+patch {
+  url: {{base_url}}/users/8/profile
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{hr_token}}
+}
+
+body:json {
+  {
+    "name": "HR Updated Name",
+    "deptId": 3
+  }
+}

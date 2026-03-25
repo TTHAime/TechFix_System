@@ -1,0 +1,26 @@
+meta {
+  name: Create User - Google Provider
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/users
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+body:json {
+  {
+    "name": "Google User",
+    "email": "googleuser@company.com",
+    "roleId": 4,
+    "deptId": 1,
+    "provider": "google",
+    "providerUid": "google-uid-12345"
+  }
+}

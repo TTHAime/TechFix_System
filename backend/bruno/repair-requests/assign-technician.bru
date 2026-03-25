@@ -1,0 +1,21 @@
+meta {
+  name: Assign Technician
+  type: http
+  seq: 15
+}
+
+patch {
+  url: {{base_url}}/repair-requests/1/assign
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+body:json {
+  {
+    "technicianId": 3
+  }
+}

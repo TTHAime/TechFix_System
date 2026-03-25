@@ -1,0 +1,21 @@
+meta {
+  name: Update Status
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{base_url}}/request-status/5
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+body:json {
+  {
+    "name": "on_hold"
+  }
+}

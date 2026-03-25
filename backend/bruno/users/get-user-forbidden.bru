@@ -1,0 +1,15 @@
+meta {
+  name: Get User - User Role (403)
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{base_url}}/users/1
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{user_token}}
+}

@@ -1,0 +1,21 @@
+meta {
+  name: Update My Profile
+  type: http
+  seq: 15
+}
+
+patch {
+  url: {{base_url}}/users/me
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{user_token}}
+}
+
+body:json {
+  {
+    "name": "ชื่อใหม่ของฉัน"
+  }
+}

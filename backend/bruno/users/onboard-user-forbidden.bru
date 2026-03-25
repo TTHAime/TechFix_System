@@ -1,0 +1,25 @@
+meta {
+  name: Onboard User - Admin Role (403)
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{base_url}}/users/onboard
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+body:json {
+  {
+    "name": "Test",
+    "email": "onboard-test@company.com",
+    "deptId": 2,
+    "provider": "local",
+    "password": "Str0ngP@ss1234"
+  }
+}

@@ -1,0 +1,15 @@
+meta {
+  name: Get Status by ID
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{base_url}}/request-status/1
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}

@@ -1,0 +1,21 @@
+meta {
+  name: Create Role - Duplicate Name (409)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/roles
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+body:json {
+  {
+    "name": "admin"
+  }
+}

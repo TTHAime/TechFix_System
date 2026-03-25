@@ -1,0 +1,21 @@
+meta {
+  name: Update Request - Invalid Status (400)
+  type: http
+  seq: 12
+}
+
+patch {
+  url: {{base_url}}/repair-requests/1
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+body:json {
+  {
+    "statusId": 999
+  }
+}

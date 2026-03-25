@@ -1,0 +1,15 @@
+meta {
+  name: Get Role by ID
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{base_url}}/roles/1
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}

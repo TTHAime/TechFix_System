@@ -1,0 +1,15 @@
+meta {
+  name: Delete User - Not Found (404)
+  type: http
+  seq: 18
+}
+
+delete {
+  url: {{base_url}}/users/999
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}

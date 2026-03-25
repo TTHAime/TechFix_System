@@ -1,0 +1,15 @@
+headers {
+  Content-Type: application/json
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+script:pre-request {
+  // If no token yet, skip (auth requests handle their own login)
+}

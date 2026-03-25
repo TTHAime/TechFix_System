@@ -1,0 +1,22 @@
+meta {
+  name: Create Request - Empty Equipments (400)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/repair-requests
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{user_token}}
+}
+
+body:json {
+  {
+    "description": "test",
+    "equipments": []
+  }
+}

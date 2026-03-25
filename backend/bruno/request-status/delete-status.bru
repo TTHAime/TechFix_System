@@ -1,0 +1,15 @@
+meta {
+  name: Delete Status
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{base_url}}/request-status/5
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}

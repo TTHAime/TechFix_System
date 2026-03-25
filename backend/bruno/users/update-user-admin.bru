@@ -1,0 +1,21 @@
+meta {
+  name: Update User (Admin)
+  type: http
+  seq: 11
+}
+
+patch {
+  url: {{base_url}}/users/8
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+body:json {
+  {
+    "name": "Updated Test User"
+  }
+}

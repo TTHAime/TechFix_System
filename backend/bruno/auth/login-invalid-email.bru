@@ -1,0 +1,18 @@
+meta {
+  name: Login - Invalid Email
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{base_url}}/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "noone@test.com",
+    "password": "P@ssw0rd"
+  }
+}

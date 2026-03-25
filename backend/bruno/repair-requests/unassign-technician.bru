@@ -1,0 +1,21 @@
+meta {
+  name: Unassign Technician
+  type: http
+  seq: 18
+}
+
+patch {
+  url: {{base_url}}/repair-requests/1/unassign
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+body:json {
+  {
+    "technicianId": 3
+  }
+}

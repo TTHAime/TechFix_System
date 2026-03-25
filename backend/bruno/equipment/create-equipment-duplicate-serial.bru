@@ -1,0 +1,24 @@
+meta {
+  name: Create Equipment - Duplicate Serial (409)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/equipment
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+body:json {
+  {
+    "name": "Test Equipment",
+    "serialNo": "PC-ACC-001",
+    "categoryId": 1,
+    "deptId": 1
+  }
+}

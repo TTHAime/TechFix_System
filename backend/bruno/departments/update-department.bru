@@ -1,0 +1,22 @@
+meta {
+  name: Update Department
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{base_url}}/departments/6
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+body:json {
+  {
+    "name": "Engineering Updated",
+    "location": "Building B, Floor 1"
+  }
+}

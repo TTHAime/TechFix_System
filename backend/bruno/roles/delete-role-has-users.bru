@@ -1,0 +1,15 @@
+meta {
+  name: Delete Role - Has Users (409)
+  type: http
+  seq: 11
+}
+
+delete {
+  url: {{base_url}}/roles/1
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}

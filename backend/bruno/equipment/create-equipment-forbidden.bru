@@ -1,0 +1,24 @@
+meta {
+  name: Create Equipment - User Role (403)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/equipment
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{user_token}}
+}
+
+body:json {
+  {
+    "name": "Test",
+    "serialNo": "TEST-403",
+    "categoryId": 1,
+    "deptId": 1
+  }
+}

@@ -1,0 +1,25 @@
+meta {
+  name: Onboard User (HR)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{base_url}}/users/onboard
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{hr_token}}
+}
+
+body:json {
+  {
+    "name": "พนักงานใหม่",
+    "email": "newemployee@company.com",
+    "deptId": 2,
+    "provider": "local",
+    "password": "Str0ngP@ss1234"
+  }
+}

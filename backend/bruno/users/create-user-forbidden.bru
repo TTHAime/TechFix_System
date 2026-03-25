@@ -1,0 +1,26 @@
+meta {
+  name: Create User - HR Role (403)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/users
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{hr_token}}
+}
+
+body:json {
+  {
+    "name": "Test",
+    "email": "forbidden@company.com",
+    "roleId": 4,
+    "deptId": 1,
+    "provider": "local",
+    "password": "Str0ngP@ss1234"
+  }
+}

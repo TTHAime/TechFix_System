@@ -1,0 +1,27 @@
+meta {
+  name: Create Repair Request
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/repair-requests
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{user_token}}
+}
+
+body:json {
+  {
+    "description": "Printer not working, paper jam",
+    "equipments": [
+      {
+        "equipmentId": 1,
+        "issueDetail": "Paper jam in tray 2"
+      }
+    ]
+  }
+}

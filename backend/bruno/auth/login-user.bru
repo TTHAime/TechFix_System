@@ -1,0 +1,25 @@
+meta {
+  name: Login User
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "{{user_email}}",
+    "password": "{{user_password}}"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setEnvVar("user_token", res.body.accessToken);
+    bru.setEnvVar("access_token", res.body.accessToken);
+  }
+}

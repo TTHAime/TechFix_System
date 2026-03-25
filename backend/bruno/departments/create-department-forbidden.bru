@@ -1,0 +1,22 @@
+meta {
+  name: Create Department - HR Role (403)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/departments
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{hr_token}}
+}
+
+body:json {
+  {
+    "name": "Test Dept",
+    "location": "Test"
+  }
+}

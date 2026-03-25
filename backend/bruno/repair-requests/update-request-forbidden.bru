@@ -1,0 +1,21 @@
+meta {
+  name: Update Request - User Role (403)
+  type: http
+  seq: 13
+}
+
+patch {
+  url: {{base_url}}/repair-requests/1
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{user_token}}
+}
+
+body:json {
+  {
+    "statusId": 2
+  }
+}
