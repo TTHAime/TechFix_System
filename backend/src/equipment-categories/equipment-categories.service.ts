@@ -7,10 +7,12 @@ import { CreateEquipmentCategoryDto } from './dto/create-equipment-category.dto'
 import { UpdateEquipmentCategoryDto } from './dto/update-equipment-category.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from 'src/generated/prisma/client';
+import type { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 @Injectable()
 export class EquipmentCategoriesService {
   constructor(private readonly prisma: PrismaService) {}
+
   async create(createEquipmentCategoryDto: CreateEquipmentCategoryDto) {
     try {
       return await this.prisma.equipmentCategory.create({
@@ -23,13 +25,25 @@ export class EquipmentCategoriesService {
       ) {
         throw new ConflictException('Equipment category name already exist');
       }
+      throw e;
     }
   }
 
-  async findAll() {
-    return this.prisma.equipmentCategory.findMany({
-      orderBy: { name: 'asc' },
-    });
+  async findAll(query: PaginationQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.prisma.equipmentCategory.findMany({
+        skip,
+        take: limit,
+        orderBy: { name: 'asc' },
+      }),
+      this.prisma.equipmentCategory.count(),
+    ]);
+
+    return { data, meta: { page, limit, total } };
   }
 
   async findOne(id: number) {

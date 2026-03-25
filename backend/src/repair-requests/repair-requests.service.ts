@@ -7,10 +7,18 @@ import { CreateRepairRequestDto } from './dto/create-repair-request.dto';
 import { UpdateRepairRequestDto } from './dto/update-repair-request.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Role } from 'src/common/enums/role.enum';
+import type { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+
+const REPAIR_REQUEST_INCLUDE = {
+  requester: { omit: { passwordHash: true } },
+  status: true,
+  requestEquipment: { include: { equipment: true } },
+} as const;
 
 @Injectable()
 export class RepairRequestsService {
   constructor(private readonly prisma: PrismaService) {}
+
   async create(
     createRepairRequestDto: CreateRepairRequestDto,
     requesterId: number,
@@ -29,11 +37,7 @@ export class RepairRequestsService {
             })),
           },
         },
-        include: {
-          requester: { omit: { passwordHash: true } },
-          status: true,
-          requestEquipment: { include: { equipment: true } },
-        },
+        include: REPAIR_REQUEST_INCLUDE,
       });
 
       await tx.statusLog.create({
@@ -51,28 +55,36 @@ export class RepairRequestsService {
   }
 
   private isPrivileged(userRole: string) {
-    return [Role.Admin, Role.Technician].includes(userRole as Role);
+    return [Role.Admin, Role.HR, Role.Technician].includes(userRole as Role);
   }
 
-  async findAll(userId: number, userRole: string) {
-    return this.prisma.repairRequest.findMany({
-      where: this.isPrivileged(userRole) ? undefined : { requesterId: userId },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        requester: { omit: { passwordHash: true } },
-        status: true,
-        requestEquipment: { include: { equipment: true } },
-      },
-    });
+  async findAll(userId: number, userRole: string, query: PaginationQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+    const where = this.isPrivileged(userRole)
+      ? undefined
+      : { requesterId: userId };
+
+    const [data, total] = await Promise.all([
+      this.prisma.repairRequest.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: REPAIR_REQUEST_INCLUDE,
+      }),
+      this.prisma.repairRequest.count({ where }),
+    ]);
+
+    return { data, meta: { page, limit, total } };
   }
 
   private async findRequest(id: number) {
     const request = await this.prisma.repairRequest.findUnique({
       where: { id },
       include: {
-        requester: { omit: { passwordHash: true } },
-        status: true,
-        requestEquipment: { include: { equipment: true } },
+        ...REPAIR_REQUEST_INCLUDE,
         statusLogs: { orderBy: { changedAt: 'asc' } },
       },
     });
@@ -116,11 +128,7 @@ export class RepairRequestsService {
             completedAt: updateRepairRequestDto.completedAt,
           }),
         },
-        include: {
-          requester: { omit: { passwordHash: true } },
-          status: true,
-          requestEquipment: { include: { equipment: true } },
-        },
+        include: REPAIR_REQUEST_INCLUDE,
       });
 
       if (

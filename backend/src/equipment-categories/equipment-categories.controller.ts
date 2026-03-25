@@ -6,12 +6,14 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
   UseGuards,
   ParseIntPipe,
 } from '@nestjs/common';
 import { EquipmentCategoriesService } from './equipment-categories.service';
 import { CreateEquipmentCategoryDto } from './dto/create-equipment-category.dto';
 import { UpdateEquipmentCategoryDto } from './dto/update-equipment-category.dto';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
@@ -26,35 +28,45 @@ export class EquipmentCategoriesController {
   ) {}
 
   @Post()
-  create(@Body() createEquipmentCategoryDto: CreateEquipmentCategoryDto) {
-    return this.equipmentCategoriesService.create(createEquipmentCategoryDto);
+  async create(@Body() createEquipmentCategoryDto: CreateEquipmentCategoryDto) {
+    const data = await this.equipmentCategoriesService.create(
+      createEquipmentCategoryDto,
+    );
+    return { data, message: 'Equipment category created successfully' };
   }
 
   @Get()
   @Roles(Role.Admin, Role.Technician)
-  findAll() {
-    return this.equipmentCategoriesService.findAll();
+  async findAll(@Query() query: PaginationQueryDto) {
+    const result = await this.equipmentCategoriesService.findAll(query);
+    return {
+      ...result,
+      message: 'Equipment categories retrieved successfully',
+    };
   }
 
   @Get(':id')
   @Roles(Role.Admin, Role.Technician)
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.equipmentCategoriesService.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.equipmentCategoriesService.findOne(id);
+    return { data, message: 'Equipment category retrieved successfully' };
   }
 
   @Patch(':id')
-  update(
+  async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateEquipmentCategoryDto: UpdateEquipmentCategoryDto,
   ) {
-    return this.equipmentCategoriesService.update(
+    const data = await this.equipmentCategoriesService.update(
       id,
       updateEquipmentCategoryDto,
     );
+    return { data, message: 'Equipment category updated successfully' };
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.equipmentCategoriesService.remove(id);
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.equipmentCategoriesService.remove(id);
+    return { data, message: 'Equipment category deleted successfully' };
   }
 }

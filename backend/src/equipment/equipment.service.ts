@@ -8,10 +8,12 @@ import { CreateEquipmentDto } from './dto/create-equipment.dto';
 import { UpdateEquipmentDto } from './dto/update-equipment.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from 'src/generated/prisma/client';
+import type { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 @Injectable()
 export class EquipmentService {
   constructor(private readonly prisma: PrismaService) {}
+
   async create(createEquipmentDto: CreateEquipmentDto) {
     try {
       return await this.prisma.equipment.create({
@@ -23,19 +25,30 @@ export class EquipmentService {
         if (e.code === 'P2002') {
           throw new ConflictException(`Equipment already exist`);
         }
-
         if (e.code === 'P2003') {
           throw new BadRequestException('Invalid categoryId or deptId');
         }
       }
+      throw e;
     }
   }
 
-  async findAll() {
-    return this.prisma.equipment.findMany({
-      orderBy: { id: 'asc' },
-      include: { department: true, category: true },
-    });
+  async findAll(query: PaginationQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.prisma.equipment.findMany({
+        skip,
+        take: limit,
+        orderBy: { id: 'asc' },
+        include: { department: true, category: true },
+      }),
+      this.prisma.equipment.count(),
+    ]);
+
+    return { data, meta: { page, limit, total } };
   }
 
   async findOne(id: number) {

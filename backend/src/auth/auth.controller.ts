@@ -76,25 +76,18 @@ export class AuthController {
       name: string;
     };
 
-    const frontendUrl =
-      process.env.CORS_ORIGIN ?? 'http://localhost:5173';
+    const frontendUrl = process.env.CORS_ORIGIN ?? 'http://localhost:5173';
 
     try {
       const { accessToken } = await this.authService.googleLogin(
         googleUser,
         res,
       );
-      res.redirect(
-        `${frontendUrl}/auth/google/callback?token=${accessToken}`,
-      );
+      res.redirect(`${frontendUrl}/auth/google/callback?token=${accessToken}`);
     } catch (error) {
       const message =
-        error instanceof UnauthorizedException
-          ? error.message
-          : 'Login failed';
-      res.redirect(
-        `${frontendUrl}/login?error=${encodeURIComponent(message)}`,
-      );
+        error instanceof UnauthorizedException ? error.message : 'Login failed';
+      res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(message)}`);
     }
   }
 
