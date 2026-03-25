@@ -42,6 +42,8 @@ NODE_ENV=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_CALLBACK_URL=http://localhost:3000/auth/google/callback
+
+CORS_ORIGIN=http://localhost:5173 #frontend url
 ```
 
 #### Google OAuth Setup
