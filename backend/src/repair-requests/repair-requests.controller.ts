@@ -15,6 +15,7 @@ import { JwtPayload } from 'src/common/interfaces/jwt-payload.interface';
 import { RepairRequestsService } from './repair-requests.service';
 import { CreateRepairRequestDto } from './dto/create-repair-request.dto';
 import { UpdateRepairRequestDto } from './dto/update-repair-request.dto';
+import { AssignTechnicianDto } from './dto/assign-technician.dto';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
@@ -91,5 +92,49 @@ export class RepairRequestsController {
   ) {
     const data = await this.repairRequestsService.close(id, req.user.sub);
     return { data, message: 'Repair request closed successfully' };
+  }
+
+  @Post(':id/assign')
+  @Roles(Role.Admin)
+  async assign(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AssignTechnicianDto,
+    @Req() req: Request & { user: JwtPayload },
+  ) {
+    const data = await this.repairRequestsService.assignTechnician(
+      id,
+      dto.technicianId,
+      req.user.sub,
+    );
+    return { data, message: 'Technician assigned successfully' };
+  }
+
+  @Post(':id/unassign')
+  @Roles(Role.Admin)
+  async unassign(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AssignTechnicianDto,
+    @Req() req: Request & { user: JwtPayload },
+  ) {
+    const data = await this.repairRequestsService.unassignTechnician(
+      id,
+      dto.technicianId,
+      req.user.sub,
+    );
+    return { data, message: 'Technician unassigned successfully' };
+  }
+
+  @Get(':id/assignment-logs')
+  @Roles(Role.Admin, Role.HR, Role.Technician)
+  async getAssignmentLogs(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.repairRequestsService.getAssignmentLogs(id);
+    return { data, message: 'Assignment logs retrieved successfully' };
+  }
+
+  @Get(':id/status-logs')
+  @Roles(Role.Admin, Role.HR, Role.Technician, Role.User)
+  async getStatusLogs(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.repairRequestsService.getStatusLogs(id);
+    return { data, message: 'Status logs retrieved successfully' };
   }
 }

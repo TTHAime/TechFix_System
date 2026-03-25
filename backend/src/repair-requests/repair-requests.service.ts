@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -152,5 +153,83 @@ export class RepairRequestsService {
   async close(id: number, userId: number) {
     const CLOSED_STATUS_ID = 4;
     return this.update(id, { statusId: CLOSED_STATUS_ID }, userId);
+  }
+
+  async assignTechnician(
+    requestId: number,
+    technicianId: number,
+    actorId: number,
+  ) {
+    await this.findRequest(requestId);
+
+    const technician = await this.prisma.user.findUnique({
+      where: { id: technicianId },
+      include: { role: true },
+    });
+
+    if (!technician || technician.role.name !== Role.Technician) {
+      throw new BadRequestException('User is not a technician');
+    }
+
+    return this.prisma.assignmentLog.create({
+      data: {
+        requestId,
+        actorId,
+        technicianId,
+        action: 'assigned',
+      },
+      include: {
+        technician: { omit: { passwordHash: true } },
+        actor: { omit: { passwordHash: true } },
+      },
+    });
+  }
+
+  async unassignTechnician(
+    requestId: number,
+    technicianId: number,
+    actorId: number,
+  ) {
+    await this.findRequest(requestId);
+
+    return this.prisma.assignmentLog.create({
+      data: {
+        requestId,
+        actorId,
+        technicianId,
+        action: 'unassigned',
+      },
+      include: {
+        technician: { omit: { passwordHash: true } },
+        actor: { omit: { passwordHash: true } },
+      },
+    });
+  }
+
+  async getAssignmentLogs(requestId: number) {
+    await this.findRequest(requestId);
+
+    return this.prisma.assignmentLog.findMany({
+      where: { requestId },
+      orderBy: { loggedAt: 'desc' },
+      include: {
+        technician: { omit: { passwordHash: true } },
+        actor: { omit: { passwordHash: true } },
+      },
+    });
+  }
+
+  async getStatusLogs(requestId: number) {
+    await this.findRequest(requestId);
+
+    return this.prisma.statusLog.findMany({
+      where: { requestId },
+      orderBy: { changedAt: 'asc' },
+      include: {
+        changer: { omit: { passwordHash: true } },
+        oldStatus: true,
+        newStatus: true,
+      },
+    });
   }
 }

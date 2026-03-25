@@ -11,6 +11,8 @@ import { AuthModule } from './auth/auth.module';
 import { EquipmentCategoriesModule } from './equipment-categories/equipment-categories.module';
 import { EquipmentModule } from './equipment/equipment.module';
 import { RepairRequestsModule } from './repair-requests/repair-requests.module';
+import { RequestStatusModule } from './request-status/request-status.module';
+import { AuditLogsModule } from './audit-logs/audit-logs.module';
 
 @Module({
   imports: [
@@ -23,6 +25,8 @@ import { RepairRequestsModule } from './repair-requests/repair-requests.module';
     EquipmentCategoriesModule,
     EquipmentModule,
     RepairRequestsModule,
+    RequestStatusModule,
+    AuditLogsModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
