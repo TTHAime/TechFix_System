@@ -26,14 +26,26 @@ export class AuditLogsService {
     return { data, meta: { page, limit, total } };
   }
 
-  async findByEntity(entityType: string, entityId: number) {
-    return this.prisma.auditLog.findMany({
-      where: { entityType, entityId },
-      orderBy: { loggedAt: 'desc' },
-      include: {
-        actor: { omit: { passwordHash: true } },
-      },
-    });
+  async findByEntity(entityType: string, entityId: number, query: PaginationQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+    const where = { entityType, entityId };
+
+    const [data, total] = await Promise.all([
+      this.prisma.auditLog.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { loggedAt: 'desc' },
+        include: {
+          actor: { omit: { passwordHash: true } },
+        },
+      }),
+      this.prisma.auditLog.count({ where }),
+    ]);
+
+    return { data, meta: { page, limit, total } };
   }
 
   async create(params: {

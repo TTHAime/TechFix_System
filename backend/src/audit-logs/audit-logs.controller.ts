@@ -6,6 +6,7 @@ import {
   UseGuards,
   ParseIntPipe,
 } from '@nestjs/common';
+
 import { AuditLogsService } from './audit-logs.service';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
@@ -29,8 +30,9 @@ export class AuditLogsController {
   async findByEntity(
     @Param('entityType') entityType: string,
     @Param('entityId', ParseIntPipe) entityId: number,
+    @Query() query: PaginationQueryDto,
   ) {
-    const data = await this.auditLogsService.findByEntity(entityType, entityId);
-    return { data, message: 'Audit logs retrieved successfully' };
+    const result = await this.auditLogsService.findByEntity(entityType, entityId, query);
+    return { ...result, message: 'Audit logs retrieved successfully' };
   }
 }

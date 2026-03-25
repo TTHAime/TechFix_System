@@ -14,7 +14,7 @@ export class UpdateRepairRequestDto {
 
   @IsOptional()
   @IsString()
-  declare partUsed?: string;
+  declare partsUsed?: string;
 
   @IsOptional()
   @IsString()

@@ -7,6 +7,7 @@ import {
 import { CreateRepairRequestDto } from './dto/create-repair-request.dto';
 import { UpdateRepairRequestDto } from './dto/update-repair-request.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { Prisma } from 'src/generated/prisma/client';
 import { Role } from 'src/common/enums/role.enum';
 import type { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
@@ -20,39 +21,57 @@ const REPAIR_REQUEST_INCLUDE = {
 export class RepairRequestsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async getStatusByName(name: string) {
+    const status = await this.prisma.requestStatus.findFirst({
+      where: { name },
+    });
+    if (!status)
+      throw new NotFoundException(`Request status '${name}' not found`);
+    return status;
+  }
+
   async create(
     createRepairRequestDto: CreateRepairRequestDto,
     requesterId: number,
   ) {
-    const OPEN_STATUS_ID = 1;
-    return this.prisma.$transaction(async (tx) => {
-      const request = await tx.repairRequest.create({
-        data: {
-          requesterId,
-          statusId: OPEN_STATUS_ID,
-          description: createRepairRequestDto.description,
-          requestEquipment: {
-            create: createRepairRequestDto.equipments.map((e) => ({
-              equipmentId: e.equipmentId,
-              issueDetail: e.issueDetail,
-            })),
+    const openStatus = await this.getStatusByName('Open');
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const request = await tx.repairRequest.create({
+          data: {
+            requesterId,
+            statusId: openStatus.id,
+            description: createRepairRequestDto.description,
+            requestEquipment: {
+              create: createRepairRequestDto.equipments.map((e) => ({
+                equipmentId: e.equipmentId,
+                issueDetail: e.issueDetail,
+              })),
+            },
           },
-        },
-        include: REPAIR_REQUEST_INCLUDE,
-      });
+          include: REPAIR_REQUEST_INCLUDE,
+        });
 
-      await tx.statusLog.create({
-        data: {
-          requestId: request.id,
-          changedBy: requesterId,
-          oldStatusId: OPEN_STATUS_ID,
-          newStatusId: OPEN_STATUS_ID,
-          note: 'Request created',
-        },
-      });
+        await tx.statusLog.create({
+          data: {
+            requestId: request.id,
+            changedBy: requesterId,
+            oldStatusId: openStatus.id,
+            newStatusId: openStatus.id,
+            note: 'Request created',
+          },
+        });
 
-      return request;
-    });
+        return request;
+      });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError) {
+        if (e.code === 'P2003') {
+          throw new BadRequestException('Invalid equipmentId — equipment not found');
+        }
+      }
+      throw e;
+    }
   }
 
   private isPrivileged(userRole: string) {
@@ -112,47 +131,56 @@ export class RepairRequestsService {
   ) {
     const request = await this.findRequest(id);
 
-    return this.prisma.$transaction(async (tx) => {
-      const updated = await tx.repairRequest.update({
-        where: { id },
-        data: {
-          ...(updateRepairRequestDto.statusId && {
-            statusId: updateRepairRequestDto.statusId,
-          }),
-          ...(updateRepairRequestDto.partUsed && {
-            partsUsed: updateRepairRequestDto.partUsed,
-          }),
-          ...(updateRepairRequestDto.repairSummary && {
-            repairSummary: updateRepairRequestDto.repairSummary,
-          }),
-          ...(updateRepairRequestDto.completedAt && {
-            completedAt: updateRepairRequestDto.completedAt,
-          }),
-        },
-        include: REPAIR_REQUEST_INCLUDE,
-      });
-
-      if (
-        updateRepairRequestDto.statusId &&
-        updateRepairRequestDto.statusId !== request.statusId
-      ) {
-        await tx.statusLog.create({
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const updated = await tx.repairRequest.update({
+          where: { id },
           data: {
-            requestId: id,
-            changedBy: userId,
-            oldStatusId: request.statusId,
-            newStatusId: updateRepairRequestDto.statusId,
+            ...(updateRepairRequestDto.statusId !== undefined && {
+              statusId: updateRepairRequestDto.statusId,
+            }),
+            ...(updateRepairRequestDto.partsUsed !== undefined && {
+              partsUsed: updateRepairRequestDto.partsUsed,
+            }),
+            ...(updateRepairRequestDto.repairSummary !== undefined && {
+              repairSummary: updateRepairRequestDto.repairSummary,
+            }),
+            ...(updateRepairRequestDto.completedAt !== undefined && {
+              completedAt: updateRepairRequestDto.completedAt,
+            }),
           },
+          include: REPAIR_REQUEST_INCLUDE,
         });
-      }
 
-      return updated;
-    });
+        if (
+          updateRepairRequestDto.statusId &&
+          updateRepairRequestDto.statusId !== request.statusId
+        ) {
+          await tx.statusLog.create({
+            data: {
+              requestId: id,
+              changedBy: userId,
+              oldStatusId: request.statusId,
+              newStatusId: updateRepairRequestDto.statusId,
+            },
+          });
+        }
+
+        return updated;
+      });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError) {
+        if (e.code === 'P2003') {
+          throw new BadRequestException('Invalid statusId — status not found');
+        }
+      }
+      throw e;
+    }
   }
 
   async close(id: number, userId: number) {
-    const CLOSED_STATUS_ID = 4;
-    return this.update(id, { statusId: CLOSED_STATUS_ID }, userId);
+    const closedStatus = await this.getStatusByName('Closed');
+    return this.update(id, { statusId: closedStatus.id }, userId);
   }
 
   async assignTechnician(

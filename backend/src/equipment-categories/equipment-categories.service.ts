@@ -23,7 +23,7 @@ export class EquipmentCategoriesService {
         e instanceof Prisma.PrismaClientKnownRequestError &&
         e.code === 'P2002'
       ) {
-        throw new ConflictException('Equipment category name already exist');
+        throw new ConflictException('Equipment category name already exists');
       }
       throw e;
     }
@@ -52,7 +52,7 @@ export class EquipmentCategoriesService {
     });
 
     if (!category) {
-      throw new NotFoundException(`Equipment category ${id} not found`);
+      throw new NotFoundException(`Equipment category #${id} not found`);
     }
 
     return category;

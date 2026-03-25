@@ -23,7 +23,7 @@ export class EquipmentService {
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError) {
         if (e.code === 'P2002') {
-          throw new ConflictException(`Equipment already exist`);
+          throw new ConflictException('Serial number already exists');
         }
         if (e.code === 'P2003') {
           throw new BadRequestException('Invalid categoryId or deptId');
@@ -57,7 +57,7 @@ export class EquipmentService {
       include: { department: true, category: true },
     });
 
-    if (!equipment) throw new NotFoundException(`Not found Equipment ${id}`);
+    if (!equipment) throw new NotFoundException(`Equipment #${id} not found`);
 
     return equipment;
   }
@@ -74,7 +74,7 @@ export class EquipmentService {
         if (e.code === 'P2025')
           throw new NotFoundException(`Equipment #${id} not found`);
         if (e.code === 'P2002')
-          throw new ConflictException('Equipment name already exists');
+          throw new ConflictException('Serial number already exists');
       }
       throw e;
     }

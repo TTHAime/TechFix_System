@@ -191,11 +191,10 @@ export class UsersService {
       this.logger.log(`Profile updated: ${id}`);
       return user;
     } catch (e) {
-      if (
-        e instanceof Prisma.PrismaClientKnownRequestError &&
-        e.code === 'P2025'
-      ) {
-        throw new NotFoundException('User not found');
+      if (e instanceof Prisma.PrismaClientKnownRequestError) {
+        if (e.code === 'P2025') throw new NotFoundException('User not found');
+        if (e.code === 'P2002')
+          throw new ConflictException('Email already in use');
       }
       throw e;
     }
