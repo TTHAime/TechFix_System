@@ -26,7 +26,11 @@ export class ReportsService {
   // ─── Raw query helper for requests by department with date filter ─
 
   private getRequestsByDepartment(filter: ReportFilterDto) {
-    type Row = { dept_name: string; count: bigint };
+    // The database query below casts COUNT(rr.id) to an integer (::int), so the result
+    // will be returned as a JavaScript number rather than a bigint. Declaring
+    // the `count` property as `number` prevents TypeScript complaints about
+    // mismatched types when consuming this method.
+    type Row = { dept_name: string; count: number };
     if (filter.startDate && filter.endDate) {
       return this.prisma.$queryRaw<Row[]>`
         SELECT d.name AS dept_name, COUNT(rr.id)::int AS count
@@ -89,7 +93,7 @@ export class ReportsService {
       this.getRequestsByDepartment(filter),
       // Top 5 most repaired equipment
       this.prisma.$queryRaw<
-        { equipment_name: string; serial_no: string; count: bigint }[]
+        { equipment_name: string; serial_no: string; count: number }[]
       >`SELECT e.name AS equipment_name, e.serial_no, COUNT(re.id)::int AS count
         FROM request_equipment re
         JOIN equipment e ON e.id = re.equipment_id
@@ -97,7 +101,7 @@ export class ReportsService {
         ORDER BY count DESC LIMIT 5`,
       // Monthly trend (last 6 months)
       this.prisma.$queryRaw<
-        { month: string; count: bigint }[]
+        { month: string; count: number }[]
       >`SELECT TO_CHAR(created_at, 'YYYY-MM') AS month, COUNT(id)::int AS count
         FROM repair_requests
         WHERE created_at >= NOW() - INTERVAL '6 months'
@@ -105,9 +109,7 @@ export class ReportsService {
       // Total requests
       this.prisma.repairRequest.count({ where: dateFilter }),
       // Average resolution time (requests that have completedAt)
-      this.prisma.$queryRaw<
-        { avg_hours: number }[]
-      >`SELECT COALESCE(
+      this.prisma.$queryRaw<{ avg_hours: number }[]>`SELECT COALESCE(
           ROUND(AVG(EXTRACT(EPOCH FROM (completed_at - created_at)) / 3600)::numeric, 1),
           0
         )::float AS avg_hours
@@ -174,7 +176,9 @@ export class ReportsService {
         where: myWhere,
         _count: { id: true },
       }),
-      this.prisma.repairRequest.count({ where: { id: { in: ids.length > 0 ? ids : [-1] } } }),
+      this.prisma.repairRequest.count({
+        where: { id: { in: ids.length > 0 ? ids : [-1] } },
+      }),
       this.prisma.repairRequest.count({
         where: {
           id: { in: ids.length > 0 ? ids : [-1] },
@@ -203,7 +207,7 @@ export class ReportsService {
 
     const [usersByDepartment, requestsByDepartment] = await Promise.all([
       this.prisma.$queryRaw<
-        { dept_name: string; count: bigint }[]
+        { dept_name: string; count: number }[]
       >`SELECT d.name AS dept_name, COUNT(u.id)::int AS count
         FROM users u
         JOIN departments d ON d.id = u.dept_id
@@ -437,11 +441,19 @@ export class ReportsService {
   async exportUsers(filter: ReportFilterDto): Promise<ArrayBuffer> {
     this.logger.log('Exporting users to Excel');
 
+    // Retrieve users along with their roles and departments. We intentionally
+    // avoid selecting the `passwordHash` field. Prisma currently does not
+    // support an `omit` option on `findMany`, so we simply do not reference
+    // the field when building our output. If a user record happens to
+    // include a `passwordHash` property, it will be ignored.
     const users = await this.prisma.user.findMany({
       where: filter.deptId ? { deptId: filter.deptId } : undefined,
       orderBy: { id: 'asc' },
-      include: { role: true, department: true },
-      omit: { passwordHash: true },
+      include: {
+        role: true,
+        department: true,
+      },
+      // Note: no `omit` option here – Prisma's `findMany` does not support it.
     });
 
     const workbook = new ExcelJS.Workbook();
