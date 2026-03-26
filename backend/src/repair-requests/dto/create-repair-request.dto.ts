@@ -6,11 +6,15 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { RequestEquipmentDto } from './request-equipment.dto';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
+import sanitize from 'sanitize-html';
 
 export class CreateRepairRequestDto {
   @IsString()
   @IsNotEmpty()
+  @Transform(({ value }: { value: string }) =>
+    sanitize(value, { allowedTags: [], allowedAttributes: {} }),
+  )
   declare description: string;
 
   @IsArray()
