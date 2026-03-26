@@ -26,10 +26,6 @@ export class ReportsService {
   // ─── Raw query helper for requests by department with date filter ─
 
   private getRequestsByDepartment(filter: ReportFilterDto) {
-    // The database query below casts COUNT(rr.id) to an integer (::int), so the result
-    // will be returned as a JavaScript number rather than a bigint. Declaring
-    // the `count` property as `number` prevents TypeScript complaints about
-    // mismatched types when consuming this method.
     type Row = { dept_name: string; count: number };
     if (filter.startDate && filter.endDate) {
       return this.prisma.$queryRaw<Row[]>`
@@ -117,7 +113,7 @@ export class ReportsService {
         WHERE completed_at IS NOT NULL`,
     ]);
 
-    // Map status IDs to names
+
     const statuses = await this.prisma.requestStatus.findMany();
     const statusMap = new Map(statuses.map((s) => [s.id, s.name]));
 
@@ -441,11 +437,6 @@ export class ReportsService {
   async exportUsers(filter: ReportFilterDto): Promise<ArrayBuffer> {
     this.logger.log('Exporting users to Excel');
 
-    // Retrieve users along with their roles and departments. We intentionally
-    // avoid selecting the `passwordHash` field. Prisma currently does not
-    // support an `omit` option on `findMany`, so we simply do not reference
-    // the field when building our output. If a user record happens to
-    // include a `passwordHash` property, it will be ignored.
     const users = await this.prisma.user.findMany({
       where: filter.deptId ? { deptId: filter.deptId } : undefined,
       orderBy: { id: 'asc' },
@@ -453,7 +444,6 @@ export class ReportsService {
         role: true,
         department: true,
       },
-      // Note: no `omit` option here – Prisma's `findMany` does not support it.
     });
 
     const workbook = new ExcelJS.Workbook();
