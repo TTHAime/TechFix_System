@@ -1,0 +1,20 @@
+meta {
+  name: Dashboard Technician
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/reports/dashboard/technician
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tech_token}}
+}
+
+params:query {
+  ~startDate: 2024-01-01
+  ~endDate: 2025-12-31
+}

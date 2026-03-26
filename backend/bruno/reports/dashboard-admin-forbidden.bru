@@ -1,0 +1,15 @@
+meta {
+  name: Dashboard Admin (Forbidden - User role)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/reports/dashboard/admin
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{user_token}}
+}

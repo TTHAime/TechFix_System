@@ -1,0 +1,19 @@
+meta {
+  name: Export Equipment (Admin)
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{base_url}}/reports/export/equipment
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+params:query {
+  ~deptId: 1
+}

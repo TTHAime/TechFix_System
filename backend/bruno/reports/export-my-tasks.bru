@@ -1,0 +1,15 @@
+meta {
+  name: Export My Tasks (Technician)
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{base_url}}/reports/export/my-tasks
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tech_token}}
+}

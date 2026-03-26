@@ -1,0 +1,22 @@
+meta {
+  name: Dashboard Admin
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/reports/dashboard/admin
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+params:query {
+  ~startDate: 2024-01-01
+  ~endDate: 2025-12-31
+  ~deptId: 1
+  ~statusId: 1
+}

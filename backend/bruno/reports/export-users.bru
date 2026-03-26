@@ -1,0 +1,19 @@
+meta {
+  name: Export Users (HR)
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{base_url}}/reports/export/users
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{hr_token}}
+}
+
+params:query {
+  ~deptId: 1
+}
