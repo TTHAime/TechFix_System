@@ -66,34 +66,34 @@ describe('RepairRequestsService', () => {
     expect(service).toBeDefined();
   });
 
-  // ─── findOne ────────────────────────────────────────────────────────────────
   describe('findOne', () => {
-    beforeEach(() => {
-      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequest);
-    });
-
     it('returns request when requester views their own', async () => {
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequest);
       const result = await service.findOne(10, 42, Role.User);
       expect(result).toEqual(fakeRequest);
     });
 
     it('throws ForbiddenException when non-owner regular user tries to view', async () => {
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequest);
       await expect(service.findOne(10, 99, Role.User)).rejects.toThrow(
         ForbiddenException,
       );
     });
 
     it('allows Admin to view any request', async () => {
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequest);
       const result = await service.findOne(10, 99, Role.Admin);
       expect(result).toEqual(fakeRequest);
     });
 
     it('allows HR to view any request', async () => {
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequest);
       const result = await service.findOne(10, 99, Role.HR);
       expect(result).toEqual(fakeRequest);
     });
 
     it('allows Technician to view any request', async () => {
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequest);
       const result = await service.findOne(10, 99, Role.Technician);
       expect(result).toEqual(fakeRequest);
     });
@@ -106,20 +106,17 @@ describe('RepairRequestsService', () => {
     });
   });
 
-  // ─── create ─────────────────────────────────────────────────────────────────
   describe('create', () => {
     const dto = {
       description: 'Keyboard broken',
       equipments: [{ equipmentId: 5, issueDetail: 'Keys stuck' }],
     };
 
-    beforeEach(() => {
+    it('creates request and statusLog inside a transaction', async () => {
       mockPrisma.requestStatus.findFirst.mockResolvedValue(openStatus);
       mockTx.repairRequest.create.mockResolvedValue(fakeRequest);
       mockTx.statusLog.create.mockResolvedValue({});
-    });
 
-    it('creates request and statusLog inside a transaction', async () => {
       await service.create(dto, 42);
 
       expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
@@ -128,6 +125,10 @@ describe('RepairRequestsService', () => {
     });
 
     it('creates statusLog with note "Request created"', async () => {
+      mockPrisma.requestStatus.findFirst.mockResolvedValue(openStatus);
+      mockTx.repairRequest.create.mockResolvedValue(fakeRequest);
+      mockTx.statusLog.create.mockResolvedValue({});
+
       await service.create(dto, 42);
 
       expect(mockTx.statusLog.create).toHaveBeenCalledWith(
@@ -138,6 +139,8 @@ describe('RepairRequestsService', () => {
     });
 
     it('throws BadRequestException on invalid equipmentId (P2003)', async () => {
+      mockPrisma.requestStatus.findFirst.mockResolvedValue(openStatus);
+      mockTx.statusLog.create.mockResolvedValue({});
       const p2003 = new Prisma.PrismaClientKnownRequestError('FK fail', {
         code: 'P2003',
         clientVersion: '7.0.0',
@@ -156,53 +159,77 @@ describe('RepairRequestsService', () => {
     });
 
     it('re-throws non-P2003 errors without wrapping', async () => {
+      mockPrisma.requestStatus.findFirst.mockResolvedValue(openStatus);
+      mockTx.statusLog.create.mockResolvedValue({});
       const unexpectedError = new Error('DB connection lost');
       mockTx.repairRequest.create.mockRejectedValue(unexpectedError);
+
       await expect(service.create(dto, 42)).rejects.toThrow(
         'DB connection lost',
       );
     });
 
     it('re-throws non-P2003 Prisma errors without wrapping', async () => {
+      mockPrisma.requestStatus.findFirst.mockResolvedValue(openStatus);
+      mockTx.statusLog.create.mockResolvedValue({});
       const p2002 = new Prisma.PrismaClientKnownRequestError(
         'Unique constraint',
         { code: 'P2002', clientVersion: '7.0.0' },
       );
       mockTx.repairRequest.create.mockRejectedValue(p2002);
+
       await expect(service.create(dto, 42)).rejects.toThrow(p2002);
     });
   });
 
-  // ─── update ─────────────────────────────────────────────────────────────────
   describe('update', () => {
-    beforeEach(() => {
+    it('creates statusLog when statusId changes', async () => {
       mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequest);
       mockTx.repairRequest.update.mockResolvedValue({
         ...fakeRequest,
         statusId: 2,
       });
       mockTx.statusLog.create.mockResolvedValue({});
-    });
 
-    it('creates statusLog when statusId changes', async () => {
       await service.update(10, { statusId: 2 }, 99);
 
       expect(mockTx.statusLog.create).toHaveBeenCalledTimes(1);
     });
 
     it('does NOT create statusLog when statusId is unchanged', async () => {
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequest);
+      mockTx.repairRequest.update.mockResolvedValue({
+        ...fakeRequest,
+        statusId: 2,
+      });
+      mockTx.statusLog.create.mockResolvedValue({});
+
       await service.update(10, { statusId: openStatus.id }, 99);
 
       expect(mockTx.statusLog.create).not.toHaveBeenCalled();
     });
 
     it('does NOT create statusLog when statusId is not provided', async () => {
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequest);
+      mockTx.repairRequest.update.mockResolvedValue({
+        ...fakeRequest,
+        statusId: 2,
+      });
+      mockTx.statusLog.create.mockResolvedValue({});
+
       await service.update(10, { repairSummary: 'Fixed' }, 99);
 
       expect(mockTx.statusLog.create).not.toHaveBeenCalled();
     });
 
     it('updates partsUsed and completedAt when provided', async () => {
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequest);
+      mockTx.repairRequest.update.mockResolvedValue({
+        ...fakeRequest,
+        statusId: 2,
+      });
+      mockTx.statusLog.create.mockResolvedValue({});
+
       const completedAt = '2024-06-01T00:00:00.000Z';
       await service.update(10, { partsUsed: 'Screen, cable', completedAt }, 99);
 
@@ -217,6 +244,7 @@ describe('RepairRequestsService', () => {
     });
 
     it('throws BadRequestException on invalid statusId (P2003)', async () => {
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequest);
       const p2003 = new Prisma.PrismaClientKnownRequestError('FK fail', {
         code: 'P2003',
         clientVersion: '7.0.0',
@@ -237,33 +265,34 @@ describe('RepairRequestsService', () => {
     });
 
     it('re-throws non-P2003 errors without wrapping', async () => {
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequest);
       const unexpectedError = new Error('DB connection lost');
       mockTx.repairRequest.update.mockRejectedValue(unexpectedError);
+
       await expect(service.update(10, { statusId: 2 }, 99)).rejects.toThrow(
         'DB connection lost',
       );
     });
 
     it('re-throws non-P2003 Prisma errors without wrapping', async () => {
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequest);
       const p2002 = new Prisma.PrismaClientKnownRequestError(
         'Unique constraint',
         { code: 'P2002', clientVersion: '7.0.0' },
       );
       mockTx.repairRequest.update.mockRejectedValue(p2002);
+
       await expect(service.update(10, { statusId: 2 }, 99)).rejects.toThrow(
         p2002,
       );
     });
   });
 
-  // ─── findAll ─────────────────────────────────────────────────────────────────
   describe('findAll', () => {
-    beforeEach(() => {
+    it('returns only own requests for regular user', async () => {
       mockPrisma.repairRequest.findMany.mockResolvedValue([fakeRequest]);
       mockPrisma.repairRequest.count.mockResolvedValue(1);
-    });
 
-    it('returns only own requests for regular user', async () => {
       await service.findAll(42, Role.User, { page: 1, limit: 20 });
 
       expect(mockPrisma.repairRequest.findMany).toHaveBeenCalledWith(
@@ -272,6 +301,9 @@ describe('RepairRequestsService', () => {
     });
 
     it('returns all requests for Admin', async () => {
+      mockPrisma.repairRequest.findMany.mockResolvedValue([fakeRequest]);
+      mockPrisma.repairRequest.count.mockResolvedValue(1);
+
       await service.findAll(99, Role.Admin, { page: 1, limit: 20 });
 
       expect(mockPrisma.repairRequest.findMany).toHaveBeenCalledWith(
@@ -280,6 +312,9 @@ describe('RepairRequestsService', () => {
     });
 
     it('returns all requests for HR', async () => {
+      mockPrisma.repairRequest.findMany.mockResolvedValue([fakeRequest]);
+      mockPrisma.repairRequest.count.mockResolvedValue(1);
+
       await service.findAll(99, Role.HR, { page: 1, limit: 20 });
 
       expect(mockPrisma.repairRequest.findMany).toHaveBeenCalledWith(
@@ -288,6 +323,9 @@ describe('RepairRequestsService', () => {
     });
 
     it('returns all requests for Technician', async () => {
+      mockPrisma.repairRequest.findMany.mockResolvedValue([fakeRequest]);
+      mockPrisma.repairRequest.count.mockResolvedValue(1);
+
       await service.findAll(99, Role.Technician, { page: 1, limit: 20 });
 
       expect(mockPrisma.repairRequest.findMany).toHaveBeenCalledWith(
@@ -296,6 +334,7 @@ describe('RepairRequestsService', () => {
     });
 
     it('returns correct pagination meta', async () => {
+      mockPrisma.repairRequest.findMany.mockResolvedValue([fakeRequest]);
       mockPrisma.repairRequest.count.mockResolvedValue(50);
 
       const result = await service.findAll(42, Role.User, {
@@ -307,6 +346,9 @@ describe('RepairRequestsService', () => {
     });
 
     it('uses default page=1 and limit=20 when not provided', async () => {
+      mockPrisma.repairRequest.findMany.mockResolvedValue([fakeRequest]);
+      mockPrisma.repairRequest.count.mockResolvedValue(1);
+
       await service.findAll(42, Role.User, {});
 
       expect(mockPrisma.repairRequest.findMany).toHaveBeenCalledWith(
@@ -315,7 +357,6 @@ describe('RepairRequestsService', () => {
     });
   });
 
-  // ─── assignTechnician ────────────────────────────────────────────────────────
   describe('assignTechnician', () => {
     const fakeTechnician = {
       id: 7,
@@ -329,13 +370,11 @@ describe('RepairRequestsService', () => {
       action: 'assigned',
     };
 
-    beforeEach(() => {
+    it('creates assignmentLog with action "assigned" on success', async () => {
       mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequest);
       mockPrisma.user.findUnique.mockResolvedValue(fakeTechnician);
       mockPrisma.assignmentLog.create.mockResolvedValue(fakeLog);
-    });
 
-    it('creates assignmentLog with action "assigned" on success', async () => {
       await service.assignTechnician(10, 7, 99);
 
       expect(mockPrisma.assignmentLog.create).toHaveBeenCalledWith(
@@ -346,10 +385,12 @@ describe('RepairRequestsService', () => {
     });
 
     it('throws BadRequestException when target user is not a Technician', async () => {
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequest);
       mockPrisma.user.findUnique.mockResolvedValue({
         ...fakeTechnician,
         role: { name: Role.User },
       });
+      mockPrisma.assignmentLog.create.mockResolvedValue(fakeLog);
 
       await expect(service.assignTechnician(10, 7, 99)).rejects.toThrow(
         BadRequestException,
@@ -357,7 +398,9 @@ describe('RepairRequestsService', () => {
     });
 
     it('throws BadRequestException when target user does not exist', async () => {
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequest);
       mockPrisma.user.findUnique.mockResolvedValue(null);
+      mockPrisma.assignmentLog.create.mockResolvedValue(fakeLog);
 
       await expect(service.assignTechnician(10, 99, 99)).rejects.toThrow(
         BadRequestException,
@@ -366,6 +409,8 @@ describe('RepairRequestsService', () => {
 
     it('throws NotFoundException when repair request does not exist', async () => {
       mockPrisma.repairRequest.findUnique.mockResolvedValue(null);
+      mockPrisma.user.findUnique.mockResolvedValue(fakeTechnician);
+      mockPrisma.assignmentLog.create.mockResolvedValue(fakeLog);
 
       await expect(service.assignTechnician(999, 7, 99)).rejects.toThrow(
         NotFoundException,
@@ -373,7 +418,6 @@ describe('RepairRequestsService', () => {
     });
   });
 
-  // ─── unassignTechnician ──────────────────────────────────────────────────────
   describe('unassignTechnician', () => {
     const fakeLog = {
       id: 2,
@@ -382,12 +426,10 @@ describe('RepairRequestsService', () => {
       action: 'unassigned',
     };
 
-    beforeEach(() => {
+    it('creates assignmentLog with action "unassigned" on success', async () => {
       mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequest);
       mockPrisma.assignmentLog.create.mockResolvedValue(fakeLog);
-    });
 
-    it('creates assignmentLog with action "unassigned" on success', async () => {
       await service.unassignTechnician(10, 7, 99);
 
       expect(mockPrisma.assignmentLog.create).toHaveBeenCalledWith(
@@ -399,6 +441,7 @@ describe('RepairRequestsService', () => {
 
     it('throws NotFoundException when repair request does not exist', async () => {
       mockPrisma.repairRequest.findUnique.mockResolvedValue(null);
+      mockPrisma.assignmentLog.create.mockResolvedValue(fakeLog);
 
       await expect(service.unassignTechnician(999, 7, 99)).rejects.toThrow(
         NotFoundException,
@@ -406,9 +449,8 @@ describe('RepairRequestsService', () => {
     });
   });
 
-  // ─── close ───────────────────────────────────────────────────────────────────
   describe('close', () => {
-    beforeEach(() => {
+    it('updates request with Closed status', async () => {
       mockPrisma.requestStatus.findFirst.mockResolvedValue(closedStatus);
       mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequest);
       mockTx.repairRequest.update.mockResolvedValue({
@@ -416,9 +458,7 @@ describe('RepairRequestsService', () => {
         statusId: closedStatus.id,
       });
       mockTx.statusLog.create.mockResolvedValue({});
-    });
 
-    it('updates request with Closed status', async () => {
       await service.close(10, 42);
 
       expect(mockTx.repairRequest.update).toHaveBeenCalledWith(
@@ -432,24 +472,22 @@ describe('RepairRequestsService', () => {
 
     it('throws NotFoundException if Closed status does not exist', async () => {
       mockPrisma.requestStatus.findFirst.mockResolvedValue(null);
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequest);
 
       await expect(service.close(10, 42)).rejects.toThrow(NotFoundException);
     });
   });
 
-  // ─── getStatusLogs ───────────────────────────────────────────────────────────
   describe('getStatusLogs', () => {
     const fakeLogs = [
       { id: 1, requestId: 10, changedAt: new Date('2024-01-01') },
       { id: 2, requestId: 10, changedAt: new Date('2024-01-02') },
     ];
 
-    beforeEach(() => {
+    it('returns logs ordered by changedAt asc for valid request', async () => {
       mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequest);
       mockPrisma.statusLog.findMany.mockResolvedValue(fakeLogs);
-    });
 
-    it('returns logs ordered by changedAt asc for valid request', async () => {
       const result = await service.getStatusLogs(10);
 
       expect(mockPrisma.statusLog.findMany).toHaveBeenCalledWith(
@@ -467,19 +505,16 @@ describe('RepairRequestsService', () => {
     });
   });
 
-  // ─── getAssignmentLogs ───────────────────────────────────────────────────────
   describe('getAssignmentLogs', () => {
     const fakeLogs = [
       { id: 1, requestId: 10, loggedAt: new Date('2024-01-02') },
       { id: 2, requestId: 10, loggedAt: new Date('2024-01-01') },
     ];
 
-    beforeEach(() => {
+    it('returns logs ordered by loggedAt desc for valid request', async () => {
       mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequest);
       mockPrisma.assignmentLog.findMany.mockResolvedValue(fakeLogs);
-    });
 
-    it('returns logs ordered by loggedAt desc for valid request', async () => {
       const result = await service.getAssignmentLogs(10);
 
       expect(mockPrisma.assignmentLog.findMany).toHaveBeenCalledWith(
