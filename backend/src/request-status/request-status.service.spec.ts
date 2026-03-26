@@ -1,14 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { EquipmentCategoriesService } from './equipment-categories.service';
+import { RequestStatusService } from './request-status.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from 'src/generated/prisma/client';
 
-const fakeCategory = { id: 1, name: 'Laptop' };
-const fakeCategory2 = { id: 2, name: 'Monitor' };
+const fakeStatus = { id: 1, name: 'Pending' };
+const fakeStatus2 = { id: 2, name: 'In Progress' };
 
-const createDto = { name: 'Laptop' };
-const updateDto = { name: 'Laptop Pro' };
+const createDto = { name: 'Pending' };
+const updateDto = { name: 'Resolved' };
 
 const paginationQuery = { page: 1, limit: 20 };
 
@@ -19,11 +19,11 @@ function makePrismaError(code: string) {
   });
 }
 
-describe('EquipmentCategoriesService', () => {
-  let service: EquipmentCategoriesService;
+describe('RequestStatusService', () => {
+  let service: RequestStatusService;
 
   const mockPrisma = {
-    equipmentCategory: {
+    requestStatus: {
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
@@ -36,14 +36,12 @@ describe('EquipmentCategoriesService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        EquipmentCategoriesService,
+        RequestStatusService,
         { provide: PrismaService, useValue: mockPrisma },
       ],
     }).compile();
 
-    service = module.get<EquipmentCategoriesService>(
-      EquipmentCategoriesService,
-    );
+    service = module.get<RequestStatusService>(RequestStatusService);
 
     jest.clearAllMocks();
   });
@@ -53,16 +51,16 @@ describe('EquipmentCategoriesService', () => {
   });
 
   describe('create', () => {
-    it('should return the created category when input is valid', async () => {
-      mockPrisma.equipmentCategory.create.mockResolvedValue(fakeCategory);
+    it('should return the created status when input is valid', async () => {
+      mockPrisma.requestStatus.create.mockResolvedValue(fakeStatus);
 
       const result = await service.create(createDto);
 
-      expect(result).toEqual(fakeCategory);
+      expect(result).toEqual(fakeStatus);
     });
 
-    it('should throw ConflictException when category name is duplicate (P2002)', async () => {
-      mockPrisma.equipmentCategory.create.mockRejectedValue(
+    it('should throw ConflictException when status name is duplicate (P2002)', async () => {
+      mockPrisma.requestStatus.create.mockRejectedValue(
         makePrismaError('P2002'),
       );
 
@@ -72,7 +70,7 @@ describe('EquipmentCategoriesService', () => {
     });
 
     it('should re-throw unexpected errors without wrapping when an unknown error occurs', async () => {
-      mockPrisma.equipmentCategory.create.mockRejectedValue(
+      mockPrisma.requestStatus.create.mockRejectedValue(
         new Error('DB connection lost'),
       );
 
@@ -83,16 +81,16 @@ describe('EquipmentCategoriesService', () => {
   });
 
   describe('findOne', () => {
-    it('should return the category when id exists', async () => {
-      mockPrisma.equipmentCategory.findUnique.mockResolvedValue(fakeCategory);
+    it('should return the status when id exists', async () => {
+      mockPrisma.requestStatus.findUnique.mockResolvedValue(fakeStatus);
 
       const result = await service.findOne(1);
 
-      expect(result).toEqual(fakeCategory);
+      expect(result).toEqual(fakeStatus);
     });
 
-    it('should throw NotFoundException when category does not exist', async () => {
-      mockPrisma.equipmentCategory.findUnique.mockResolvedValue(null);
+    it('should throw NotFoundException when status does not exist', async () => {
+      mockPrisma.requestStatus.findUnique.mockResolvedValue(null);
 
       await expect(service.findOne(999)).rejects.toThrow(NotFoundException);
     });
@@ -100,53 +98,53 @@ describe('EquipmentCategoriesService', () => {
 
   describe('findAll', () => {
     it('should return data and pagination meta when query is valid', async () => {
-      mockPrisma.equipmentCategory.findMany.mockResolvedValue([
-        fakeCategory,
-        fakeCategory2,
+      mockPrisma.requestStatus.findMany.mockResolvedValue([
+        fakeStatus,
+        fakeStatus2,
       ]);
-      mockPrisma.equipmentCategory.count.mockResolvedValue(2);
+      mockPrisma.requestStatus.count.mockResolvedValue(2);
 
       const result = await service.findAll(paginationQuery);
 
-      expect(result.data).toEqual([fakeCategory, fakeCategory2]);
+      expect(result.data).toEqual([fakeStatus, fakeStatus2]);
       expect(result.meta).toEqual({ page: 1, limit: 20, total: 2 });
     });
 
     it('should use default page=1 and limit=20 when pagination params are not provided', async () => {
-      mockPrisma.equipmentCategory.findMany.mockResolvedValue([fakeCategory]);
-      mockPrisma.equipmentCategory.count.mockResolvedValue(1);
+      mockPrisma.requestStatus.findMany.mockResolvedValue([fakeStatus]);
+      mockPrisma.requestStatus.count.mockResolvedValue(1);
 
       await service.findAll({});
 
-      expect(mockPrisma.equipmentCategory.findMany).toHaveBeenCalledWith(
+      expect(mockPrisma.requestStatus.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ skip: 0, take: 20 }),
       );
     });
 
     it('should calculate correct skip when page is greater than 1', async () => {
-      mockPrisma.equipmentCategory.findMany.mockResolvedValue([]);
-      mockPrisma.equipmentCategory.count.mockResolvedValue(30);
+      mockPrisma.requestStatus.findMany.mockResolvedValue([]);
+      mockPrisma.requestStatus.count.mockResolvedValue(30);
 
       await service.findAll({ page: 3, limit: 10 });
 
-      expect(mockPrisma.equipmentCategory.findMany).toHaveBeenCalledWith(
+      expect(mockPrisma.requestStatus.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ skip: 20, take: 10 }),
       );
     });
   });
 
   describe('update', () => {
-    it('should return the updated category when input is valid', async () => {
-      const updatedCategory = { ...fakeCategory, name: updateDto.name };
-      mockPrisma.equipmentCategory.update.mockResolvedValue(updatedCategory);
+    it('should return the updated status when input is valid', async () => {
+      const updatedStatus = { ...fakeStatus, name: updateDto.name };
+      mockPrisma.requestStatus.update.mockResolvedValue(updatedStatus);
 
       const result = await service.update(1, updateDto);
 
-      expect(result).toEqual(updatedCategory);
+      expect(result).toEqual(updatedStatus);
     });
 
-    it('should throw NotFoundException when category does not exist (P2025)', async () => {
-      mockPrisma.equipmentCategory.update.mockRejectedValue(
+    it('should throw NotFoundException when status does not exist (P2025)', async () => {
+      mockPrisma.requestStatus.update.mockRejectedValue(
         makePrismaError('P2025'),
       );
 
@@ -155,8 +153,8 @@ describe('EquipmentCategoriesService', () => {
       );
     });
 
-    it('should throw ConflictException when category name is duplicate (P2002)', async () => {
-      mockPrisma.equipmentCategory.update.mockRejectedValue(
+    it('should throw ConflictException when status name is duplicate (P2002)', async () => {
+      mockPrisma.requestStatus.update.mockRejectedValue(
         makePrismaError('P2002'),
       );
 
@@ -166,7 +164,7 @@ describe('EquipmentCategoriesService', () => {
     });
 
     it('should re-throw unexpected errors without wrapping when an unknown error occurs', async () => {
-      mockPrisma.equipmentCategory.update.mockRejectedValue(
+      mockPrisma.requestStatus.update.mockRejectedValue(
         new Error('DB connection lost'),
       );
 
@@ -176,25 +174,25 @@ describe('EquipmentCategoriesService', () => {
     });
   });
 
-  describe('delete', () => {
-    it('should return the deleted category when id exists', async () => {
-      mockPrisma.equipmentCategory.delete.mockResolvedValue(fakeCategory);
+  describe('remove', () => {
+    it('should return the deleted status when id exists', async () => {
+      mockPrisma.requestStatus.delete.mockResolvedValue(fakeStatus);
 
       const result = await service.remove(1);
 
-      expect(result).toEqual(fakeCategory);
+      expect(result).toEqual(fakeStatus);
     });
 
-    it('should throw NotFoundException when category does not exist (P2025)', async () => {
-      mockPrisma.equipmentCategory.delete.mockRejectedValue(
+    it('should throw NotFoundException when status does not exist (P2025)', async () => {
+      mockPrisma.requestStatus.delete.mockRejectedValue(
         makePrismaError('P2025'),
       );
 
       await expect(service.remove(999)).rejects.toThrow(NotFoundException);
     });
 
-    it('should throw ConflictException when category still has equipment assigned (P2003)', async () => {
-      mockPrisma.equipmentCategory.delete.mockRejectedValue(
+    it('should throw ConflictException when status is still used by repair requests (P2003)', async () => {
+      mockPrisma.requestStatus.delete.mockRejectedValue(
         makePrismaError('P2003'),
       );
 
@@ -202,7 +200,7 @@ describe('EquipmentCategoriesService', () => {
     });
 
     it('should re-throw unexpected errors without wrapping when an unknown error occurs', async () => {
-      mockPrisma.equipmentCategory.delete.mockRejectedValue(
+      mockPrisma.requestStatus.delete.mockRejectedValue(
         new Error('DB connection lost'),
       );
 
