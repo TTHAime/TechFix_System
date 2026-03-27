@@ -5,9 +5,8 @@ import { FormikTextarea } from '@/components/ui/FormikTextarea';
 import { FormikSelect } from '@/components/ui/FormikSelect';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { mockEquipment } from '@/lib/mock-data';
-import { useAuthStore } from '@/stores/auth';
-import { useRepairRequestStore } from '@/stores/repair-requests';
+import { useEquipmentQuery } from '@/features/equipment/hooks';
+import { useCreateRepairRequestMutation } from '@/features/repair-requests/hooks';
 import { ArrowLeft } from 'lucide-react';
 
 interface RequestCreateValues {
@@ -24,10 +23,10 @@ const requestCreateSchema = Yup.object({
 
 export default function RequestCreatePage() {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
-  const addRequest = useRepairRequestStore((s) => s.addRequest);
+  const { data: equipmentData } = useEquipmentQuery(1, 100);
+  const createMutation = useCreateRepairRequestMutation();
 
-  const equipmentOptions = mockEquipment.map((e) => ({
+  const equipmentOptions = (equipmentData?.data ?? []).map((e) => ({
     value: String(e.id),
     label: `${e.name} (${e.serialNo})`,
   }));
@@ -59,16 +58,20 @@ export default function RequestCreatePage() {
           <Formik<RequestCreateValues>
             initialValues={initialValues}
             validationSchema={requestCreateSchema}
-            onSubmit={(values, { setSubmitting }) => {
-              if (!user) return;
-              addRequest({
-                requesterId: user.id,
-                description: values.description,
-                equipmentId: Number(values.equipmentId),
-                issueDetail: values.issueDetail,
-              });
-              setSubmitting(false);
-              navigate('/requests');
+            onSubmit={(values, { setSubmitting, setFieldError }) => {
+              createMutation.mutate(
+                {
+                  description: values.description,
+                  equipments: [{ equipmentId: Number(values.equipmentId), issueDetail: values.issueDetail }],
+                },
+                {
+                  onSuccess: () => navigate('/requests'),
+                  onError: () => {
+                    setFieldError('description', 'Failed to submit request. Please try again.');
+                    setSubmitting(false);
+                  },
+                },
+              );
             }}
           >
             {({ isSubmitting }) => (
@@ -92,8 +95,8 @@ export default function RequestCreatePage() {
                   rows={3}
                 />
                 <div className="flex gap-3 pt-2">
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? 'Submitting...' : 'Submit Request'}
+                  <Button type="submit" disabled={isSubmitting || createMutation.isPending}>
+                    {createMutation.isPending ? 'Submitting...' : 'Submit Request'}
                   </Button>
                   <Button type="button" variant="outline" onClick={() => navigate('/requests')}>
                     Cancel

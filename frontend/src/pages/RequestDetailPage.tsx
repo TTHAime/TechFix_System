@@ -1,13 +1,18 @@
 import { useParams, useNavigate } from 'react-router';
 import { useAuthStore } from '@/stores/auth';
-import { useRepairRequestStore } from '@/stores/repair-requests';
-import { mockUsers } from '@/lib/mock-data';
+import { useRepairRequestQuery, useAssignTechnicianMutation, useUpdateRepairRequestMutation, useCloseRepairRequestMutation } from '@/features/repair-requests/hooks';
+import { useUsersQuery } from '@/features/users/hooks';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, User, Monitor, Clock, Wrench, Hand } from 'lucide-react';
 import type { RequestStatusName } from '@/types';
+
+const STATUS_IDS: Record<string, number> = {
+  in_progress: 2,
+  resolved: 3,
+};
 
 const statusVariantMap: Record<RequestStatusName, 'warning' | 'default' | 'success' | 'secondary'> = {
   open: 'warning',
@@ -20,9 +25,19 @@ export default function RequestDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, hasRole } = useAuthStore();
-  const { requests, claimRequest, assignRequest, updateStatus } = useRepairRequestStore();
 
-  const request = requests.find((r) => r.id === Number(id));
+  const { data: requestData, isLoading } = useRepairRequestQuery(Number(id));
+  const { data: usersData } = useUsersQuery(1, 100);
+
+  const assignMutation = useAssignTechnicianMutation(Number(id));
+  const updateMutation = useUpdateRepairRequestMutation(Number(id));
+  const closeMutation = useCloseRepairRequestMutation(Number(id));
+
+  if (isLoading) {
+    return <p className="text-muted-foreground py-12 text-center">Loading...</p>;
+  }
+
+  const request = requestData?.data;
 
   if (!request) {
     return (
@@ -34,7 +49,7 @@ export default function RequestDetailPage() {
   }
 
   const assignedTech = request.assignmentLogs.find((a) => a.action === 'assigned')?.technician;
-  const technicians = mockUsers.filter((u) => u.role.name === 'technician');
+  const technicians = (usersData?.data ?? []).filter((u) => u.role.name === 'technician');
   const isUnassigned = request.status.name === 'open' && request.assignmentLogs.length === 0;
   const isMyRequest = hasRole('technician') && assignedTech?.id === user?.id;
 
@@ -143,15 +158,16 @@ export default function RequestDetailPage() {
                 <Button
                   className="w-full mt-3"
                   size="sm"
-                  onClick={() => claimRequest(request.id, user.id)}
+                  disabled={assignMutation.isPending}
+                  onClick={() => assignMutation.mutate(user.id)}
                 >
                   <Hand className="mr-2 h-4 w-4" />
-                  Claim This Request
+                  {assignMutation.isPending ? 'Claiming...' : 'Claim This Request'}
                 </Button>
               )}
 
               {/* Admin can assign technician */}
-              {hasRole('admin') && isUnassigned && user && (
+              {hasRole('admin') && isUnassigned && (
                 <div className="mt-3 space-y-2">
                   <p className="text-xs font-medium text-muted-foreground">Assign to:</p>
                   {technicians.map((tech) => (
@@ -160,7 +176,8 @@ export default function RequestDetailPage() {
                       variant="outline"
                       size="sm"
                       className="w-full justify-start"
-                      onClick={() => assignRequest(request.id, tech.id, user.id)}
+                      disabled={assignMutation.isPending}
+                      onClick={() => assignMutation.mutate(tech.id)}
                     >
                       {tech.name}
                     </Button>
@@ -210,7 +227,7 @@ export default function RequestDetailPage() {
           </Card>
 
           {/* Status actions */}
-          {hasRole('admin', 'technician') && request.status.name !== 'closed' && user && (
+          {hasRole('admin', 'technician') && request.status.name !== 'closed' && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Actions</CardTitle>
@@ -221,7 +238,8 @@ export default function RequestDetailPage() {
                   <Button
                     className="w-full"
                     size="sm"
-                    onClick={() => updateStatus(request.id, 'in_progress', user.id)}
+                    disabled={updateMutation.isPending}
+                    onClick={() => updateMutation.mutate({ statusId: STATUS_IDS.in_progress })}
                   >
                     Mark In Progress
                   </Button>
@@ -230,8 +248,13 @@ export default function RequestDetailPage() {
                   <Button
                     className="w-full"
                     size="sm"
-                    variant="default"
-                    onClick={() => updateStatus(request.id, 'resolved', user.id)}
+                    disabled={updateMutation.isPending}
+                    onClick={() =>
+                      updateMutation.mutate({
+                        statusId: STATUS_IDS.resolved,
+                        completedAt: new Date().toISOString(),
+                      })
+                    }
                   >
                     Mark Resolved
                   </Button>
@@ -241,9 +264,10 @@ export default function RequestDetailPage() {
                     className="w-full"
                     size="sm"
                     variant="secondary"
-                    onClick={() => updateStatus(request.id, 'closed', user.id)}
+                    disabled={closeMutation.isPending}
+                    onClick={() => closeMutation.mutate()}
                   >
-                    Close Request
+                    {closeMutation.isPending ? 'Closing...' : 'Close Request'}
                   </Button>
                 )}
               </CardContent>

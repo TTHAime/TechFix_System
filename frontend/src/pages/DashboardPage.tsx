@@ -1,8 +1,11 @@
 import { useAuthStore } from '@/stores/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { mockEquipment, mockUsers, mockDepartments, mockAuditLogs } from '@/lib/mock-data';
-import { useRepairRequestStore } from '@/stores/repair-requests';
+import { useRepairRequestsQuery } from '@/features/repair-requests/hooks';
+import { useUsersQuery } from '@/features/users/hooks';
+import { useEquipmentQuery } from '@/features/equipment/hooks';
+import { useDepartmentsQuery } from '@/features/departments/hooks';
+import { useAuditLogsQuery } from '@/features/audit-logs/hooks';
 import {
   Wrench,
   Monitor,
@@ -16,8 +19,9 @@ import {
   Shield,
 } from 'lucide-react';
 import { useNavigate } from 'react-router';
+import type { RequestStatusName } from '@/types';
 
-function StatusIcon({ status }: { status: string }) {
+function StatusIcon({ status }: { status: RequestStatusName }) {
   switch (status) {
     case 'open': return <AlertCircle className="h-4 w-4 text-amber-500" />;
     case 'in_progress': return <Clock className="h-4 w-4 text-blue-500" />;
@@ -30,31 +34,32 @@ function StatusIcon({ status }: { status: string }) {
 export default function DashboardPage() {
   const { user, hasRole } = useAuthStore();
   const navigate = useNavigate();
-  const allRequests = useRepairRequestStore((s) => s.requests);
+
+  // Backend already filters requests by role — no client-side filtering needed
+  const { data: requestsData } = useRepairRequestsQuery(1, 100);
+  const { data: usersData } = useUsersQuery(1, 100);
+  const { data: equipmentData } = useEquipmentQuery(1, 1);
+  const { data: departmentsData } = useDepartmentsQuery(1, 1);
+  const { data: auditLogsData } = useAuditLogsQuery(1, 1);
+
   if (!user) return null;
 
-  // Filter requests based on role
-  const myRequests = hasRole('user')
-    ? allRequests.filter((r) => r.requesterId === user.id)
-    : hasRole('technician')
-      ? allRequests.filter((r) =>
-          r.assignmentLogs.some((a) => a.technicianId === user.id && a.action === 'assigned'),
-        )
-      : allRequests;
+  const requests = requestsData?.data ?? [];
+  const openCount = requests.filter((r) => r.status.name === 'open').length;
+  const inProgressCount = requests.filter((r) => r.status.name === 'in_progress').length;
+  const resolvedCount = requests.filter((r) => r.status.name === 'resolved').length;
 
-  const openCount = myRequests.filter((r) => r.status.name === 'open').length;
-  const inProgressCount = myRequests.filter((r) => r.status.name === 'in_progress').length;
-  const resolvedCount = myRequests.filter((r) => r.status.name === 'resolved').length;
-
-  const activeUsers = mockUsers.filter((u) => u.isActive).length;
+  const totalUsers = usersData?.meta.total ?? 0;
+  const activeUsers = usersData?.data.filter((u) => u.isActive).length ?? 0;
+  const totalEquipment = equipmentData?.meta.total ?? 0;
+  const totalDepartments = departmentsData?.meta.total ?? 0;
+  const totalAuditLogs = auditLogsData?.meta.total ?? 0;
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Welcome back, {user.name}
-        </p>
+        <p className="text-muted-foreground">Welcome back, {user.name}</p>
       </div>
 
       {/* Stats cards */}
@@ -68,7 +73,7 @@ export default function DashboardPage() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{mockUsers.length}</div>
+                <div className="text-2xl font-bold">{totalUsers}</div>
                 <p className="text-xs text-muted-foreground">{activeUsers} active</p>
               </CardContent>
             </Card>
@@ -79,7 +84,7 @@ export default function DashboardPage() {
                 <Monitor className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{mockEquipment.length}</div>
+                <div className="text-2xl font-bold">{totalEquipment}</div>
                 <p className="text-xs text-muted-foreground">Registered items</p>
               </CardContent>
             </Card>
@@ -101,7 +106,7 @@ export default function DashboardPage() {
                 <ScrollText className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{mockAuditLogs.length}</div>
+                <div className="text-2xl font-bold">{totalAuditLogs}</div>
                 <p className="text-xs text-muted-foreground">System activities</p>
               </CardContent>
             </Card>
@@ -117,7 +122,7 @@ export default function DashboardPage() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{mockUsers.length}</div>
+                <div className="text-2xl font-bold">{totalUsers}</div>
                 <p className="text-xs text-muted-foreground">{activeUsers} active</p>
               </CardContent>
             </Card>
@@ -128,7 +133,7 @@ export default function DashboardPage() {
                 <Building2 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{mockDepartments.length}</div>
+                <div className="text-2xl font-bold">{totalDepartments}</div>
                 <p className="text-xs text-muted-foreground">Active departments</p>
               </CardContent>
             </Card>
@@ -166,7 +171,7 @@ export default function DashboardPage() {
                 <Wrench className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{myRequests.length}</div>
+                <div className="text-2xl font-bold">{requests.length}</div>
                 <p className="text-xs text-muted-foreground">Total assigned</p>
               </CardContent>
             </Card>
@@ -204,7 +209,7 @@ export default function DashboardPage() {
                 <Wrench className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{myRequests.length}</div>
+                <div className="text-2xl font-bold">{requests.length}</div>
                 <p className="text-xs text-muted-foreground">Total submitted</p>
               </CardContent>
             </Card>
@@ -245,7 +250,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Recent requests/repairs */}
+      {/* Recent requests */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -257,11 +262,11 @@ export default function DashboardPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {myRequests.length === 0 ? (
+          {requests.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4">No repair requests found.</p>
           ) : (
             <div className="space-y-3">
-              {myRequests.slice(0, 5).map((req) => (
+              {requests.slice(0, 5).map((req) => (
                 <div
                   key={req.id}
                   className="flex items-center gap-4 rounded-lg border p-3 cursor-pointer hover:bg-muted/50 transition-colors"
