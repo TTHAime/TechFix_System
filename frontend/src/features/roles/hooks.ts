@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { getRoles } from './api';
 
-export function useRolesQuery(page = 1, limit = 20) {
+export function useRolesQuery(page = 1, limit = 20, enabled = true) {
   return useQuery({
     queryKey: ['roles', page, limit],
     queryFn: () => getRoles(page, limit),
+    enabled,
   });
 }

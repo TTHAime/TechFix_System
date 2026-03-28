@@ -26,8 +26,9 @@ export default function RequestDetailPage() {
   const navigate = useNavigate();
   const { user, hasRole } = useAuthStore();
 
+  const isAdmin = hasRole('admin');
   const { data: requestData, isLoading } = useRepairRequestQuery(Number(id));
-  const { data: usersData } = useUsersQuery(1, 100);
+  const { data: usersData } = useUsersQuery(1, 100, isAdmin);
 
   const assignMutation = useAssignTechnicianMutation(Number(id));
   const updateMutation = useUpdateRepairRequestMutation(Number(id));

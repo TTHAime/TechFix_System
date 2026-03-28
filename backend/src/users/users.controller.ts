@@ -84,6 +84,7 @@ export class UsersController {
   }
 
   @Get()
+  @Roles(Role.Admin, Role.HR)
   async findAll(@Query() query: PaginationQueryDto) {
     const result = await this.usersService.findAll(query);
     return { ...result, message: 'Users retrieved successfully' };

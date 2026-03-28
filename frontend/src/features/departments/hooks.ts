@@ -1,10 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getDepartments, createDepartment, updateDepartment, deleteDepartment } from './api';
 
-export function useDepartmentsQuery(page = 1, limit = 20) {
+export function useDepartmentsQuery(page = 1, limit = 20, enabled = true) {
   return useQuery({
     queryKey: ['departments', page, limit],
     queryFn: () => getDepartments(page, limit),
+    enabled,
   });
 }
 

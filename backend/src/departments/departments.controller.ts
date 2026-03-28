@@ -41,12 +41,14 @@ export class DepartmentsController {
   }
 
   @Get()
+  @Roles(Role.Admin, Role.HR)
   async findAll(@Query() query: PaginationQueryDto) {
     const result = await this.departmentsService.findAll(query);
     return { ...result, message: 'Departments retrieved successfully' };
   }
 
   @Get(':id')
+  @Roles(Role.Admin, Role.HR)
   async findOne(@Param('id', ParseIntPipe) id: number) {
     const data = await this.departmentsService.findOne(id);
     return { data, message: 'Department retrieved successfully' };

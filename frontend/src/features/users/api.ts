@@ -46,6 +46,14 @@ export async function updateUser(
   return data;
 }
 
+export async function hrUpdateUser(
+  id: number,
+  payload: { name?: string; deptId?: number; isActive?: boolean; password?: string },
+): Promise<ApiResponse<User>> {
+  const { data } = await axiosInstance.patch<ApiResponse<User>>(`/users/${id}/profile`, payload);
+  return data;
+}
+
 export async function deleteUser(id: number): Promise<ApiResponse<User>> {
   const { data } = await axiosInstance.delete<ApiResponse<User>>(`/users/${id}`);
   return data;

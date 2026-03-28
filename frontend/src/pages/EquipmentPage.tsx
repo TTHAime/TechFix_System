@@ -31,9 +31,10 @@ export default function EquipmentPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { hasRole } = useAuthStore();
 
+  const isAdmin = hasRole('admin');
   const { data: eqResponse, isLoading, isError } = useEquipmentQuery();
-  const { data: catResponse } = useEquipmentCategoriesQuery();
-  const { data: deptResponse } = useDepartmentsQuery();
+  const { data: catResponse } = useEquipmentCategoriesQuery(isAdmin);
+  const { data: deptResponse } = useDepartmentsQuery(1, 20, isAdmin);
   const createMutation = useCreateEquipmentMutation();
 
   const equipment = eqResponse?.data ?? [];

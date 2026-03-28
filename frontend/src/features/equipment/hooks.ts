@@ -8,10 +8,11 @@ export function useEquipmentQuery(page = 1, limit = 20) {
   });
 }
 
-export function useEquipmentCategoriesQuery() {
+export function useEquipmentCategoriesQuery(enabled = true) {
   return useQuery({
     queryKey: ['equipment-categories'],
     queryFn: () => getEquipmentCategories(),
+    enabled,
   });
 }
 

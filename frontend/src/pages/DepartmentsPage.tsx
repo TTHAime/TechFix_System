@@ -31,7 +31,7 @@ export default function DepartmentsPage() {
   const createMutation = useCreateDepartmentMutation();
   const updateMutation = useUpdateDepartmentMutation();
 
-  const canManage = hasRole('admin', 'hr');
+  const canManage = hasRole('admin');
 
   const initialValues: DepartmentFormValues = { name: '', location: '' };
 

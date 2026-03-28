@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useUsersQuery, useCreateUserMutation, useUpdateUserMutation } from '@/features/users/hooks';
+import { useUsersQuery, useCreateUserMutation, useUpdateUserMutation, useOnboardUserMutation, useHrUpdateUserMutation } from '@/features/users/hooks';
 import { useRolesQuery } from '@/features/roles/hooks';
 import { useDepartmentsQuery } from '@/features/departments/hooks';
 import type { User } from '@/types';
@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Plus, Pencil, KeyRound, UserX, UserCheck } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
 
-interface UserFormValues {
+interface AdminCreateValues {
   name: string;
   email: string;
   roleId: string;
@@ -24,7 +24,14 @@ interface UserFormValues {
   password: string;
 }
 
-const userSchema = Yup.object({
+interface HrCreateValues {
+  name: string;
+  email: string;
+  deptId: string;
+  password: string;
+}
+
+const adminCreateSchema = Yup.object({
   name: Yup.string().required('Name is required'),
   email: Yup.string().email('Invalid email').required('Email is required'),
   roleId: Yup.string().required('Role is required'),
@@ -32,10 +39,22 @@ const userSchema = Yup.object({
   password: Yup.string().min(8, 'Password must be at least 8 characters').required('Password is required'),
 });
 
-const editUserSchema = Yup.object({
+const hrCreateSchema = Yup.object({
+  name: Yup.string().required('Name is required'),
+  email: Yup.string().email('Invalid email').required('Email is required'),
+  deptId: Yup.string().required('Department is required'),
+  password: Yup.string().min(8, 'Password must be at least 8 characters'),
+});
+
+const adminEditSchema = Yup.object({
   name: Yup.string().required('Name is required'),
   email: Yup.string().email('Invalid email').required('Email is required'),
   roleId: Yup.string().required('Role is required'),
+  deptId: Yup.string().required('Department is required'),
+});
+
+const hrEditSchema = Yup.object({
+  name: Yup.string().required('Name is required'),
   deptId: Yup.string().required('Department is required'),
 });
 
@@ -46,20 +65,20 @@ export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const { hasRole } = useAuthStore();
 
+  const isAdmin = hasRole('admin');
   const { data: usersResponse, isLoading, isError } = useUsersQuery();
-  const { data: rolesResponse } = useRolesQuery();
+  const { data: rolesResponse } = useRolesQuery(1, 20, isAdmin);
   const { data: deptsResponse } = useDepartmentsQuery();
   const createMutation = useCreateUserMutation();
+  const onboardMutation = useOnboardUserMutation();
   const updateMutation = useUpdateUserMutation();
+  const hrUpdateMutation = useHrUpdateUserMutation();
 
   const users = usersResponse?.data ?? [];
   const canManageUsers = hasRole('admin', 'hr');
-  const isAdmin = hasRole('admin');
 
   const roleOptions = (rolesResponse?.data ?? []).map((r) => ({ value: String(r.id), label: r.name }));
   const deptOptions = (deptsResponse?.data ?? []).map((d) => ({ value: String(d.id), label: d.name }));
-
-  const initialValues: UserFormValues = { name: '', email: '', roleId: '', deptId: '', password: '' };
 
   if (isLoading) return <div className="flex items-center justify-center p-8">Loading users...</div>;
   if (isError) return <div className="flex items-center justify-center p-8 text-destructive">Failed to load users</div>;
@@ -183,53 +202,77 @@ export default function UsersPage() {
               {isAdmin ? 'Create a new user account with role assignment' : 'Add a new employee record'}
             </DialogDescription>
           </DialogHeader>
-          <Formik<UserFormValues>
-            initialValues={initialValues}
-            validationSchema={userSchema}
-            onSubmit={(values, { setSubmitting, resetForm }) => {
-              createMutation.mutate(
-                {
-                  name: values.name,
-                  email: values.email,
-                  password: values.password,
-                  roleId: Number(values.roleId),
-                  deptId: Number(values.deptId),
-                },
-                {
-                  onSuccess: () => {
-                    resetForm();
-                    setDialogOpen(false);
+          {isAdmin ? (
+            <Formik<AdminCreateValues>
+              initialValues={{ name: '', email: '', roleId: '', deptId: '', password: '' }}
+              validationSchema={adminCreateSchema}
+              onSubmit={(values, { setSubmitting, resetForm }) => {
+                createMutation.mutate(
+                  {
+                    name: values.name,
+                    email: values.email,
+                    password: values.password,
+                    roleId: Number(values.roleId),
+                    deptId: Number(values.deptId),
                   },
-                  onSettled: () => setSubmitting(false),
-                },
-              );
-            }}
-          >
-            {({ isSubmitting }) => (
-              <Form className="space-y-4">
-                <FormikInput name="name" label="Name" placeholder="Full name" />
-                <FormikInput name="email" label="Email" type="email" placeholder="user@company.com" />
-                <FormikInput name="password" label="Password" type="password" placeholder="Min 8 characters" />
-                {isAdmin ? (
+                  {
+                    onSuccess: () => { resetForm(); setDialogOpen(false); },
+                    onSettled: () => setSubmitting(false),
+                  },
+                );
+              }}
+            >
+              {({ isSubmitting }) => (
+                <Form className="space-y-4">
+                  <FormikInput name="name" label="Name" placeholder="Full name" />
+                  <FormikInput name="email" label="Email" type="email" placeholder="user@company.com" />
+                  <FormikInput name="password" label="Password" type="password" placeholder="Min 8 characters" />
                   <FormikSelect name="roleId" label="Role" placeholder="Select role..." options={roleOptions} />
-                ) : (
-                  <FormikSelect
-                    name="roleId"
-                    label="Role"
-                    placeholder="Select role..."
-                    options={roleOptions.filter((r) => r.label !== 'admin')}
-                  />
-                )}
-                <FormikSelect name="deptId" label="Department" placeholder="Select department..." options={deptOptions} />
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? 'Creating...' : 'Create'}
-                  </Button>
-                </DialogFooter>
-              </Form>
-            )}
-          </Formik>
+                  <FormikSelect name="deptId" label="Department" placeholder="Select department..." options={deptOptions} />
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                      {isSubmitting ? 'Creating...' : 'Create'}
+                    </Button>
+                  </DialogFooter>
+                </Form>
+              )}
+            </Formik>
+          ) : (
+            <Formik<HrCreateValues>
+              initialValues={{ name: '', email: '', deptId: '', password: '' }}
+              validationSchema={hrCreateSchema}
+              onSubmit={(values, { setSubmitting, resetForm }) => {
+                onboardMutation.mutate(
+                  {
+                    name: values.name,
+                    email: values.email,
+                    deptId: Number(values.deptId),
+                    password: values.password || undefined,
+                  },
+                  {
+                    onSuccess: () => { resetForm(); setDialogOpen(false); },
+                    onSettled: () => setSubmitting(false),
+                  },
+                );
+              }}
+            >
+              {({ isSubmitting }) => (
+                <Form className="space-y-4">
+                  <FormikInput name="name" label="Name" placeholder="Full name" />
+                  <FormikInput name="email" label="Email" type="email" placeholder="user@company.com" />
+                  <FormikInput name="password" label="Password (optional)" type="password" placeholder="Min 8 characters" />
+                  <FormikSelect name="deptId" label="Department" placeholder="Select department..." options={deptOptions} />
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                      {isSubmitting ? 'Creating...' : 'Create'}
+                    </Button>
+                  </DialogFooter>
+                </Form>
+              )}
+            </Formik>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -242,7 +285,7 @@ export default function UsersPage() {
               {isAdmin ? 'Update account details and role' : 'Update employee information'}
             </DialogDescription>
           </DialogHeader>
-          {selectedUser && (
+          {selectedUser && isAdmin && (
             <Formik
               initialValues={{
                 name: selectedUser.name,
@@ -250,7 +293,7 @@ export default function UsersPage() {
                 roleId: String(selectedUser.roleId),
                 deptId: String(selectedUser.deptId),
               }}
-              validationSchema={editUserSchema}
+              validationSchema={adminEditSchema}
               onSubmit={(values, { setSubmitting }) => {
                 updateMutation.mutate(
                   {
@@ -263,10 +306,7 @@ export default function UsersPage() {
                     },
                   },
                   {
-                    onSuccess: () => {
-                      setEditDialogOpen(false);
-                      setSelectedUser(null);
-                    },
+                    onSuccess: () => { setEditDialogOpen(false); setSelectedUser(null); },
                     onSettled: () => setSubmitting(false),
                   },
                 );
@@ -276,16 +316,44 @@ export default function UsersPage() {
                 <Form className="space-y-4">
                   <FormikInput name="name" label="Name" placeholder="Full name" />
                   <FormikInput name="email" label="Email" type="email" placeholder="user@company.com" />
-                  {isAdmin ? (
-                    <FormikSelect name="roleId" label="Role" placeholder="Select role..." options={roleOptions} />
-                  ) : (
-                    <FormikSelect
-                      name="roleId"
-                      label="Role"
-                      placeholder="Select role..."
-                      options={roleOptions.filter((r) => r.label !== 'admin')}
-                    />
-                  )}
+                  <FormikSelect name="roleId" label="Role" placeholder="Select role..." options={roleOptions} />
+                  <FormikSelect name="deptId" label="Department" placeholder="Select department..." options={deptOptions} />
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                      {isSubmitting ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                  </DialogFooter>
+                </Form>
+              )}
+            </Formik>
+          )}
+          {selectedUser && !isAdmin && (
+            <Formik
+              initialValues={{
+                name: selectedUser.name,
+                deptId: String(selectedUser.deptId),
+              }}
+              validationSchema={hrEditSchema}
+              onSubmit={(values, { setSubmitting }) => {
+                hrUpdateMutation.mutate(
+                  {
+                    id: selectedUser.id,
+                    payload: {
+                      name: values.name,
+                      deptId: Number(values.deptId),
+                    },
+                  },
+                  {
+                    onSuccess: () => { setEditDialogOpen(false); setSelectedUser(null); },
+                    onSettled: () => setSubmitting(false),
+                  },
+                );
+              }}
+            >
+              {({ isSubmitting }) => (
+                <Form className="space-y-4">
+                  <FormikInput name="name" label="Name" placeholder="Full name" />
                   <FormikSelect name="deptId" label="Department" placeholder="Select department..." options={deptOptions} />
                   <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>

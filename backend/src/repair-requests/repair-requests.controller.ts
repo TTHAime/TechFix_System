@@ -94,7 +94,7 @@ export class RepairRequestsController {
   }
 
   @Patch(':id/assign')
-  @Roles(Role.Admin)
+  @Roles(Role.Admin, Role.Technician)
   async assign(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: AssignTechnicianDto,
