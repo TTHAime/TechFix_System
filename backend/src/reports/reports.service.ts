@@ -29,7 +29,7 @@ export class ReportsService {
     type Row = { dept_name: string; count: number };
     if (filter.startDate && filter.endDate) {
       return this.prisma.$queryRaw<Row[]>`
-        SELECT d.name AS dept_name, COUNT(rr.id)::int AS count
+        SELECT d.name AS dept_name, CAST(COUNT(rr.id) AS integer) AS count
         FROM repair_requests rr
         JOIN users u ON u.id = rr.requester_id
         JOIN departments d ON d.id = u.dept_id
@@ -39,7 +39,7 @@ export class ReportsService {
     }
     if (filter.startDate) {
       return this.prisma.$queryRaw<Row[]>`
-        SELECT d.name AS dept_name, COUNT(rr.id)::int AS count
+        SELECT d.name AS dept_name, CAST(COUNT(rr.id) AS integer) AS count
         FROM repair_requests rr
         JOIN users u ON u.id = rr.requester_id
         JOIN departments d ON d.id = u.dept_id
@@ -48,7 +48,7 @@ export class ReportsService {
     }
     if (filter.endDate) {
       return this.prisma.$queryRaw<Row[]>`
-        SELECT d.name AS dept_name, COUNT(rr.id)::int AS count
+        SELECT d.name AS dept_name, CAST(COUNT(rr.id) AS integer) AS count
         FROM repair_requests rr
         JOIN users u ON u.id = rr.requester_id
         JOIN departments d ON d.id = u.dept_id
@@ -56,7 +56,7 @@ export class ReportsService {
         GROUP BY d.name ORDER BY count DESC`;
     }
     return this.prisma.$queryRaw<Row[]>`
-      SELECT d.name AS dept_name, COUNT(rr.id)::int AS count
+      SELECT d.name AS dept_name, CAST(COUNT(rr.id) AS integer) AS count
       FROM repair_requests rr
       JOIN users u ON u.id = rr.requester_id
       JOIN departments d ON d.id = u.dept_id
@@ -90,7 +90,7 @@ export class ReportsService {
       // Top 5 most repaired equipment
       this.prisma.$queryRaw<
         { equipment_name: string; serial_no: string; count: number }[]
-      >`SELECT e.name AS equipment_name, e.serial_no, COUNT(re.id)::int AS count
+      >`SELECT e.name AS equipment_name, e.serial_no, CAST(COUNT(re.id) AS integer) AS count
         FROM request_equipment re
         JOIN equipment e ON e.id = re.equipment_id
         GROUP BY e.name, e.serial_no
@@ -98,17 +98,17 @@ export class ReportsService {
       // Monthly trend (last 6 months)
       this.prisma.$queryRaw<
         { month: string; count: number }[]
-      >`SELECT TO_CHAR(created_at, 'YYYY-MM') AS month, COUNT(id)::int AS count
+      >`SELECT TO_CHAR(created_at, 'YYYY-MM') AS month, CAST(COUNT(id) AS integer) AS count
         FROM repair_requests
         WHERE created_at >= NOW() - INTERVAL '6 months'
         GROUP BY month ORDER BY month ASC`,
       // Total requests
       this.prisma.repairRequest.count({ where: dateFilter }),
       // Average resolution time (requests that have completedAt)
-      this.prisma.$queryRaw<{ avg_hours: number }[]>`SELECT COALESCE(
-          ROUND(AVG(EXTRACT(EPOCH FROM (completed_at - created_at)) / 3600)::numeric, 1),
+      this.prisma.$queryRaw<{ avg_hours: number }[]>`SELECT CAST(COALESCE(
+          ROUND(CAST(AVG(EXTRACT(EPOCH FROM (completed_at - created_at)) / 3600) AS numeric), 1),
           0
-        )::float AS avg_hours
+        ) AS float8) AS avg_hours
         FROM repair_requests
         WHERE completed_at IS NOT NULL`,
     ]);
@@ -204,7 +204,7 @@ export class ReportsService {
     const [usersByDepartment, requestsByDepartment] = await Promise.all([
       this.prisma.$queryRaw<
         { dept_name: string; count: number }[]
-      >`SELECT d.name AS dept_name, COUNT(u.id)::int AS count
+      >`SELECT d.name AS dept_name, CAST(COUNT(u.id) AS integer) AS count
         FROM users u
         JOIN departments d ON d.id = u.dept_id
         WHERE u.is_active = true
