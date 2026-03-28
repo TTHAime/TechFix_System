@@ -25,9 +25,22 @@ export async function createUser(payload: {
   return data;
 }
 
+export async function onboardUser(payload: {
+  name: string;
+  email: string;
+  deptId: number;
+  password?: string;
+}): Promise<ApiResponse<User>> {
+  const { data } = await axiosInstance.post<ApiResponse<User>>('/users/onboard', {
+    ...payload,
+    provider: 'local',
+  });
+  return data;
+}
+
 export async function updateUser(
   id: number,
-  payload: { name?: string; email?: string; roleId?: number; deptId?: number; isActive?: boolean },
+  payload: { name?: string; email?: string; roleId?: number; deptId?: number; isActive?: boolean; password?: string },
 ): Promise<ApiResponse<User>> {
   const { data } = await axiosInstance.patch<ApiResponse<User>>(`/users/${id}`, payload);
   return data;

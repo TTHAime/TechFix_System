@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useEquipmentQuery, useEquipmentCategoriesQuery } from '@/features/equipment/hooks';
+import { useEquipmentQuery, useEquipmentCategoriesQuery, useCreateEquipmentMutation } from '@/features/equipment/hooks';
 import { useDepartmentsQuery } from '@/features/departments/hooks';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,7 @@ export default function EquipmentPage() {
   const { data: eqResponse, isLoading, isError } = useEquipmentQuery();
   const { data: catResponse } = useEquipmentCategoriesQuery();
   const { data: deptResponse } = useDepartmentsQuery();
+  const createMutation = useCreateEquipmentMutation();
 
   const equipment = eqResponse?.data ?? [];
   const categoryOptions = (catResponse?.data ?? []).map((c) => ({ value: String(c.id), label: c.name }));
@@ -111,11 +112,22 @@ export default function EquipmentPage() {
           <Formik<EquipmentFormValues>
             initialValues={initialValues}
             validationSchema={equipmentSchema}
-            onSubmit={(_values, { setSubmitting }) => {
-              setTimeout(() => {
-                setSubmitting(false);
-                setDialogOpen(false);
-              }, 500);
+            onSubmit={(values, { setSubmitting, resetForm }) => {
+              createMutation.mutate(
+                {
+                  name: values.name,
+                  serialNo: values.serialNo,
+                  categoryId: Number(values.categoryId),
+                  deptId: Number(values.deptId),
+                },
+                {
+                  onSuccess: () => {
+                    resetForm();
+                    setDialogOpen(false);
+                  },
+                  onSettled: () => setSubmitting(false),
+                },
+              );
             }}
           >
             {({ isSubmitting }) => (

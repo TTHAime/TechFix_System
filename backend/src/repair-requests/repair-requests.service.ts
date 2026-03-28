@@ -12,9 +12,23 @@ import { Role } from 'src/common/enums/role.enum';
 import type { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 const REPAIR_REQUEST_INCLUDE = {
-  requester: { omit: { passwordHash: true } },
+  requester: {
+    omit: { passwordHash: true },
+    include: { role: true, department: true },
+  },
   status: true,
-  requestEquipment: { include: { equipment: true } },
+  requestEquipment: {
+    include: {
+      equipment: { include: { category: true, department: true } },
+    },
+  },
+  assignmentLogs: {
+    orderBy: { loggedAt: 'desc' as const },
+    include: {
+      technician: { omit: { passwordHash: true } },
+      actor: { omit: { passwordHash: true } },
+    },
+  },
 } as const;
 
 @Injectable()
@@ -34,7 +48,7 @@ export class RepairRequestsService {
     createRepairRequestDto: CreateRepairRequestDto,
     requesterId: number,
   ) {
-    const openStatus = await this.getStatusByName('Open');
+    const openStatus = await this.getStatusByName('open');
     try {
       return await this.prisma.$transaction(async (tx) => {
         const request = await tx.repairRequest.create({
@@ -179,7 +193,7 @@ export class RepairRequestsService {
   }
 
   async close(id: number, userId: number) {
-    const closedStatus = await this.getStatusByName('Closed');
+    const closedStatus = await this.getStatusByName('closed');
     return this.update(id, { statusId: closedStatus.id }, userId);
   }
 
@@ -232,6 +246,27 @@ export class RepairRequestsService {
         actor: { omit: { passwordHash: true } },
       },
     });
+  }
+
+  async getAllAssignmentLogs(query: PaginationQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.prisma.assignmentLog.findMany({
+        skip,
+        take: limit,
+        orderBy: { loggedAt: 'desc' },
+        include: {
+          technician: { omit: { passwordHash: true } },
+          actor: { omit: { passwordHash: true } },
+        },
+      }),
+      this.prisma.assignmentLog.count(),
+    ]);
+
+    return { data, meta: { page, limit, total } };
   }
 
   async getAssignmentLogs(requestId: number) {

@@ -9,6 +9,7 @@ import {
   unassignTechnician,
   getStatusLogs,
   getAssignmentLogs,
+  getAllAssignmentLogs,
 } from './api';
 
 export function useRepairRequestsQuery(page = 1, limit = 20) {
@@ -39,6 +40,13 @@ export function useAssignmentLogsQuery(id: number) {
     queryKey: ['repair-requests', id, 'assignment-logs'],
     queryFn: () => getAssignmentLogs(id),
     enabled: !!id,
+  });
+}
+
+export function useAllAssignmentLogsQuery(page = 1, limit = 20) {
+  return useQuery({
+    queryKey: ['assignment-logs', page, limit],
+    queryFn: () => getAllAssignmentLogs(page, limit),
   });
 }
 
@@ -86,7 +94,7 @@ export function useAssignTechnicianMutation(id: number) {
 export function useUnassignTechnicianMutation(id: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => unassignTechnician(id),
+    mutationFn: (technicianId: number) => unassignTechnician(id, technicianId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['repair-requests'] });
     },

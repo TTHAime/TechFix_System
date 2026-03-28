@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { useAuditLogsQuery } from '@/features/audit-logs/hooks';
-import { useRepairRequestsQuery } from '@/features/repair-requests/hooks';
+import { useAllAssignmentLogsQuery } from '@/features/repair-requests/hooks';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { FileText, UserCheck } from 'lucide-react';
-import type { AssignmentLog } from '@/types';
 
 type LogTab = 'audit' | 'assignment';
 
@@ -20,10 +19,10 @@ export default function SystemLogsPage() {
   const [activeTab, setActiveTab] = useState<LogTab>('audit');
 
   const { data: auditData, isLoading: auditLoading } = useAuditLogsQuery(1, 100);
-  const { data: requestsData, isLoading: requestsLoading } = useRepairRequestsQuery(1, 100);
+  const { data: assignmentData, isLoading: assignmentLoading } = useAllAssignmentLogsQuery(1, 100);
 
   const auditLogs = auditData?.data ?? [];
-  const assignmentLogs: AssignmentLog[] = (requestsData?.data ?? []).flatMap((r) => r.assignmentLogs);
+  const assignmentLogs = assignmentData?.data ?? [];
 
   const tabs: { key: LogTab; label: string; icon: React.ReactNode }[] = [
     { key: 'audit', label: 'Audit Logs', icon: <FileText className="h-4 w-4" /> },
@@ -134,11 +133,11 @@ export default function SystemLogsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <UserCheck className="h-5 w-5" />
-              Assignment Logs ({assignmentLogs.length})
+              Assignment Logs ({assignmentData?.meta.total ?? 0})
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {requestsLoading ? (
+            {assignmentLoading ? (
               <p className="text-sm text-muted-foreground py-8 text-center">Loading...</p>
             ) : (
               <Table>

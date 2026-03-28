@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
-import { getEquipment, getEquipmentCategories } from './api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getEquipment, getEquipmentCategories, createEquipment, updateEquipment } from './api';
 
 export function useEquipmentQuery(page = 1, limit = 20) {
   return useQuery({
@@ -12,5 +12,32 @@ export function useEquipmentCategoriesQuery() {
   return useQuery({
     queryKey: ['equipment-categories'],
     queryFn: () => getEquipmentCategories(),
+  });
+}
+
+export function useCreateEquipmentMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { name: string; serialNo: string; categoryId: number; deptId: number }) =>
+      createEquipment(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+    },
+  });
+}
+
+export function useUpdateEquipmentMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: number;
+      payload: { name?: string; serialNo?: string; categoryId?: number; deptId?: number; isActive?: boolean };
+    }) => updateEquipment(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+    },
   });
 }

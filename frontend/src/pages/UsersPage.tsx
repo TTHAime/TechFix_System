@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useUsersQuery } from '@/features/users/hooks';
+import { useUsersQuery, useCreateUserMutation, useUpdateUserMutation } from '@/features/users/hooks';
 import { useRolesQuery } from '@/features/roles/hooks';
 import { useDepartmentsQuery } from '@/features/departments/hooks';
 import type { User } from '@/types';
@@ -49,6 +49,8 @@ export default function UsersPage() {
   const { data: usersResponse, isLoading, isError } = useUsersQuery();
   const { data: rolesResponse } = useRolesQuery();
   const { data: deptsResponse } = useDepartmentsQuery();
+  const createMutation = useCreateUserMutation();
+  const updateMutation = useUpdateUserMutation();
 
   const users = usersResponse?.data ?? [];
   const canManageUsers = hasRole('admin', 'hr');
@@ -147,6 +149,12 @@ export default function UsersPage() {
                                 variant="ghost"
                                 size="icon"
                                 title={u.isActive ? 'Deactivate' : 'Activate'}
+                                onClick={() =>
+                                  updateMutation.mutate({
+                                    id: u.id,
+                                    payload: { isActive: !u.isActive },
+                                  })
+                                }
                               >
                                 {u.isActive
                                   ? <UserX className="h-4 w-4 text-destructive" />
@@ -178,11 +186,23 @@ export default function UsersPage() {
           <Formik<UserFormValues>
             initialValues={initialValues}
             validationSchema={userSchema}
-            onSubmit={(_values, { setSubmitting }) => {
-              setTimeout(() => {
-                setSubmitting(false);
-                setDialogOpen(false);
-              }, 500);
+            onSubmit={(values, { setSubmitting, resetForm }) => {
+              createMutation.mutate(
+                {
+                  name: values.name,
+                  email: values.email,
+                  password: values.password,
+                  roleId: Number(values.roleId),
+                  deptId: Number(values.deptId),
+                },
+                {
+                  onSuccess: () => {
+                    resetForm();
+                    setDialogOpen(false);
+                  },
+                  onSettled: () => setSubmitting(false),
+                },
+              );
             }}
           >
             {({ isSubmitting }) => (
@@ -231,12 +251,25 @@ export default function UsersPage() {
                 deptId: String(selectedUser.deptId),
               }}
               validationSchema={editUserSchema}
-              onSubmit={(_values, { setSubmitting }) => {
-                setTimeout(() => {
-                  setSubmitting(false);
-                  setEditDialogOpen(false);
-                  setSelectedUser(null);
-                }, 500);
+              onSubmit={(values, { setSubmitting }) => {
+                updateMutation.mutate(
+                  {
+                    id: selectedUser.id,
+                    payload: {
+                      name: values.name,
+                      email: values.email,
+                      roleId: Number(values.roleId),
+                      deptId: Number(values.deptId),
+                    },
+                  },
+                  {
+                    onSuccess: () => {
+                      setEditDialogOpen(false);
+                      setSelectedUser(null);
+                    },
+                    onSettled: () => setSubmitting(false),
+                  },
+                );
               }}
             >
               {({ isSubmitting }) => (
@@ -284,12 +317,21 @@ export default function UsersPage() {
                 .oneOf([Yup.ref('newPassword')], 'Passwords must match')
                 .required('Required'),
             })}
-            onSubmit={(_values, { setSubmitting }) => {
-              setTimeout(() => {
-                setSubmitting(false);
-                setResetDialogOpen(false);
-                setSelectedUser(null);
-              }, 500);
+            onSubmit={(values, { setSubmitting }) => {
+              if (!selectedUser) return;
+              updateMutation.mutate(
+                {
+                  id: selectedUser.id,
+                  payload: { password: values.newPassword },
+                },
+                {
+                  onSuccess: () => {
+                    setResetDialogOpen(false);
+                    setSelectedUser(null);
+                  },
+                  onSettled: () => setSubmitting(false),
+                },
+              );
             }}
           >
             {({ isSubmitting }) => (

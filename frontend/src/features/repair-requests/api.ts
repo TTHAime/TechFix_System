@@ -42,8 +42,10 @@ export async function assignTechnician(id: number, technicianId: number): Promis
   return data;
 }
 
-export async function unassignTechnician(id: number): Promise<ApiResponse<RepairRequest>> {
-  const { data } = await axiosInstance.patch<ApiResponse<RepairRequest>>(`/repair-requests/${id}/unassign`);
+export async function unassignTechnician(id: number, technicianId: number): Promise<ApiResponse<RepairRequest>> {
+  const { data } = await axiosInstance.patch<ApiResponse<RepairRequest>>(`/repair-requests/${id}/unassign`, {
+    technicianId,
+  });
   return data;
 }
 
@@ -54,5 +56,12 @@ export async function getStatusLogs(id: number): Promise<ApiResponse<StatusLog[]
 
 export async function getAssignmentLogs(id: number): Promise<ApiResponse<AssignmentLog[]>> {
   const { data } = await axiosInstance.get<ApiResponse<AssignmentLog[]>>(`/repair-requests/${id}/assignment-logs`);
+  return data;
+}
+
+export async function getAllAssignmentLogs(page = 1, limit = 20): Promise<PaginatedResponse<AssignmentLog>> {
+  const { data } = await axiosInstance.get<PaginatedResponse<AssignmentLog>>('/repair-requests/assignment-logs', {
+    params: { page, limit },
+  });
   return data;
 }
