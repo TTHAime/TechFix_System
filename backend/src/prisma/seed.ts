@@ -17,66 +17,90 @@ async function hashPassword(password: string): Promise<string> {
 }
 
 async function main() {
-  // ─── Roles ───
-  const roles = await Promise.all(
-    ['admin', 'hr', 'technician', 'user'].map((name) =>
-      prisma.role.upsert({
-        where: { id: ['admin', 'hr', 'technician', 'user'].indexOf(name) + 1 },
-        update: {},
-        create: { name },
-      }),
-    ),
-  );
-  const [adminRole, hrRole, techRole, userRole] = roles;
+  // ─── Clean slate + reset sequences ───
+  await prisma.statusLog.deleteMany();
+  await prisma.assignmentLog.deleteMany();
+  await prisma.requestEquipment.deleteMany();
+  await prisma.repairRequest.deleteMany();
+  await prisma.equipment.deleteMany();
+  await prisma.equipmentCategory.deleteMany();
+  await prisma.refreshToken.deleteMany();
+  await prisma.auditLog.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.requestStatus.deleteMany();
+  await prisma.department.deleteMany();
+  await prisma.role.deleteMany();
 
-  // ─── Request Statuses ───
-  const statuses = await Promise.all(
-    ['open', 'in_progress', 'resolved', 'closed'].map((name) =>
-      prisma.requestStatus.upsert({
-        where: {
-          id: ['open', 'in_progress', 'resolved', 'closed'].indexOf(name) + 1,
-        },
-        update: {},
-        create: { name },
-      }),
-    ),
+  // Reset autoincrement sequences
+  await prisma.$executeRawUnsafe(`ALTER SEQUENCE roles_id_seq RESTART WITH 1`);
+  await prisma.$executeRawUnsafe(
+    `ALTER SEQUENCE request_status_id_seq RESTART WITH 1`,
   );
-  const [openStatus, inProgressStatus, resolvedStatus] = statuses;
+  await prisma.$executeRawUnsafe(
+    `ALTER SEQUENCE departments_id_seq RESTART WITH 1`,
+  );
+  await prisma.$executeRawUnsafe(`ALTER SEQUENCE users_id_seq RESTART WITH 1`);
+  await prisma.$executeRawUnsafe(
+    `ALTER SEQUENCE equipment_categories_id_seq RESTART WITH 1`,
+  );
+  await prisma.$executeRawUnsafe(
+    `ALTER SEQUENCE equipment_id_seq RESTART WITH 1`,
+  );
+  await prisma.$executeRawUnsafe(
+    `ALTER SEQUENCE repair_requests_id_seq RESTART WITH 1`,
+  );
+  await prisma.$executeRawUnsafe(
+    `ALTER SEQUENCE request_equipment_id_seq RESTART WITH 1`,
+  );
+  await prisma.$executeRawUnsafe(
+    `ALTER SEQUENCE status_logs_id_seq RESTART WITH 1`,
+  );
+  await prisma.$executeRawUnsafe(
+    `ALTER SEQUENCE assignment_logs_id_seq RESTART WITH 1`,
+  );
+
+  // ─── Roles (sequential เพื่อให้ id เรียงตามลำดับ) ───
+  const adminRole = await prisma.role.create({ data: { name: 'admin' } });
+  const hrRole = await prisma.role.create({ data: { name: 'hr' } });
+  const techRole = await prisma.role.create({ data: { name: 'technician' } });
+  const userRole = await prisma.role.create({ data: { name: 'user' } });
+
+  // ─── Request Statuses (ลำดับ: open=1, in_progress=2, resolved=3, closed=4) ───
+  const openStatus = await prisma.requestStatus.create({
+    data: { name: 'open' },
+  });
+  const inProgressStatus = await prisma.requestStatus.create({
+    data: { name: 'in_progress' },
+  });
+  const resolvedStatus = await prisma.requestStatus.create({
+    data: { name: 'resolved' },
+  });
+  const closedStatus = await prisma.requestStatus.create({
+    data: { name: 'closed' },
+  });
 
   // ─── Departments ───
-  const deptIT = await prisma.department.upsert({
-    where: { id: 1 },
-    update: {},
-    create: { name: 'ฝ่ายเทคโนโลยีสารสนเทศ', location: 'อาคาร A ชั้น 3' },
+  const deptIT = await prisma.department.create({
+    data: { name: 'ฝ่ายเทคโนโลยีสารสนเทศ', location: 'อาคาร A ชั้น 3' },
   });
-  const deptHR = await prisma.department.upsert({
-    where: { id: 2 },
-    update: {},
-    create: { name: 'ฝ่ายทรัพยากรบุคคล', location: 'อาคาร A ชั้น 2' },
+  const deptHR = await prisma.department.create({
+    data: { name: 'ฝ่ายทรัพยากรบุคคล', location: 'อาคาร A ชั้น 2' },
   });
-  const deptAcc = await prisma.department.upsert({
-    where: { id: 3 },
-    update: {},
-    create: { name: 'ฝ่ายบัญชีและการเงิน', location: 'อาคาร B ชั้น 1' },
+  const deptAcc = await prisma.department.create({
+    data: { name: 'ฝ่ายบัญชีและการเงิน', location: 'อาคาร B ชั้น 1' },
   });
-  const deptMkt = await prisma.department.upsert({
-    where: { id: 4 },
-    update: {},
-    create: { name: 'ฝ่ายการตลาด', location: 'อาคาร B ชั้น 2' },
+  const deptMkt = await prisma.department.create({
+    data: { name: 'ฝ่ายการตลาด', location: 'อาคาร B ชั้น 2' },
   });
-  const deptOps = await prisma.department.upsert({
-    where: { id: 5 },
-    update: {},
-    create: { name: 'ฝ่ายปฏิบัติการ', location: 'อาคาร C ชั้น 1' },
+  const deptOps = await prisma.department.create({
+    data: { name: 'ฝ่ายปฏิบัติการ', location: 'อาคาร C ชั้น 1' },
   });
 
   // ─── Users ───
   const demoHash = await hashPassword('P@ssw0rd');
 
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@company.com' },
-    update: { passwordHash: demoHash },
-    create: {
+  const admin = await prisma.user.create({
+    data: {
       name: 'สมชาย แอดมิน',
       email: 'admin@company.com',
       roleId: adminRole.id,
@@ -85,11 +109,8 @@ async function main() {
       passwordHash: demoHash,
     },
   });
-
-  const hr = await prisma.user.upsert({
-    where: { email: 'hr@company.com' },
-    update: { passwordHash: demoHash },
-    create: {
+  const hr = await prisma.user.create({
+    data: {
       name: 'สมหญิง เอชอาร์',
       email: 'hr@company.com',
       roleId: hrRole.id,
@@ -98,11 +119,8 @@ async function main() {
       passwordHash: demoHash,
     },
   });
-
-  const tech1 = await prisma.user.upsert({
-    where: { email: 'tech1@company.com' },
-    update: { passwordHash: demoHash },
-    create: {
+  const tech1 = await prisma.user.create({
+    data: {
       name: 'สมศักดิ์ ช่างคอม',
       email: 'tech1@company.com',
       roleId: techRole.id,
@@ -111,11 +129,8 @@ async function main() {
       passwordHash: demoHash,
     },
   });
-
-  const tech2 = await prisma.user.upsert({
-    where: { email: 'tech2@company.com' },
-    update: { passwordHash: demoHash },
-    create: {
+  const tech2 = await prisma.user.create({
+    data: {
       name: 'สมปอง ช่างเน็ต',
       email: 'tech2@company.com',
       roleId: techRole.id,
@@ -124,11 +139,8 @@ async function main() {
       passwordHash: demoHash,
     },
   });
-
-  const user1 = await prisma.user.upsert({
-    where: { email: 'somjai@company.com' },
-    update: { passwordHash: demoHash },
-    create: {
+  const user1 = await prisma.user.create({
+    data: {
       name: 'สมใจ พนักงาน',
       email: 'somjai@company.com',
       roleId: userRole.id,
@@ -137,11 +149,8 @@ async function main() {
       passwordHash: demoHash,
     },
   });
-
-  const user2 = await prisma.user.upsert({
-    where: { email: 'somsri@company.com' },
-    update: { passwordHash: demoHash },
-    create: {
+  const user2 = await prisma.user.create({
+    data: {
       name: 'สมศรี การตลาด',
       email: 'somsri@company.com',
       roleId: userRole.id,
@@ -150,11 +159,8 @@ async function main() {
       passwordHash: demoHash,
     },
   });
-
-  const user3 = await prisma.user.upsert({
-    where: { email: 'somsak@company.com' },
-    update: { passwordHash: demoHash },
-    create: {
+  const user3 = await prisma.user.create({
+    data: {
       name: 'สมศักดิ์ ปฏิบัติการ',
       email: 'somsak@company.com',
       roleId: userRole.id,
@@ -165,72 +171,54 @@ async function main() {
   });
 
   // ─── Equipment Categories ───
-  const catComputer = await prisma.equipmentCategory.upsert({
-    where: { id: 1 },
-    update: {},
-    create: { name: 'คอมพิวเตอร์ / โน้ตบุ๊ก' },
+  const catComputer = await prisma.equipmentCategory.create({
+    data: { name: 'คอมพิวเตอร์ / โน้ตบุ๊ก' },
   });
-  const catPrinter = await prisma.equipmentCategory.upsert({
-    where: { id: 2 },
-    update: {},
-    create: { name: 'เครื่องพิมพ์ / สแกนเนอร์' },
+  const catPrinter = await prisma.equipmentCategory.create({
+    data: { name: 'เครื่องพิมพ์ / สแกนเนอร์' },
   });
-  const catNetwork = await prisma.equipmentCategory.upsert({
-    where: { id: 3 },
-    update: {},
-    create: { name: 'อุปกรณ์เครือข่าย' },
+  const catNetwork = await prisma.equipmentCategory.create({
+    data: { name: 'อุปกรณ์เครือข่าย' },
   });
-  const catPeripheral = await prisma.equipmentCategory.upsert({
-    where: { id: 4 },
-    update: {},
-    create: { name: 'อุปกรณ์ต่อพ่วง' },
+  const catPeripheral = await prisma.equipmentCategory.create({
+    data: { name: 'อุปกรณ์ต่อพ่วง' },
   });
 
   // ─── Equipment ───
-  const eq1 = await prisma.equipment.upsert({
-    where: { serialNo: 'PC-ACC-001' },
-    update: {},
-    create: {
+  const eq1 = await prisma.equipment.create({
+    data: {
       name: 'Dell OptiPlex 7090',
       serialNo: 'PC-ACC-001',
       categoryId: catComputer.id,
       deptId: deptAcc.id,
     },
   });
-  const eq2 = await prisma.equipment.upsert({
-    where: { serialNo: 'NB-MKT-001' },
-    update: {},
-    create: {
+  const eq2 = await prisma.equipment.create({
+    data: {
       name: 'Lenovo ThinkPad T14',
       serialNo: 'NB-MKT-001',
       categoryId: catComputer.id,
       deptId: deptMkt.id,
     },
   });
-  const eq3 = await prisma.equipment.upsert({
-    where: { serialNo: 'PRN-ACC-001' },
-    update: {},
-    create: {
+  const eq3 = await prisma.equipment.create({
+    data: {
       name: 'HP LaserJet Pro M404dn',
       serialNo: 'PRN-ACC-001',
       categoryId: catPrinter.id,
       deptId: deptAcc.id,
     },
   });
-  const eq4 = await prisma.equipment.upsert({
-    where: { serialNo: 'SW-IT-001' },
-    update: {},
-    create: {
+  const eq4 = await prisma.equipment.create({
+    data: {
       name: 'Cisco Catalyst 2960',
       serialNo: 'SW-IT-001',
       categoryId: catNetwork.id,
       deptId: deptIT.id,
     },
   });
-  const eq5 = await prisma.equipment.upsert({
-    where: { serialNo: 'MON-OPS-001' },
-    update: {},
-    create: {
+  const eq5 = await prisma.equipment.create({
+    data: {
       name: 'Samsung 27" Monitor',
       serialNo: 'MON-OPS-001',
       categoryId: catPeripheral.id,
@@ -240,59 +228,54 @@ async function main() {
 
   // ─── Repair Requests ───
 
-  // Request 1: open — เพิ่งแจ้ง
-  const req1 = await prisma.repairRequest.upsert({
-    where: { id: 1 },
-    update: {},
-    create: {
+  // Request 1: open — เพิ่งแจ้ง (user1)
+  const req1 = await prisma.repairRequest.create({
+    data: {
       requesterId: user1.id,
       statusId: openStatus.id,
       description: 'คอมพิวเตอร์เปิดไม่ติด กดปุ่ม power แล้วไม่มีอะไรเกิดขึ้น',
+      requestEquipment: {
+        create: {
+          equipmentId: eq1.id,
+          issueDetail: 'กดปุ่ม power แล้วไม่มีไฟ ไม่มีเสียง',
+        },
+      },
     },
   });
-  await prisma.requestEquipment.upsert({
-    where: { id: 1 },
-    update: {},
-    create: {
+  await prisma.statusLog.create({
+    data: {
       requestId: req1.id,
-      equipmentId: eq1.id,
-      issueDetail: 'กดปุ่ม power แล้วไม่มีไฟ ไม่มีเสียง',
+      changedBy: user1.id,
+      oldStatusId: openStatus.id,
+      newStatusId: openStatus.id,
+      note: 'Request created',
     },
   });
 
   // Request 2: in_progress — admin assign ให้ tech1
-  const req2 = await prisma.repairRequest.upsert({
-    where: { id: 2 },
-    update: {},
-    create: {
+  const req2 = await prisma.repairRequest.create({
+    data: {
       requesterId: user2.id,
       statusId: inProgressStatus.id,
       description: 'โน้ตบุ๊กจอดำ เปิดได้แต่ไม่มีภาพ',
+      requestEquipment: {
+        create: {
+          equipmentId: eq2.id,
+          issueDetail: 'จอดำ มีไฟ power แต่ไม่แสดงภาพ',
+        },
+      },
     },
   });
-  await prisma.requestEquipment.upsert({
-    where: { id: 2 },
-    update: {},
-    create: {
-      requestId: req2.id,
-      equipmentId: eq2.id,
-      issueDetail: 'จอดำ มีไฟ power แต่ไม่แสดงภาพ',
-    },
-  });
-  await prisma.assignmentLog.upsert({
-    where: { id: 1 },
-    update: {},
-    create: {
+  await prisma.assignmentLog.create({
+    data: {
       requestId: req2.id,
       actorId: admin.id,
       technicianId: tech1.id,
       action: 'assigned',
     },
   });
-  await prisma.statusLog.upsert({
-    where: { id: 1 },
-    update: {},
-    create: {
+  await prisma.statusLog.create({
+    data: {
       requestId: req2.id,
       changedBy: admin.id,
       oldStatusId: openStatus.id,
@@ -301,42 +284,33 @@ async function main() {
     },
   });
 
-  // Request 3: resolved — ซ่อมเสร็จแล้ว
-  const req3 = await prisma.repairRequest.upsert({
-    where: { id: 3 },
-    update: {},
-    create: {
+  // Request 3: resolved — ช่างซ่อมเสร็จแล้ว รอ user1 confirm (user1 เป็นเจ้าของ)
+  const req3 = await prisma.repairRequest.create({
+    data: {
       requesterId: user1.id,
       statusId: resolvedStatus.id,
       description: 'เครื่องพิมพ์พิมพ์ไม่ออก กระดาษติด',
       partsUsed: 'ลูกยางดึงกระดาษ 1 ชุด',
       repairSummary: 'เปลี่ยนลูกยางดึงกระดาษและทำความสะอาดภายใน',
       completedAt: new Date('2026-03-15T10:30:00Z'),
+      requestEquipment: {
+        create: {
+          equipmentId: eq3.id,
+          issueDetail: 'กระดาษติดบ่อย พิมพ์แล้วเส้นเป็นทาง',
+        },
+      },
     },
   });
-  await prisma.requestEquipment.upsert({
-    where: { id: 3 },
-    update: {},
-    create: {
-      requestId: req3.id,
-      equipmentId: eq3.id,
-      issueDetail: 'กระดาษติดบ่อย พิมพ์แล้วเส้นเป็นทาง',
-    },
-  });
-  await prisma.assignmentLog.upsert({
-    where: { id: 2 },
-    update: {},
-    create: {
+  await prisma.assignmentLog.create({
+    data: {
       requestId: req3.id,
       actorId: admin.id,
       technicianId: tech2.id,
       action: 'assigned',
     },
   });
-  await prisma.statusLog.upsert({
-    where: { id: 2 },
-    update: {},
-    create: {
+  await prisma.statusLog.create({
+    data: {
       requestId: req3.id,
       changedBy: admin.id,
       oldStatusId: openStatus.id,
@@ -344,10 +318,8 @@ async function main() {
       note: 'มอบหมายให้ช่างสมปอง',
     },
   });
-  await prisma.statusLog.upsert({
-    where: { id: 3 },
-    update: {},
-    create: {
+  await prisma.statusLog.create({
+    data: {
       requestId: req3.id,
       changedBy: tech2.id,
       oldStatusId: inProgressStatus.id,
@@ -356,35 +328,59 @@ async function main() {
     },
   });
 
-  // Request 4: open — แจ้งซ่อมจอมอนิเตอร์
-  const req4 = await prisma.repairRequest.upsert({
-    where: { id: 4 },
-    update: {},
-    create: {
+  // Request 4: open — แจ้งซ่อมจอมอนิเตอร์ (user3)
+  const req4 = await prisma.repairRequest.create({
+    data: {
       requesterId: user3.id,
       statusId: openStatus.id,
       description: 'จอมอนิเตอร์มีเส้นสีเขียวแนวตั้งกลางจอ',
+      requestEquipment: {
+        create: {
+          equipmentId: eq5.id,
+          issueDetail: 'มีเส้นสีเขียวแนวตั้ง 1 เส้นตรงกลางจอ ใช้งานไม่สะดวก',
+        },
+      },
     },
   });
-  await prisma.requestEquipment.upsert({
-    where: { id: 4 },
-    update: {},
-    create: {
+  await prisma.statusLog.create({
+    data: {
       requestId: req4.id,
-      equipmentId: eq5.id,
-      issueDetail: 'มีเส้นสีเขียวแนวตั้ง 1 เส้นตรงกลางจอ ใช้งานไม่สะดวก',
+      changedBy: user3.id,
+      oldStatusId: openStatus.id,
+      newStatusId: openStatus.id,
+      note: 'Request created',
     },
   });
 
   console.log('Seed completed successfully!');
   console.log({
-    roles: roles.length,
-    statuses: statuses.length,
-    departments: 5,
-    users: 7,
-    categories: 4,
-    equipment: 5,
-    repairRequests: 4,
+    statuses: {
+      open: openStatus.id,
+      in_progress: inProgressStatus.id,
+      resolved: resolvedStatus.id,
+      closed: closedStatus.id,
+    },
+    roles: {
+      admin: adminRole.id,
+      hr: hrRole.id,
+      technician: techRole.id,
+      user: userRole.id,
+    },
+    users: {
+      admin: admin.id,
+      hr: hr.id,
+      tech1: tech1.id,
+      tech2: tech2.id,
+      user1: user1.id,
+      user2: user2.id,
+      user3: user3.id,
+    },
+    repairRequests: {
+      req1: req1.id,
+      req2: req2.id,
+      req3: req3.id,
+      req4: req4.id,
+    },
   });
 }
 
