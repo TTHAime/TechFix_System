@@ -1,0 +1,27 @@
+meta {
+  name: Update Admin Profile (HR) - Forbidden
+  type: http
+  seq: 20
+}
+
+patch {
+  url: {{base_url}}/users/1/profile
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{hr_token}}
+}
+
+body:json {
+  {
+    "name": "HR Trying To Edit Admin"
+  }
+}
+
+tests {
+  test("status 403", function() {
+    expect(res.status).to.equal(403);
+  });
+}

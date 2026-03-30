@@ -1,0 +1,21 @@
+meta {
+  name: Delete Admin (HR) - Forbidden
+  type: http
+  seq: 21
+}
+
+delete {
+  url: {{base_url}}/users/1
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{hr_token}}
+}
+
+tests {
+  test("status 403", function() {
+    expect(res.status).to.equal(403);
+  });
+}

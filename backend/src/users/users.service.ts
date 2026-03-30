@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -175,8 +176,16 @@ export class UsersService {
     }
   }
 
-  async hrUpdate(id: number, hrUpdateDto: HRUpdateUserDto, actorId: number) {
+  async hrUpdate(
+    id: number,
+    hrUpdateDto: HRUpdateUserDto,
+    actorId: number,
+    callerRole: Role,
+  ) {
     const oldUser = await this.findOne(id);
+    if (callerRole === Role.HR && (oldUser.role.name as Role) === Role.Admin) {
+      throw new ForbiddenException('HR cannot modify admin users');
+    }
     const { password, ...rest } = hrUpdateDto;
     const passwordHash = password
       ? await this.hashService.hash(password)
@@ -250,8 +259,11 @@ export class UsersService {
     });
   }
 
-  async remove(id: number, actorId: number) {
+  async remove(id: number, actorId: number, callerRole: Role) {
     const oldUser = await this.findOne(id);
+    if (callerRole === Role.HR && (oldUser.role.name as Role) === Role.Admin) {
+      throw new ForbiddenException('HR cannot delete admin users');
+    }
     try {
       await this.prisma.user.update({
         where: { id },

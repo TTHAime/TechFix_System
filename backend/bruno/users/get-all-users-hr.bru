@@ -1,0 +1,30 @@
+meta {
+  name: Get All Users (HR)
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{base_url}}/users
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{hr_token}}
+}
+
+params:query {
+  ~page: 1
+  ~limit: 20
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("returns data array", function() {
+    expect(res.body.data).to.be.an("array");
+  });
+}

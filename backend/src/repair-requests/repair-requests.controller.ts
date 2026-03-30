@@ -84,7 +84,7 @@ export class RepairRequestsController {
   }
 
   @Patch(':id/confirm')
-  @Roles(Role.Admin, Role.HR, Role.User)
+  @Roles(Role.HR, Role.User)
   async confirm(
     @Param('id', ParseIntPipe) id: number,
     @Req() req: Request & { user: JwtPayload },
@@ -94,7 +94,7 @@ export class RepairRequestsController {
   }
 
   @Patch(':id/close')
-  @Roles(Role.Admin, Role.Technician)
+  @Roles(Role.Admin)
   async close(
     @Param('id', ParseIntPipe) id: number,
     @Req() req: Request & { user: JwtPayload },
@@ -144,6 +144,7 @@ export class RepairRequestsController {
       id,
       updateRepairRequestDto,
       req.user.sub,
+      req.user.roleName,
     );
     return { data, message: 'Repair request updated successfully' };
   }

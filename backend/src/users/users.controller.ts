@@ -70,6 +70,7 @@ export class UsersController {
       id,
       hrUpdateDto,
       req.user.sub,
+      req.user.roleName as Role,
     );
     return { data, message: 'User updated successfully' };
   }
@@ -113,7 +114,7 @@ export class UsersController {
     @Req() req: Request & { user: JwtPayload },
     @Param('id', ParseIntPipe) id: number,
   ) {
-    await this.usersService.remove(id, req.user.sub);
+    await this.usersService.remove(id, req.user.sub, req.user.roleName as Role);
     return { data: null, message: 'User deleted successfully' };
   }
 }

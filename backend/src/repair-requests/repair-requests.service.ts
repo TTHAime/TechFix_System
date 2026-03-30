@@ -142,8 +142,16 @@ export class RepairRequestsService {
     id: number,
     updateRepairRequestDto: UpdateRepairRequestDto,
     userId: number,
+    userRole?: string,
   ) {
     const request = await this.findRequest(id);
+
+    if (userRole === Role.Technician && updateRepairRequestDto.statusId !== undefined) {
+      const resolvedStatus = await this.getStatusByName('resolved');
+      if (updateRepairRequestDto.statusId !== resolvedStatus.id) {
+        throw new ForbiddenException('Technician can only set status to resolved');
+      }
+    }
 
     try {
       return await this.prisma.$transaction(async (tx) => {
