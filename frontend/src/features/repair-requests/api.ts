@@ -35,6 +35,11 @@ export async function closeRepairRequest(id: number): Promise<ApiResponse<Repair
   return data;
 }
 
+export async function confirmRepairRequest(id: number): Promise<ApiResponse<RepairRequest>> {
+  const { data } = await axiosInstance.patch<ApiResponse<RepairRequest>>(`/repair-requests/${id}/confirm`);
+  return data;
+}
+
 export async function assignTechnician(id: number, technicianId: number): Promise<ApiResponse<RepairRequest>> {
   const { data } = await axiosInstance.patch<ApiResponse<RepairRequest>>(`/repair-requests/${id}/assign`, {
     technicianId,

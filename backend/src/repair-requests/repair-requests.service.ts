@@ -197,6 +197,23 @@ export class RepairRequestsService {
     return this.update(id, { statusId: closedStatus.id }, userId);
   }
 
+  async confirm(id: number, userId: number) {
+    const request = await this.findRequest(id);
+
+    if (request.requesterId !== userId)
+      throw new ForbiddenException(
+        'Only the requester can confirm this request',
+      );
+
+    if (request.status.name !== 'resolved')
+      throw new BadRequestException(
+        'Request must be resolved before it can be confirmed',
+      );
+
+    const closedStatus = await this.getStatusByName('closed');
+    return this.update(id, { statusId: closedStatus.id }, userId);
+  }
+
   async assignTechnician(
     requestId: number,
     technicianId: number,

@@ -83,6 +83,16 @@ export class RepairRequestsController {
     return { data, message: 'Repair request retrieved successfully' };
   }
 
+  @Patch(':id/confirm')
+  @Roles(Role.Admin, Role.HR, Role.User)
+  async confirm(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request & { user: JwtPayload },
+  ) {
+    const data = await this.repairRequestsService.confirm(id, req.user.sub);
+    return { data, message: 'Repair request confirmed and closed successfully' };
+  }
+
   @Patch(':id/close')
   @Roles(Role.Admin, Role.Technician)
   async close(

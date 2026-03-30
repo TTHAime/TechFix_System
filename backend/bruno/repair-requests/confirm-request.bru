@@ -1,0 +1,15 @@
+meta {
+  name: Confirm Request (Requester)
+  type: http
+  seq: 15
+}
+
+patch {
+  url: {{base_url}}/repair-requests/3/confirm
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{user_token}}
+}

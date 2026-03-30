@@ -1,0 +1,15 @@
+meta {
+  name: Confirm Request - Wrong Status (400)
+  type: http
+  seq: 17
+}
+
+patch {
+  url: {{base_url}}/repair-requests/1/confirm
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{user_token}}
+}

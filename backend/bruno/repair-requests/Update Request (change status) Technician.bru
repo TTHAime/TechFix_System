@@ -1,0 +1,23 @@
+meta {
+  name: Update Request (change status) Technician
+  type: http
+  seq: 25
+}
+
+patch {
+  url: {{base_url}}/repair-requests/1
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+body:json {
+  {
+    "statusId": 2,
+    "partsUsed": "Power supply unit",
+    "repairSummary": "เปลี่ยน power supply"
+  }
+}

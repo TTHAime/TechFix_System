@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router';
 import { useAuthStore } from '@/stores/auth';
-import { useRepairRequestQuery, useAssignTechnicianMutation, useUpdateRepairRequestMutation, useCloseRepairRequestMutation } from '@/features/repair-requests/hooks';
+import { useRepairRequestQuery, useAssignTechnicianMutation, useUpdateRepairRequestMutation, useCloseRepairRequestMutation, useConfirmRepairRequestMutation } from '@/features/repair-requests/hooks';
 import { useUsersQuery } from '@/features/users/hooks';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,7 @@ export default function RequestDetailPage() {
   const assignMutation = useAssignTechnicianMutation(Number(id));
   const updateMutation = useUpdateRepairRequestMutation(Number(id));
   const closeMutation = useCloseRepairRequestMutation(Number(id));
+  const confirmMutation = useConfirmRepairRequestMutation(Number(id));
 
   if (isLoading) {
     return <p className="text-muted-foreground py-12 text-center">Loading...</p>;
@@ -227,7 +228,7 @@ export default function RequestDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Status actions */}
+          {/* Status actions — admin / technician */}
           {hasRole('admin', 'technician') && request.status.name !== 'closed' && (
             <Card>
               <CardHeader>
@@ -271,6 +272,27 @@ export default function RequestDetailPage() {
                     {closeMutation.isPending ? 'Closing...' : 'Close Request'}
                   </Button>
                 )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Confirm repair — requester only, when status is resolved */}
+          {request.status.name === 'resolved' && user?.id === request.requester.id && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">ยืนยันการซ่อม</CardTitle>
+                <CardDescription>กรุณายืนยันว่าการซ่อมเสร็จสมบูรณ์</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  className="w-full"
+                  size="sm"
+                  variant="default"
+                  disabled={confirmMutation.isPending}
+                  onClick={() => confirmMutation.mutate()}
+                >
+                  {confirmMutation.isPending ? 'กำลังยืนยัน...' : 'ยืนยันรับงานซ่อม'}
+                </Button>
               </CardContent>
             </Card>
           )}

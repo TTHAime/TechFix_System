@@ -5,6 +5,7 @@ import {
   createRepairRequest,
   updateRepairRequest,
   closeRepairRequest,
+  confirmRepairRequest,
   assignTechnician,
   unassignTechnician,
   getStatusLogs,
@@ -75,6 +76,16 @@ export function useCloseRepairRequestMutation(id: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => closeRepairRequest(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['repair-requests'] });
+    },
+  });
+}
+
+export function useConfirmRepairRequestMutation(id: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => confirmRepairRequest(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['repair-requests'] });
     },

@@ -1,0 +1,15 @@
+meta {
+  name: Confirm Request - Not Owner (403)
+  type: http
+  seq: 16
+}
+
+patch {
+  url: {{base_url}}/repair-requests/3/confirm
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{other_user_token}}
+}
