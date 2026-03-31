@@ -31,32 +31,90 @@ interface HrCreateValues {
   password: string;
 }
 
+const safeTextPattern = /^[^<>"';{}()|\\]*$/;
+
+const strongPasswordSchema = Yup.string()
+  .min(12, 'Password must be at least 12 characters')
+  .matches(/[A-Z]/, 'Password must include at least one uppercase letter')
+  .matches(/[a-z]/, 'Password must include at least one lowercase letter')
+  .matches(/[0-9]/, 'Password must include at least one number')
+  .matches(
+    /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/,
+    'Password must include at least one special character (e.g. !@#$%^&*)',
+  )
+  .required('Password is required');
+
 const adminCreateSchema = Yup.object({
-  name: Yup.string().required('Name is required'),
-  email: Yup.string().email('Invalid email').required('Email is required'),
+  name: Yup.string()
+    .matches(safeTextPattern, 'Name contains invalid characters')
+    .max(100, 'Name must not exceed 100 characters')
+    .required('Name is required'),
+  email: Yup.string()
+    .email('Please enter a valid email address')
+    .max(254, 'Email address is too long')
+    .required('Email is required'),
   roleId: Yup.string().required('Role is required'),
   deptId: Yup.string().required('Department is required'),
-  password: Yup.string().min(8, 'Password must be at least 8 characters').required('Password is required'),
+  password: strongPasswordSchema,
 });
 
 const hrCreateSchema = Yup.object({
-  name: Yup.string().required('Name is required'),
-  email: Yup.string().email('Invalid email').required('Email is required'),
+  name: Yup.string()
+    .matches(safeTextPattern, 'Name contains invalid characters')
+    .max(100, 'Name must not exceed 100 characters')
+    .required('Name is required'),
+  email: Yup.string()
+    .email('Please enter a valid email address')
+    .max(254, 'Email address is too long')
+    .required('Email is required'),
   deptId: Yup.string().required('Department is required'),
-  password: Yup.string().min(8, 'Password must be at least 8 characters'),
+  password: Yup.string().min(12, 'Password must be at least 8 characters'),
 });
 
 const adminEditSchema = Yup.object({
-  name: Yup.string().required('Name is required'),
-  email: Yup.string().email('Invalid email').required('Email is required'),
+  name: Yup.string()
+    .matches(safeTextPattern, 'Name contains invalid characters')
+    .max(100, 'Name must not exceed 100 characters')
+    .required('Name is required'),
+  email: Yup.string()
+    .email('Please enter a valid email address')
+    .max(254, 'Email address is too long')
+    .required('Email is required'),
   roleId: Yup.string().required('Role is required'),
   deptId: Yup.string().required('Department is required'),
 });
 
 const hrEditSchema = Yup.object({
-  name: Yup.string().required('Name is required'),
+  name: Yup.string()
+    .matches(safeTextPattern, 'Name contains invalid characters')
+    .max(100, 'Name must not exceed 100 characters')
+    .required('Name is required'),
   deptId: Yup.string().required('Department is required'),
 });
+
+const resetPasswordSchema = Yup.object({
+  newPassword: strongPasswordSchema,
+  confirmPassword: Yup.string()
+    .oneOf([Yup.ref('newPassword')], 'Passwords do not match')
+    .required('Please confirm the password'),
+});
+
+function PasswordPolicyHint() {
+  return (
+    <div className="rounded-md border-2 border-red-400 bg-red-50 p-3 text-xs text-red-900 dark:border-red-600 dark:bg-red-950 dark:text-red-100">
+      <p className="font-bold text-sm text-red-700 dark:text-red-300 mb-1.5 uppercase tracking-wide">
+        Password requirements
+      </p>
+      <ul className="list-disc list-inside space-y-0.5 font-medium">
+        <li>Minimum 12 characters</li>
+        <li>At least one uppercase letter (A–Z)</li>
+        <li>At least one lowercase letter (a–z)</li>
+        <li>At least one number (0–9)</li>
+        <li>At least one special character (e.g. !@#$%^&amp;*)</li>
+      </ul>
+    </div>
+  );
+}
 
 export default function UsersPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -169,7 +227,7 @@ export default function UsersPage() {
                                 size="icon"
                                 title={u.isActive ? 'Deactivate' : 'Activate'}
                                 onClick={() =>
-                                  updateMutation.mutate({
+                                  hrUpdateMutation.mutate({
                                     id: u.id,
                                     payload: { isActive: !u.isActive },
                                   })
@@ -226,7 +284,8 @@ export default function UsersPage() {
                 <Form className="space-y-4">
                   <FormikInput name="name" label="Name" placeholder="Full name" />
                   <FormikInput name="email" label="Email" type="email" placeholder="user@company.com" />
-                  <FormikInput name="password" label="Password" type="password" placeholder="Min 8 characters" />
+                  <FormikInput name="password" label="Password" type="password" placeholder="Min 12 characters" />
+                  <PasswordPolicyHint />
                   <FormikSelect name="roleId" label="Role" placeholder="Select role..." options={roleOptions} />
                   <FormikSelect name="deptId" label="Department" placeholder="Select department..." options={deptOptions} />
                   <DialogFooter>
@@ -379,12 +438,7 @@ export default function UsersPage() {
           </DialogHeader>
           <Formik
             initialValues={{ newPassword: '', confirmPassword: '' }}
-            validationSchema={Yup.object({
-              newPassword: Yup.string().min(8, 'Min 8 characters').required('Required'),
-              confirmPassword: Yup.string()
-                .oneOf([Yup.ref('newPassword')], 'Passwords must match')
-                .required('Required'),
-            })}
+            validationSchema={resetPasswordSchema}
             onSubmit={(values, { setSubmitting }) => {
               if (!selectedUser) return;
               updateMutation.mutate(
@@ -404,7 +458,8 @@ export default function UsersPage() {
           >
             {({ isSubmitting }) => (
               <Form className="space-y-4">
-                <FormikInput name="newPassword" label="New Password" type="password" placeholder="Min 8 characters" />
+                <PasswordPolicyHint />
+                <FormikInput name="newPassword" label="New Password" type="password" placeholder="Min 12 characters" />
                 <FormikInput name="confirmPassword" label="Confirm Password" type="password" placeholder="Repeat password" />
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setResetDialogOpen(false)}>Cancel</Button>

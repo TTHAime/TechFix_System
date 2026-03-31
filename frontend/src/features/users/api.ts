@@ -2,7 +2,10 @@ import { axiosInstance } from '@/lib/axios';
 import type { User } from '@/types';
 import type { PaginatedResponse, ApiResponse } from '@/types/api';
 
-export async function getUsers(page = 1, limit = 20): Promise<PaginatedResponse<User>> {
+export async function getUsers(
+  page = 1,
+  limit = 20,
+): Promise<PaginatedResponse<User>> {
   const { data } = await axiosInstance.get<PaginatedResponse<User>>('/users', {
     params: { page, limit },
   });
@@ -21,7 +24,10 @@ export async function createUser(payload: {
   roleId: number;
   deptId: number;
 }): Promise<ApiResponse<User>> {
-  const { data } = await axiosInstance.post<ApiResponse<User>>('/users', payload);
+  const { data } = await axiosInstance.post<ApiResponse<User>>('/users', {
+    ...payload,
+    provider: 'local',
+  });
   return data;
 }
 
@@ -31,30 +37,53 @@ export async function onboardUser(payload: {
   deptId: number;
   password?: string;
 }): Promise<ApiResponse<User>> {
-  const { data } = await axiosInstance.post<ApiResponse<User>>('/users/onboard', {
-    ...payload,
-    provider: 'local',
-  });
+  const { data } = await axiosInstance.post<ApiResponse<User>>(
+    '/users/onboard',
+    {
+      ...payload,
+      provider: 'local',
+    },
+  );
   return data;
 }
 
 export async function updateUser(
   id: number,
-  payload: { name?: string; email?: string; roleId?: number; deptId?: number; isActive?: boolean; password?: string },
+  payload: {
+    name?: string;
+    email?: string;
+    roleId?: number;
+    deptId?: number;
+    isActive?: boolean;
+    password?: string;
+  },
 ): Promise<ApiResponse<User>> {
-  const { data } = await axiosInstance.patch<ApiResponse<User>>(`/users/${id}`, payload);
+  const { data } = await axiosInstance.patch<ApiResponse<User>>(
+    `/users/${id}`,
+    payload,
+  );
   return data;
 }
 
 export async function hrUpdateUser(
   id: number,
-  payload: { name?: string; deptId?: number; isActive?: boolean; password?: string },
+  payload: {
+    name?: string;
+    deptId?: number;
+    isActive?: boolean;
+    password?: string;
+  },
 ): Promise<ApiResponse<User>> {
-  const { data } = await axiosInstance.patch<ApiResponse<User>>(`/users/${id}/profile`, payload);
+  const { data } = await axiosInstance.patch<ApiResponse<User>>(
+    `/users/${id}/profile`,
+    payload,
+  );
   return data;
 }
 
 export async function deleteUser(id: number): Promise<ApiResponse<User>> {
-  const { data } = await axiosInstance.delete<ApiResponse<User>>(`/users/${id}`);
+  const { data } = await axiosInstance.delete<ApiResponse<User>>(
+    `/users/${id}`,
+  );
   return data;
 }

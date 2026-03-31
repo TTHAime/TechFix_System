@@ -1,12 +1,17 @@
 import { create } from 'zustand';
 import type { User, RoleName } from '@/types';
-import { loginApi, logoutApi, getMeApi, refreshTokenApi } from '@/features/auth/api';
-import { isAxiosError } from 'axios';
+import {
+  loginApi,
+  logoutApi,
+  getMeApi,
+  refreshTokenApi,
+} from '@/features/auth/api';
 
 interface AuthState {
   user: User | null;
   accessToken: string | null;
   isAuthenticated: boolean;
+  isInitializing: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: () => void;
   logout: () => Promise<void>;
@@ -19,6 +24,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   accessToken: null,
   isAuthenticated: false,
+  isInitializing: true,
 
   login: async (email: string, password: string) => {
     const { accessToken } = await loginApi(email, password);
@@ -26,6 +32,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     // Fetch user profile after login
     const { data: user } = await getMeApi();
+    localStorage.setItem('hasSession', 'true');
     set({ user });
   },
 
@@ -41,15 +48,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch {
       // Clear state even if API fails
     }
+    localStorage.removeItem('hasSession');
     set({ user: null, accessToken: null, isAuthenticated: false });
   },
 
   fetchMe: async () => {
     try {
+      const newToken = await refreshTokenApi();
+      set({ accessToken: newToken.accessToken });
       const { data: user } = await getMeApi();
-      set({ user, isAuthenticated: true });
+      localStorage.setItem('hasSession', 'true');
+      set({ user, isAuthenticated: true, isInitializing: false });
     } catch {
-      set({ user: null, accessToken: null, isAuthenticated: false });
+      localStorage.removeItem('hasSession');
+      set({ user: null, accessToken: null, isAuthenticated: false, isInitializing: false });
     }
   },
 

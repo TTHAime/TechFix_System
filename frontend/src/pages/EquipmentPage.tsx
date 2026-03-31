@@ -1,11 +1,30 @@
 import { useState } from 'react';
-import { useEquipmentQuery, useEquipmentCategoriesQuery, useCreateEquipmentMutation } from '@/features/equipment/hooks';
+import {
+  useEquipmentQuery,
+  useEquipmentCategoriesQuery,
+  useCreateEquipmentMutation,
+  useUpdateEquipmentMutation,
+} from '@/features/equipment/hooks';
 import { useDepartmentsQuery } from '@/features/departments/hooks';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import { FormikInput } from '@/components/ui/FormikInput';
@@ -29,6 +48,11 @@ const equipmentSchema = Yup.object({
 
 export default function EquipmentPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedEquipment, setSelectEquipment] = useState<
+    (typeof equipment)[0] | null
+  >(null);
+  const updateMutation = useUpdateEquipmentMutation();
   const { hasRole } = useAuthStore();
 
   const isAdmin = hasRole('admin');
@@ -38,13 +62,34 @@ export default function EquipmentPage() {
   const createMutation = useCreateEquipmentMutation();
 
   const equipment = eqResponse?.data ?? [];
-  const categoryOptions = (catResponse?.data ?? []).map((c) => ({ value: String(c.id), label: c.name }));
-  const deptOptions = (deptResponse?.data ?? []).map((d) => ({ value: String(d.id), label: d.name }));
+  const categoryOptions = (catResponse?.data ?? []).map((c) => ({
+    value: String(c.id),
+    label: c.name,
+  }));
+  const deptOptions = (deptResponse?.data ?? []).map((d) => ({
+    value: String(d.id),
+    label: d.name,
+  }));
 
-  const initialValues: EquipmentFormValues = { name: '', serialNo: '', categoryId: '', deptId: '' };
+  const initialValues: EquipmentFormValues = {
+    name: '',
+    serialNo: '',
+    categoryId: '',
+    deptId: '',
+  };
 
-  if (isLoading) return <div className="flex items-center justify-center p-8">Loading equipment...</div>;
-  if (isError) return <div className="flex items-center justify-center p-8 text-destructive">Failed to load equipment</div>;
+  if (isLoading)
+    return (
+      <div className="flex items-center justify-center p-8">
+        Loading equipment...
+      </div>
+    );
+  if (isError)
+    return (
+      <div className="flex items-center justify-center p-8 text-destructive">
+        Failed to load equipment
+      </div>
+    );
 
   return (
     <div className="space-y-6">
@@ -74,14 +119,18 @@ export default function EquipmentPage() {
                 <TableHead>Category</TableHead>
                 <TableHead>Department</TableHead>
                 <TableHead>Status</TableHead>
-                {hasRole('admin') && <TableHead className="w-20">Actions</TableHead>}
+                {hasRole('admin') && (
+                  <TableHead className="w-20">Actions</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
               {equipment.map((eq) => (
                 <TableRow key={eq.id}>
                   <TableCell className="font-medium">{eq.name}</TableCell>
-                  <TableCell className="font-mono text-xs">{eq.serialNo}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {eq.serialNo}
+                  </TableCell>
                   <TableCell>{eq.category.name}</TableCell>
                   <TableCell>{eq.department.name}</TableCell>
                   <TableCell>
@@ -91,7 +140,14 @@ export default function EquipmentPage() {
                   </TableCell>
                   {hasRole('admin') && (
                     <TableCell>
-                      <Button variant="ghost" size="icon">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setSelectEquipment(eq);
+                          setEditDialogOpen(true);
+                        }}
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </TableCell>
@@ -108,7 +164,9 @@ export default function EquipmentPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add Equipment</DialogTitle>
-            <DialogDescription>Register new equipment in the system</DialogDescription>
+            <DialogDescription>
+              Register new equipment in the system
+            </DialogDescription>
           </DialogHeader>
           <Formik<EquipmentFormValues>
             initialValues={initialValues}
@@ -133,12 +191,36 @@ export default function EquipmentPage() {
           >
             {({ isSubmitting }) => (
               <Form className="space-y-4">
-                <FormikInput name="name" label="Name" placeholder="e.g. Dell OptiPlex 7090" />
-                <FormikInput name="serialNo" label="Serial Number" placeholder="e.g. DL-OPT-7090-001" />
-                <FormikSelect name="categoryId" label="Category" placeholder="Select category..." options={categoryOptions} />
-                <FormikSelect name="deptId" label="Department" placeholder="Select department..." options={deptOptions} />
+                <FormikInput
+                  name="name"
+                  label="Name"
+                  placeholder="e.g. Dell OptiPlex 7090"
+                />
+                <FormikInput
+                  name="serialNo"
+                  label="Serial Number"
+                  placeholder="e.g. DL-OPT-7090-001"
+                />
+                <FormikSelect
+                  name="categoryId"
+                  label="Category"
+                  placeholder="Select category..."
+                  options={categoryOptions}
+                />
+                <FormikSelect
+                  name="deptId"
+                  label="Department"
+                  placeholder="Select department..."
+                  options={deptOptions}
+                />
                 <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
                   <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting ? 'Adding...' : 'Add Equipment'}
                   </Button>
@@ -148,6 +230,74 @@ export default function EquipmentPage() {
           </Formik>
         </DialogContent>
       </Dialog>
+
+      {selectedEquipment && (
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Equipment</DialogTitle>
+              <DialogDescription>Update equipment information</DialogDescription>
+            </DialogHeader>
+            <Formik<EquipmentFormValues>
+              initialValues={{
+                name: selectedEquipment.name,
+                serialNo: selectedEquipment.serialNo,
+                categoryId: String(selectedEquipment.category.id),
+                deptId: String(selectedEquipment.department.id),
+              }}
+              validationSchema={equipmentSchema}
+              onSubmit={(values, { setSubmitting }) => {
+                updateMutation.mutate(
+                  {
+                    id: selectedEquipment.id,
+                    payload: {
+                      name: values.name,
+                      serialNo: values.serialNo,
+                      categoryId: Number(values.categoryId),
+                      deptId: Number(values.deptId),
+                    },
+                  },
+                  {
+                    onSuccess: () => setEditDialogOpen(false),
+                    onSettled: () => setSubmitting(false),
+                  },
+                );
+              }}
+            >
+              {({ isSubmitting }) => (
+                <Form className="space-y-4">
+                  <FormikInput name="name" label="Name" />
+                  <FormikInput name="serialNo" label="Serial Number" />
+                  <FormikSelect
+                    name="categoryId"
+                    label="Category"
+                    placeholder="Select category..."
+                    options={categoryOptions}
+                  />
+                  <FormikSelect
+                    name="deptId"
+                    label="Department"
+                    placeholder="Select department..."
+                    options={deptOptions}
+                  />
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setEditDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                      {isSubmitting ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                  </DialogFooter>
+                </Form>
+              )}
+            </Formik>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
