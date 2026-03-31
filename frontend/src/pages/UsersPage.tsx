@@ -311,7 +311,7 @@ export default function UsersPage() {
                 <Form className="space-y-4">
                   <FormikInput name="name" label="Name" placeholder="Full name" />
                   <FormikInput name="email" label="Email" type="email" placeholder="user@company.com" />
-                  <FormikInput name="password" label="Password (optional)" type="password" placeholder="Min 8 characters" />
+                  <FormikInput name="password" label="Password (optional)" type="password" placeholder="Min 12 characters" />
                   <FormikSelect name="deptId" label="Department" placeholder="Select department..." options={deptOptions} />
                   <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
