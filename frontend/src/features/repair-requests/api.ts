@@ -24,7 +24,7 @@ export async function createRepairRequest(payload: {
 
 export async function updateRepairRequest(
   id: number,
-  payload: { statusId?: number; partsUsed?: string; repairSummary?: string; completedAt?: string },
+  payload: { statusId?: number; completedAt?: string },
 ): Promise<ApiResponse<RepairRequest>> {
   const { data } = await axiosInstance.patch<ApiResponse<RepairRequest>>(`/repair-requests/${id}`, payload);
   return data;
@@ -42,10 +42,10 @@ export async function confirmRepairRequest(id: number): Promise<ApiResponse<Repa
 
 // ─── Per-item endpoints ───────────────────────────────────────────────────────
 
-/** Technician self-accepts (claims) a specific item */
-export async function acceptItem(requestId: number, itemId: number): Promise<ApiResponse<RequestEquipment>> {
+/** Technician self-accepts (claims) a specific item by seqNo */
+export async function acceptItem(requestId: number, seqNo: number): Promise<ApiResponse<RequestEquipment>> {
   const { data } = await axiosInstance.patch<ApiResponse<RequestEquipment>>(
-    `/repair-requests/${requestId}/items/${itemId}/accept`,
+    `/repair-requests/${requestId}/items/${seqNo}/accept`,
   );
   return data;
 }
@@ -53,33 +53,33 @@ export async function acceptItem(requestId: number, itemId: number): Promise<Api
 /** Admin assigns a specific item to a technician */
 export async function assignItem(
   requestId: number,
-  itemId: number,
+  seqNo: number,
   technicianId: number,
 ): Promise<ApiResponse<RequestEquipment>> {
   const { data } = await axiosInstance.patch<ApiResponse<RequestEquipment>>(
-    `/repair-requests/${requestId}/items/${itemId}/assign`,
+    `/repair-requests/${requestId}/items/${seqNo}/assign`,
     { technicianId },
   );
   return data;
 }
 
 /** Admin unassigns a technician from a specific item */
-export async function unassignItem(requestId: number, itemId: number): Promise<ApiResponse<RequestEquipment>> {
+export async function unassignItem(requestId: number, seqNo: number): Promise<ApiResponse<RequestEquipment>> {
   const { data } = await axiosInstance.patch<ApiResponse<RequestEquipment>>(
-    `/repair-requests/${requestId}/items/${itemId}/unassign`,
+    `/repair-requests/${requestId}/items/${seqNo}/unassign`,
   );
   return data;
 }
 
-/** Technician resolves a specific item */
+/** Technician resolves a specific item, with optional parts and summary */
 export async function resolveItem(
   requestId: number,
-  itemId: number,
-  note?: string,
+  seqNo: number,
+  payload: { note?: string; partsUsed?: string; repairSummary?: string },
 ): Promise<ApiResponse<RequestEquipment>> {
   const { data } = await axiosInstance.patch<ApiResponse<RequestEquipment>>(
-    `/repair-requests/${requestId}/items/${itemId}/resolve`,
-    { note },
+    `/repair-requests/${requestId}/items/${seqNo}/resolve`,
+    payload,
   );
   return data;
 }

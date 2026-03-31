@@ -66,7 +66,7 @@ export function useCreateRepairRequestMutation() {
 export function useUpdateRepairRequestMutation(id: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: { statusId?: number; partsUsed?: string; repairSummary?: string; completedAt?: string }) =>
+    mutationFn: (payload: { statusId?: number; completedAt?: string }) =>
       updateRepairRequest(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['repair-requests'] });
@@ -99,7 +99,7 @@ export function useConfirmRepairRequestMutation(id: number) {
 export function useAcceptItemMutation(requestId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (itemId: number) => acceptItem(requestId, itemId),
+    mutationFn: (seqNo: number) => acceptItem(requestId, seqNo),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['repair-requests'] });
     },
@@ -109,8 +109,8 @@ export function useAcceptItemMutation(requestId: number) {
 export function useAssignItemMutation(requestId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ itemId, technicianId }: { itemId: number; technicianId: number }) =>
-      assignItem(requestId, itemId, technicianId),
+    mutationFn: ({ seqNo, technicianId }: { seqNo: number; technicianId: number }) =>
+      assignItem(requestId, seqNo, technicianId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['repair-requests'] });
     },
@@ -120,7 +120,7 @@ export function useAssignItemMutation(requestId: number) {
 export function useUnassignItemMutation(requestId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (itemId: number) => unassignItem(requestId, itemId),
+    mutationFn: (seqNo: number) => unassignItem(requestId, seqNo),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['repair-requests'] });
     },
@@ -130,7 +130,17 @@ export function useUnassignItemMutation(requestId: number) {
 export function useResolveItemMutation(requestId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ itemId, note }: { itemId: number; note?: string }) => resolveItem(requestId, itemId, note),
+    mutationFn: ({
+      seqNo,
+      note,
+      partsUsed,
+      repairSummary,
+    }: {
+      seqNo: number;
+      note?: string;
+      partsUsed?: string;
+      repairSummary?: string;
+    }) => resolveItem(requestId, seqNo, { note, partsUsed, repairSummary }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['repair-requests'] });
     },

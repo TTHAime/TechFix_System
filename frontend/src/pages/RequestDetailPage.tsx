@@ -1,8 +1,8 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { useAuthStore } from '@/stores/auth';
 import {
   useRepairRequestQuery,
-  useUpdateRepairRequestMutation,
   useCloseRepairRequestMutation,
   useConfirmRepairRequestMutation,
   useAcceptItemMutation,
@@ -15,6 +15,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, User, Monitor, Clock, Wrench, Hand, UserX } from 'lucide-react';
 import type { RequestStatusName, RequestEquipment } from '@/types';
 
@@ -36,7 +39,6 @@ export default function RequestDetailPage() {
   const { data: requestData, isLoading } = useRepairRequestQuery(Number(id));
   const { data: usersData } = useUsersQuery(1, 100, isAdmin);
 
-  const updateMutation = useUpdateRepairRequestMutation(Number(id));
   const closeMutation = useCloseRepairRequestMutation(Number(id));
   const confirmMutation = useConfirmRepairRequestMutation(Number(id));
   const acceptMutation = useAcceptItemMutation(Number(id));
@@ -64,7 +66,6 @@ export default function RequestDetailPage() {
   const technicians = (usersData?.data ?? []).filter((u) => u.role.name === 'technician');
   const isClosed = request.status.name === 'closed';
 
-  // Build timeline from assignment logs
   const assignmentEvents = request.assignmentLogs.map((log) => ({
     key: `assign-${log.id}`,
     color: 'bg-blue-500',
@@ -74,6 +75,12 @@ export default function RequestDetailPage() {
         : `${log.action} ${log.technician.name}${log.item ? ` → ${log.item.equipment.name}` : ''}`,
     date: log.loggedAt,
   }));
+
+  const isPending =
+    acceptMutation.isPending ||
+    assignMutation.isPending ||
+    unassignMutation.isPending ||
+    resolveMutation.isPending;
 
   return (
     <div className="space-y-6">
@@ -111,45 +118,24 @@ export default function RequestDetailPage() {
               <div className="space-y-3">
                 {request.requestEquipment.map((item) => (
                   <EquipmentItemCard
-                    key={item.id}
+                    key={`${item.requestId}-${item.seqNo}`}
                     item={item}
-                    requestId={request.id}
                     isClosed={isClosed}
                     isAdmin={isAdmin}
                     isTechnician={isTechnician}
                     currentUserId={user?.id}
                     technicians={technicians}
-                    onAccept={(itemId) => acceptMutation.mutate(itemId)}
-                    onAssign={(itemId, technicianId) => assignMutation.mutate({ itemId, technicianId })}
-                    onUnassign={(itemId) => unassignMutation.mutate(itemId)}
-                    onResolve={(itemId) => resolveMutation.mutate({ itemId })}
-                    isPending={
-                      acceptMutation.isPending ||
-                      assignMutation.isPending ||
-                      unassignMutation.isPending ||
-                      resolveMutation.isPending
+                    onAccept={(seqNo) => acceptMutation.mutate(seqNo)}
+                    onAssign={(seqNo, technicianId) => assignMutation.mutate({ seqNo, technicianId })}
+                    onUnassign={(seqNo) => unassignMutation.mutate(seqNo)}
+                    onResolve={(seqNo, partsUsed, repairSummary, note) =>
+                      resolveMutation.mutate({ seqNo, partsUsed, repairSummary, note })
                     }
+                    isPending={isPending}
                   />
                 ))}
               </div>
             </div>
-
-            {request.repairSummary && (
-              <>
-                <Separator />
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1 flex items-center gap-2">
-                    <Wrench className="h-4 w-4" /> Repair Summary
-                  </p>
-                  <p>{request.repairSummary}</p>
-                  {request.partsUsed && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      <span className="font-medium">Parts used:</span> {request.partsUsed}
-                    </p>
-                  )}
-                </div>
-              </>
-            )}
           </CardContent>
         </Card>
 
@@ -260,16 +246,15 @@ export default function RequestDetailPage() {
 
 interface EquipmentItemCardProps {
   item: RequestEquipment;
-  requestId: number;
   isClosed: boolean;
   isAdmin: boolean;
   isTechnician: boolean;
   currentUserId?: number;
   technicians: Array<{ id: number; name: string; role: { name: string } }>;
-  onAccept: (itemId: number) => void;
-  onAssign: (itemId: number, technicianId: number) => void;
-  onUnassign: (itemId: number) => void;
-  onResolve: (itemId: number) => void;
+  onAccept: (seqNo: number) => void;
+  onAssign: (seqNo: number, technicianId: number) => void;
+  onUnassign: (seqNo: number) => void;
+  onResolve: (seqNo: number, partsUsed?: string, repairSummary?: string, note?: string) => void;
   isPending: boolean;
 }
 
@@ -286,14 +271,28 @@ function EquipmentItemCard({
   onResolve,
   isPending,
 }: EquipmentItemCardProps) {
+  const [showResolveForm, setShowResolveForm] = useState(false);
+  const [partsUsed, setPartsUsed] = useState('');
+  const [repairSummary, setRepairSummary] = useState('');
+
   const isMyItem = isTechnician && item.technicianId === currentUserId;
   const itemStatusName = item.status.name as RequestStatusName;
+
+  function handleResolve() {
+    onResolve(item.seqNo, partsUsed || undefined, repairSummary || undefined);
+    setShowResolveForm(false);
+    setPartsUsed('');
+    setRepairSummary('');
+  }
 
   return (
     <div className="rounded-md border p-3 space-y-2">
       {/* Header row */}
       <div className="flex items-center justify-between">
-        <p className="font-medium">{item.equipment.name}</p>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-mono text-muted-foreground">#{item.seqNo}</span>
+          <p className="font-medium">{item.equipment.name}</p>
+        </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">{item.equipment.serialNo}</span>
           <Badge variant={statusVariantMap[itemStatusName]} className="text-xs">
@@ -323,20 +322,33 @@ function EquipmentItemCard({
         </p>
       )}
 
+      {/* Repair info (shown once resolved) */}
+      {(item.partsUsed || item.repairSummary) && (
+        <div className="rounded-sm bg-muted px-2 py-1.5 space-y-0.5">
+          <p className="text-xs flex items-center gap-1 text-muted-foreground font-medium">
+            <Wrench className="h-3 w-3" /> Repair Info
+          </p>
+          {item.repairSummary && <p className="text-xs">{item.repairSummary}</p>}
+          {item.partsUsed && (
+            <p className="text-xs text-muted-foreground">Parts: {item.partsUsed}</p>
+          )}
+        </div>
+      )}
+
       {/* Actions — only when not closed */}
       {!isClosed && (
         <div className="flex flex-wrap gap-2 pt-1">
           {/* Technician: accept open item */}
           {isTechnician && itemStatusName === 'open' && (
-            <Button size="sm" variant="outline" disabled={isPending} onClick={() => onAccept(item.id)}>
+            <Button size="sm" variant="outline" disabled={isPending} onClick={() => onAccept(item.seqNo)}>
               <Hand className="mr-1 h-3 w-3" />
               Accept
             </Button>
           )}
 
           {/* Technician: resolve own in-progress item */}
-          {isMyItem && itemStatusName === 'in_progress' && (
-            <Button size="sm" disabled={isPending} onClick={() => onResolve(item.id)}>
+          {isMyItem && itemStatusName === 'in_progress' && !showResolveForm && (
+            <Button size="sm" disabled={isPending} onClick={() => setShowResolveForm(true)}>
               Mark Resolved
             </Button>
           )}
@@ -350,7 +362,7 @@ function EquipmentItemCard({
                   size="sm"
                   variant="outline"
                   disabled={isPending}
-                  onClick={() => onAssign(item.id, tech.id)}
+                  onClick={() => onAssign(item.seqNo, tech.id)}
                   className="text-xs"
                 >
                   Assign {tech.name}
@@ -361,11 +373,49 @@ function EquipmentItemCard({
 
           {/* Admin: unassign in-progress item */}
           {isAdmin && itemStatusName === 'in_progress' && (
-            <Button size="sm" variant="ghost" disabled={isPending} onClick={() => onUnassign(item.id)}>
+            <Button size="sm" variant="ghost" disabled={isPending} onClick={() => onUnassign(item.seqNo)}>
               <UserX className="mr-1 h-3 w-3" />
               Unassign
             </Button>
           )}
+        </div>
+      )}
+
+      {/* Resolve inline form */}
+      {showResolveForm && (
+        <div className="rounded-sm border bg-muted/40 p-3 space-y-3">
+          <div className="space-y-1">
+            <Label htmlFor={`parts-${item.seqNo}`} className="text-xs">
+              Parts Used
+            </Label>
+            <Input
+              id={`parts-${item.seqNo}`}
+              placeholder="e.g. RAM 8GB, Power supply"
+              value={partsUsed}
+              onChange={(e) => setPartsUsed(e.target.value)}
+              className="text-sm h-8"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor={`summary-${item.seqNo}`} className="text-xs">
+              Repair Summary
+            </Label>
+            <Textarea
+              id={`summary-${item.seqNo}`}
+              placeholder="Describe what was done..."
+              value={repairSummary}
+              onChange={(e) => setRepairSummary(e.target.value)}
+              className="text-sm min-h-16 resize-none"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" disabled={isPending} onClick={handleResolve}>
+              {isPending ? 'Saving...' : 'Confirm Resolved'}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setShowResolveForm(false)}>
+              Cancel
+            </Button>
+          </div>
         </div>
       )}
     </div>

@@ -117,33 +117,33 @@ export class RepairRequestsController {
   // ─── Per-item endpoints ───────────────────────────────────────────────────────
 
   /** Technician accepts (self-assigns) a specific item */
-  @Patch(':id/items/:itemId/accept')
+  @Patch(':id/items/:seqNo/accept')
   @Roles(Role.Technician)
   async acceptItem(
     @Param('id', ParseIntPipe) id: number,
-    @Param('itemId', ParseIntPipe) itemId: number,
+    @Param('seqNo', ParseIntPipe) seqNo: number,
     @Req() req: Request & { user: JwtPayload },
   ) {
     const data = await this.repairRequestsService.acceptItem(
       id,
-      itemId,
+      seqNo,
       req.user.sub,
     );
     return { data, message: 'Item accepted successfully' };
   }
 
   /** Admin assigns a specific item to a technician */
-  @Patch(':id/items/:itemId/assign')
+  @Patch(':id/items/:seqNo/assign')
   @Roles(Role.Admin)
   async assignItem(
     @Param('id', ParseIntPipe) id: number,
-    @Param('itemId', ParseIntPipe) itemId: number,
+    @Param('seqNo', ParseIntPipe) seqNo: number,
     @Body() dto: AssignTechnicianDto,
     @Req() req: Request & { user: JwtPayload },
   ) {
     const data = await this.repairRequestsService.assignItem(
       id,
-      itemId,
+      seqNo,
       dto.technicianId,
       req.user.sub,
     );
@@ -151,35 +151,35 @@ export class RepairRequestsController {
   }
 
   /** Admin unassigns a technician from a specific item */
-  @Patch(':id/items/:itemId/unassign')
+  @Patch(':id/items/:seqNo/unassign')
   @Roles(Role.Admin)
   async unassignItem(
     @Param('id', ParseIntPipe) id: number,
-    @Param('itemId', ParseIntPipe) itemId: number,
+    @Param('seqNo', ParseIntPipe) seqNo: number,
     @Req() req: Request & { user: JwtPayload },
   ) {
     const data = await this.repairRequestsService.unassignItem(
       id,
-      itemId,
+      seqNo,
       req.user.sub,
     );
     return { data, message: 'Item unassigned successfully' };
   }
 
   /** Technician marks their item as resolved */
-  @Patch(':id/items/:itemId/resolve')
+  @Patch(':id/items/:seqNo/resolve')
   @Roles(Role.Technician)
   async resolveItem(
     @Param('id', ParseIntPipe) id: number,
-    @Param('itemId', ParseIntPipe) itemId: number,
+    @Param('seqNo', ParseIntPipe) seqNo: number,
     @Body() dto: ResolveItemDto,
     @Req() req: Request & { user: JwtPayload },
   ) {
     const data = await this.repairRequestsService.resolveItem(
       id,
-      itemId,
+      seqNo,
       req.user.sub,
-      dto.note,
+      dto,
     );
     return { data, message: 'Item resolved successfully' };
   }

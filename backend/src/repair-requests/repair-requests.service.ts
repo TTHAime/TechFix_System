@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { CreateRepairRequestDto } from './dto/create-repair-request.dto';
 import { UpdateRepairRequestDto } from './dto/update-repair-request.dto';
+import { ResolveItemDto } from './dto/resolve-item.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from 'src/generated/prisma/client';
 import { Role } from 'src/common/enums/role.enum';
@@ -26,6 +27,7 @@ const REPAIR_REQUEST_INCLUDE = {
   status: true,
   requestEquipment: {
     include: ITEM_INCLUDE,
+    orderBy: { seqNo: 'asc' as const },
   },
   assignmentLogs: {
     orderBy: { loggedAt: 'desc' as const },
@@ -65,7 +67,8 @@ export class RepairRequestsService {
             statusId: openStatus.id,
             description: createRepairRequestDto.description,
             requestEquipment: {
-              create: createRepairRequestDto.equipments.map((e) => ({
+              create: createRepairRequestDto.equipments.map((e, idx) => ({
+                seqNo: idx + 1,
                 equipmentId: e.equipmentId,
                 issueDetail: e.issueDetail,
                 statusId: openStatus.id,
@@ -153,17 +156,17 @@ export class RepairRequestsService {
   }
 
   // ─── Accept item (technician รับงานชิ้นนี้) ─────────────────────────────────
-  async acceptItem(requestId: number, itemId: number, technicianId: number) {
+  async acceptItem(requestId: number, seqNo: number, technicianId: number) {
     const request = await this.findRequest(requestId);
 
     if (request.status.name === 'closed') {
       throw new BadRequestException('Cannot accept items on a closed request');
     }
 
-    const item = request.requestEquipment.find((i) => i.id === itemId);
+    const item = request.requestEquipment.find((i) => i.seqNo === seqNo);
     if (!item) {
       throw new NotFoundException(
-        `Item #${itemId} not found in request #${requestId}`,
+        `Item seq#${seqNo} not found in request #${requestId}`,
       );
     }
 
@@ -174,9 +177,8 @@ export class RepairRequestsService {
     const inProgressStatus = await this.getStatusByName('in_progress');
 
     return await this.prisma.$transaction(async (tx) => {
-      // Update item: status = in_progress, assign technician
       const updatedItem = await tx.requestEquipment.update({
-        where: { id: itemId },
+        where: { requestId_seqNo: { requestId, seqNo } },
         data: {
           statusId: inProgressStatus.id,
           technicianId,
@@ -184,18 +186,17 @@ export class RepairRequestsService {
         include: ITEM_INCLUDE,
       });
 
-      // Log assignment
       await tx.assignmentLog.create({
         data: {
           requestId,
-          itemId,
+          itemRequestId: requestId,
+          itemSeqNo: seqNo,
           actorId: technicianId,
           technicianId,
           action: 'assigned',
         },
       });
 
-      // If request is still open, move it to in_progress
       if (request.status.name === 'open') {
         await tx.repairRequest.update({
           where: { id: requestId },
@@ -207,13 +208,13 @@ export class RepairRequestsService {
             changedBy: technicianId,
             oldStatusId: request.statusId,
             newStatusId: inProgressStatus.id,
-            note: `Item #${itemId} accepted — request moved to in_progress`,
+            note: `Item seq#${seqNo} accepted — request moved to in_progress`,
           },
         });
       }
 
       this.logger.log(
-        `Item #${itemId} accepted by technician #${technicianId}`,
+        `Item seq#${seqNo} accepted by technician #${technicianId}`,
       );
       return updatedItem;
     });
@@ -222,7 +223,7 @@ export class RepairRequestsService {
   // ─── Admin assign item ────────────────────────────────────────────────────────
   async assignItem(
     requestId: number,
-    itemId: number,
+    seqNo: number,
     technicianId: number,
     actorId: number,
   ) {
@@ -232,10 +233,10 @@ export class RepairRequestsService {
       throw new BadRequestException('Cannot assign items on a closed request');
     }
 
-    const item = request.requestEquipment.find((i) => i.id === itemId);
+    const item = request.requestEquipment.find((i) => i.seqNo === seqNo);
     if (!item) {
       throw new NotFoundException(
-        `Item #${itemId} not found in request #${requestId}`,
+        `Item seq#${seqNo} not found in request #${requestId}`,
       );
     }
 
@@ -255,7 +256,7 @@ export class RepairRequestsService {
 
     return await this.prisma.$transaction(async (tx) => {
       const updatedItem = await tx.requestEquipment.update({
-        where: { id: itemId },
+        where: { requestId_seqNo: { requestId, seqNo } },
         data: {
           statusId: inProgressStatus.id,
           technicianId,
@@ -266,7 +267,8 @@ export class RepairRequestsService {
       await tx.assignmentLog.create({
         data: {
           requestId,
-          itemId,
+          itemRequestId: requestId,
+          itemSeqNo: seqNo,
           actorId,
           technicianId,
           action: 'assigned',
@@ -284,25 +286,25 @@ export class RepairRequestsService {
             changedBy: actorId,
             oldStatusId: request.statusId,
             newStatusId: inProgressStatus.id,
-            note: `Item #${itemId} assigned to technician #${technicianId}`,
+            note: `Item seq#${seqNo} assigned to technician #${technicianId}`,
           },
         });
       }
 
       this.logger.log(
-        `Item #${itemId} assigned to technician #${technicianId} by actor #${actorId}`,
+        `Item seq#${seqNo} assigned to technician #${technicianId} by actor #${actorId}`,
       );
       return updatedItem;
     });
   }
 
   // ─── Unassign item (admin only) ───────────────────────────────────────────────
-  async unassignItem(requestId: number, itemId: number, actorId: number) {
+  async unassignItem(requestId: number, seqNo: number, actorId: number) {
     const request = await this.findRequest(requestId);
-    const item = request.requestEquipment.find((i) => i.id === itemId);
+    const item = request.requestEquipment.find((i) => i.seqNo === seqNo);
     if (!item) {
       throw new NotFoundException(
-        `Item #${itemId} not found in request #${requestId}`,
+        `Item seq#${seqNo} not found in request #${requestId}`,
       );
     }
 
@@ -317,7 +319,7 @@ export class RepairRequestsService {
 
     return await this.prisma.$transaction(async (tx) => {
       const updatedItem = await tx.requestEquipment.update({
-        where: { id: itemId },
+        where: { requestId_seqNo: { requestId, seqNo } },
         data: {
           statusId: openStatus.id,
           technicianId: null,
@@ -328,14 +330,14 @@ export class RepairRequestsService {
       await tx.assignmentLog.create({
         data: {
           requestId,
-          itemId,
+          itemRequestId: requestId,
+          itemSeqNo: seqNo,
           actorId,
           technicianId: previousTechnicianId!,
           action: 'unassigned',
         },
       });
 
-      // Check if all items are now open → move request back to open
       const allItems = await tx.requestEquipment.findMany({
         where: { requestId },
       });
@@ -356,7 +358,7 @@ export class RepairRequestsService {
         });
       }
 
-      this.logger.log(`Item #${itemId} unassigned by actor #${actorId}`);
+      this.logger.log(`Item seq#${seqNo} unassigned by actor #${actorId}`);
       return updatedItem;
     });
   }
@@ -364,16 +366,16 @@ export class RepairRequestsService {
   // ─── Resolve item (technician marks their item as resolved) ──────────────────
   async resolveItem(
     requestId: number,
-    itemId: number,
+    seqNo: number,
     technicianId: number,
-    note?: string,
+    dto: ResolveItemDto,
   ) {
     const request = await this.findRequest(requestId);
-    const item = request.requestEquipment.find((i) => i.id === itemId);
+    const item = request.requestEquipment.find((i) => i.seqNo === seqNo);
 
     if (!item) {
       throw new NotFoundException(
-        `Item #${itemId} not found in request #${requestId}`,
+        `Item seq#${seqNo} not found in request #${requestId}`,
       );
     }
 
@@ -391,20 +393,23 @@ export class RepairRequestsService {
 
     return await this.prisma.$transaction(async (tx) => {
       const updatedItem = await tx.requestEquipment.update({
-        where: { id: itemId },
+        where: { requestId_seqNo: { requestId, seqNo } },
         data: {
           statusId: resolvedStatus.id,
           resolvedAt: new Date(),
+          ...(dto.partsUsed !== undefined && { partsUsed: dto.partsUsed }),
+          ...(dto.repairSummary !== undefined && {
+            repairSummary: dto.repairSummary,
+          }),
         },
         include: ITEM_INCLUDE,
       });
 
-      // Check if ALL items are now resolved → auto-resolve the request
       const allItems = await tx.requestEquipment.findMany({
         where: { requestId },
       });
       const allResolved = allItems.every((i) =>
-        i.id === itemId ? true : i.statusId === resolvedStatus.id,
+        i.seqNo === seqNo ? true : i.statusId === resolvedStatus.id,
       );
 
       if (allResolved) {
@@ -421,7 +426,7 @@ export class RepairRequestsService {
             changedBy: technicianId,
             oldStatusId: request.statusId,
             newStatusId: resolvedStatus.id,
-            note: note ?? 'All items resolved',
+            note: dto.note ?? 'All items resolved',
           },
         });
         this.logger.log(
@@ -430,13 +435,13 @@ export class RepairRequestsService {
       }
 
       this.logger.log(
-        `Item #${itemId} resolved by technician #${technicianId}`,
+        `Item seq#${seqNo} resolved by technician #${technicianId}`,
       );
       return updatedItem;
     });
   }
 
-  // ─── Update request-level fields (admin only: partsUsed, repairSummary) ──────
+  // ─── Update request-level fields (admin only) ─────────────────────────────────
   async update(
     id: number,
     updateRepairRequestDto: UpdateRepairRequestDto,
@@ -461,12 +466,6 @@ export class RepairRequestsService {
           data: {
             ...(updateRepairRequestDto.statusId !== undefined && {
               statusId: updateRepairRequestDto.statusId,
-            }),
-            ...(updateRepairRequestDto.partsUsed !== undefined && {
-              partsUsed: updateRepairRequestDto.partsUsed,
-            }),
-            ...(updateRepairRequestDto.repairSummary !== undefined && {
-              repairSummary: updateRepairRequestDto.repairSummary,
             }),
             ...(updateRepairRequestDto.completedAt !== undefined && {
               completedAt: updateRepairRequestDto.completedAt,
@@ -505,7 +504,6 @@ export class RepairRequestsService {
     const request = await this.findRequest(id);
     const closedStatus = await this.getStatusByName('closed');
 
-    // Admin can force-close regardless of item statuses
     return await this.prisma.$transaction(async (tx) => {
       const updated = await tx.repairRequest.update({
         where: { id },

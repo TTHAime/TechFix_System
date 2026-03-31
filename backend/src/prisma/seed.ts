@@ -50,9 +50,6 @@ async function main() {
     `ALTER SEQUENCE repair_requests_id_seq RESTART WITH 1`,
   );
   await prisma.$executeRawUnsafe(
-    `ALTER SEQUENCE request_equipment_id_seq RESTART WITH 1`,
-  );
-  await prisma.$executeRawUnsafe(
     `ALTER SEQUENCE status_logs_id_seq RESTART WITH 1`,
   );
   await prisma.$executeRawUnsafe(
@@ -228,17 +225,25 @@ async function main() {
 
   // ─── Repair Requests ───
 
-  // Request 1: open — เพิ่งแจ้ง (user1)
+  // Request 1: open — เพิ่งแจ้ง multi-equipment (user1) — seq1=eq1, seq2=eq4
   const req1 = await prisma.repairRequest.create({
     data: {
       requesterId: user1.id,
       statusId: openStatus.id,
-      description: 'คอมพิวเตอร์เปิดไม่ติด กดปุ่ม power แล้วไม่มีอะไรเกิดขึ้น',
+      description: 'คอมพิวเตอร์เปิดไม่ติด และ switch พอร์ตตาย',
       requestEquipment: {
-        create: {
-          equipmentId: eq1.id,
-          issueDetail: 'กดปุ่ม power แล้วไม่มีไฟ ไม่มีเสียง',
-        },
+        create: [
+          {
+            seqNo: 1,
+            equipmentId: eq1.id,
+            issueDetail: 'กดปุ่ม power แล้วไม่มีไฟ ไม่มีเสียง',
+          },
+          {
+            seqNo: 2,
+            equipmentId: eq4.id,
+            issueDetail: 'Port 5 ของ switch ไม่มีสัญญาณ',
+          },
+        ],
       },
     },
   });
@@ -252,7 +257,7 @@ async function main() {
     },
   });
 
-  // Request 2: in_progress — admin assign ให้ tech1
+  // Request 2: in_progress — admin assign ให้ tech1 (seq1=eq2)
   const req2 = await prisma.repairRequest.create({
     data: {
       requesterId: user2.id,
@@ -260,6 +265,7 @@ async function main() {
       description: 'โน้ตบุ๊กจอดำ เปิดได้แต่ไม่มีภาพ',
       requestEquipment: {
         create: {
+          seqNo: 1,
           equipmentId: eq2.id,
           issueDetail: 'จอดำ มีไฟ power แต่ไม่แสดงภาพ',
           statusId: inProgressStatus.id,
@@ -272,7 +278,8 @@ async function main() {
   await prisma.assignmentLog.create({
     data: {
       requestId: req2.id,
-      itemId: req2.requestEquipment[0].id,
+      itemRequestId: req2.id,
+      itemSeqNo: 1,
       actorId: admin.id,
       technicianId: tech1.id,
       action: 'assigned',
@@ -288,21 +295,22 @@ async function main() {
     },
   });
 
-  // Request 3: resolved — ช่างซ่อมเสร็จแล้ว รอ user1 confirm (user1 เป็นเจ้าของ)
+  // Request 3: resolved — ช่างซ่อมเสร็จแล้ว รอ user1 confirm (seq1=eq3)
   const req3 = await prisma.repairRequest.create({
     data: {
       requesterId: user1.id,
       statusId: resolvedStatus.id,
       description: 'เครื่องพิมพ์พิมพ์ไม่ออก กระดาษติด',
-      partsUsed: 'ลูกยางดึงกระดาษ 1 ชุด',
-      repairSummary: 'เปลี่ยนลูกยางดึงกระดาษและทำความสะอาดภายใน',
       completedAt: new Date('2026-03-15T10:30:00Z'),
       requestEquipment: {
         create: {
+          seqNo: 1,
           equipmentId: eq3.id,
           issueDetail: 'กระดาษติดบ่อย พิมพ์แล้วเส้นเป็นทาง',
           statusId: resolvedStatus.id,
           technicianId: tech2.id,
+          partsUsed: 'ลูกยางดึงกระดาษ 1 ชุด',
+          repairSummary: 'เปลี่ยนลูกยางดึงกระดาษและทำความสะอาดภายใน',
           resolvedAt: new Date('2026-03-15T10:30:00Z'),
         },
       },
@@ -312,7 +320,8 @@ async function main() {
   await prisma.assignmentLog.create({
     data: {
       requestId: req3.id,
-      itemId: req3.requestEquipment[0].id,
+      itemRequestId: req3.id,
+      itemSeqNo: 1,
       actorId: admin.id,
       technicianId: tech2.id,
       action: 'assigned',
@@ -337,7 +346,7 @@ async function main() {
     },
   });
 
-  // Request 4: open — แจ้งซ่อมจอมอนิเตอร์ (user3)
+  // Request 4: open — แจ้งซ่อมจอมอนิเตอร์ (user3) seq1=eq5
   const req4 = await prisma.repairRequest.create({
     data: {
       requesterId: user3.id,
@@ -345,6 +354,7 @@ async function main() {
       description: 'จอมอนิเตอร์มีเส้นสีเขียวแนวตั้งกลางจอ',
       requestEquipment: {
         create: {
+          seqNo: 1,
           equipmentId: eq5.id,
           issueDetail: 'มีเส้นสีเขียวแนวตั้ง 1 เส้นตรงกลางจอ ใช้งานไม่สะดวก',
         },

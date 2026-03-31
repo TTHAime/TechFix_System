@@ -120,8 +120,6 @@ model RepairRequest {
   requesterId   Int       @map("requester_id")
   statusId      Int       @map("status_id")
   description   String
-  partsUsed     String?   @map("parts_used")
-  repairSummary String?   @map("repair_summary")
   completedAt   DateTime? @map("completed_at") @db.Timestamptz
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz
@@ -138,13 +136,15 @@ model RepairRequest {
 }
 
 model RequestEquipment {
-  id           Int       @id @default(autoincrement())
-  requestId    Int       @map("request_id")
-  equipmentId  Int       @map("equipment_id")
-  issueDetail  String    @map("issue_detail")
-  statusId     Int       @default(1) @map("status_id")   // FK -> RequestStatus (default: open)
-  technicianId Int?      @map("technician_id")           // technician who accepted this item
-  resolvedAt   DateTime? @map("resolved_at") @db.Timestamptz
+  requestId     Int       @map("request_id")
+  seqNo         Int       @map("seq_no")               // sequential per request (1, 2, 3…)
+  equipmentId   Int       @map("equipment_id")
+  issueDetail   String    @map("issue_detail")
+  statusId      Int       @default(1) @map("status_id")  // FK -> RequestStatus (default: open)
+  technicianId  Int?      @map("technician_id")           // technician who accepted this item
+  partsUsed     String?   @map("parts_used")
+  repairSummary String?   @map("repair_summary")
+  resolvedAt    DateTime? @map("resolved_at") @db.Timestamptz
 
   request    RepairRequest @relation(fields: [requestId], references: [id])
   equipment  Equipment     @relation(fields: [equipmentId], references: [id])
@@ -153,7 +153,7 @@ model RequestEquipment {
 
   assignmentLogs AssignmentLog[]
 
-  @@index([requestId])
+  @@id([requestId, seqNo])
   @@index([equipmentId])
   @@index([statusId])
   @@index([technicianId])
@@ -179,21 +179,22 @@ model StatusLog {
 }
 
 model AssignmentLog {
-  id           Int      @id @default(autoincrement())
-  requestId    Int      @map("request_id")
-  itemId       Int?     @map("item_id")   // FK -> RequestEquipment (null = request-level assignment)
-  actorId      Int      @map("actor_id")
-  technicianId Int      @map("technician_id")
-  action       String   @db.VarChar(20)  // 'assigned' | 'unassigned'
-  loggedAt     DateTime @default(now()) @map("logged_at") @db.Timestamptz
+  id              Int      @id @default(autoincrement())
+  requestId       Int      @map("request_id")
+  itemRequestId   Int?     @map("item_request_id")   // FK part 1 -> RequestEquipment (null = request-level)
+  itemSeqNo       Int?     @map("item_seq_no")        // FK part 2 -> RequestEquipment
+  actorId         Int      @map("actor_id")
+  technicianId    Int      @map("technician_id")
+  action          String   @db.VarChar(20)            // 'assigned' | 'unassigned'
+  loggedAt        DateTime @default(now()) @map("logged_at") @db.Timestamptz
 
   request    RepairRequest     @relation(fields: [requestId], references: [id])
-  item       RequestEquipment? @relation(fields: [itemId], references: [id])
+  item       RequestEquipment? @relation(fields: [itemRequestId, itemSeqNo], references: [requestId, seqNo])
   actor      User              @relation("AssignmentActor", fields: [actorId], references: [id])
   technician User              @relation("AssignmentTechnician", fields: [technicianId], references: [id])
 
   @@index([requestId])
-  @@index([itemId])
+  @@index([itemRequestId, itemSeqNo])
   @@map("assignment_logs")
 }
 

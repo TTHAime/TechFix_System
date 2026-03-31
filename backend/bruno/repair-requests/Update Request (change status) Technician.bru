@@ -1,11 +1,11 @@
 meta {
-  name: Resolve Item (Technician)
+  name: Resolve Item (Technician) - via resolve endpoint
   type: http
-  seq: 21
+  seq: 31
 }
 
 patch {
-  url: {{base_url}}/repair-requests/2/items/2/resolve
+  url: {{base_url}}/repair-requests/2/items/1/resolve
   body: json
   auth: bearer
 }
@@ -16,6 +16,7 @@ auth:bearer {
 
 body:json {
   {
-    "note": "ซ่อมเรียบร้อย ทดสอบแล้วปกติ"
+    "partsUsed": "RAM 8GB",
+    "repairSummary": "เพิ่ม RAM แก้ปัญหาค้าง"
   }
 }

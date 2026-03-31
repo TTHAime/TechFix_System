@@ -1,27 +1,10 @@
-import {
-  IsDateString,
-  IsInt,
-  IsOptional,
-  IsPositive,
-  IsString,
-} from 'class-validator';
-import { Sanitize } from 'src/common/decorators/sanitize.decorator';
+import { IsDateString, IsInt, IsOptional, IsPositive } from 'class-validator';
 
 export class UpdateRepairRequestDto {
   @IsOptional()
   @IsInt()
   @IsPositive()
   declare statusId?: number;
-
-  @IsOptional()
-  @IsString()
-  @Sanitize()
-  declare partsUsed?: string;
-
-  @IsOptional()
-  @IsString()
-  @Sanitize()
-  declare repairSummary?: string;
 
   @IsOptional()
   @IsDateString()

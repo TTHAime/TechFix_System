@@ -200,11 +200,11 @@ function RequestRow({
             <div className="flex flex-col gap-1">
               {claimableItems.map((item) => (
                 <Button
-                  key={item.id}
+                  key={`${item.requestId}-${item.seqNo}`}
                   size="sm"
                   variant="outline"
                   disabled={acceptMutation.isPending}
-                  onClick={() => acceptMutation.mutate(item.id)}
+                  onClick={() => acceptMutation.mutate(item.seqNo)}
                   className="text-xs justify-start"
                 >
                   <Hand className="mr-1 h-3 w-3" />

@@ -6,4 +6,14 @@ export class ResolveItemDto {
   @IsString()
   @Sanitize()
   declare note?: string;
+
+  @IsOptional()
+  @IsString()
+  @Sanitize()
+  declare partsUsed?: string;
+
+  @IsOptional()
+  @IsString()
+  @Sanitize()
+  declare repairSummary?: string;
 }

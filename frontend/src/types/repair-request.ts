@@ -9,12 +9,14 @@ export interface RequestStatus {
 }
 
 export interface RequestEquipment {
-  id: number;
   requestId: number;
+  seqNo: number;
   equipmentId: number;
   issueDetail: string;
   statusId: number;
   technicianId: number | null;
+  partsUsed: string | null;
+  repairSummary: string | null;
   resolvedAt: string | null;
   equipment: Equipment;
   status: RequestStatus;
@@ -24,7 +26,8 @@ export interface RequestEquipment {
 export interface AssignmentLog {
   id: number;
   requestId: number;
-  itemId: number | null;
+  itemRequestId: number | null;
+  itemSeqNo: number | null;
   actorId: number;
   technicianId: number;
   action: 'assigned' | 'unassigned';
@@ -52,8 +55,6 @@ export interface RepairRequest {
   requesterId: number;
   statusId: number;
   description: string;
-  partsUsed: string | null;
-  repairSummary: string | null;
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
