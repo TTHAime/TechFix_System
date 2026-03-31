@@ -81,7 +81,9 @@ export class RepairRequestsService {
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError) {
         if (e.code === 'P2003') {
-          throw new BadRequestException('Invalid equipmentId — equipment not found');
+          throw new BadRequestException(
+            'Invalid equipmentId — equipment not found',
+          );
         }
       }
       throw e;
@@ -146,10 +148,15 @@ export class RepairRequestsService {
   ) {
     const request = await this.findRequest(id);
 
-    if (userRole === Role.Technician && updateRepairRequestDto.statusId !== undefined) {
+    if (
+      userRole === Role.Technician &&
+      updateRepairRequestDto.statusId !== undefined
+    ) {
       const resolvedStatus = await this.getStatusByName('resolved');
       if (updateRepairRequestDto.statusId !== resolvedStatus.id) {
-        throw new ForbiddenException('Technician can only set status to resolved');
+        throw new ForbiddenException(
+          'Technician can only set status to resolved',
+        );
       }
     }
 
@@ -234,7 +241,7 @@ export class RepairRequestsService {
       include: { role: true },
     });
 
-    if (!technician || technician.role.name !== Role.Technician) {
+    if (!technician || (technician.role.name as Role) !== Role.Technician) {
       throw new BadRequestException('User is not a technician');
     }
 

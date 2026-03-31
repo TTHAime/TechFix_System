@@ -32,7 +32,11 @@ export class AuditLogsController {
     @Param('entityId', ParseIntPipe) entityId: number,
     @Query() query: PaginationQueryDto,
   ) {
-    const result = await this.auditLogsService.findByEntity(entityType, entityId, query);
+    const result = await this.auditLogsService.findByEntity(
+      entityType,
+      entityId,
+      query,
+    );
     return { ...result, message: 'Audit logs retrieved successfully' };
   }
 }

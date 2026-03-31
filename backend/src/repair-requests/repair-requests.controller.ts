@@ -90,7 +90,10 @@ export class RepairRequestsController {
     @Req() req: Request & { user: JwtPayload },
   ) {
     const data = await this.repairRequestsService.confirm(id, req.user.sub);
-    return { data, message: 'Repair request confirmed and closed successfully' };
+    return {
+      data,
+      message: 'Repair request confirmed and closed successfully',
+    };
   }
 
   @Patch(':id/close')

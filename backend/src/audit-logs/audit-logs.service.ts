@@ -26,7 +26,11 @@ export class AuditLogsService {
     return { data, meta: { page, limit, total } };
   }
 
-  async findByEntity(entityType: string, entityId: number, query: PaginationQueryDto) {
+  async findByEntity(
+    entityType: string,
+    entityId: number,
+    query: PaginationQueryDto,
+  ) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
