@@ -1,5 +1,5 @@
 import { axiosInstance } from '@/lib/axios';
-import type { RepairRequest, StatusLog, AssignmentLog } from '@/types';
+import type { RepairRequest, RequestEquipment, StatusLog, AssignmentLog } from '@/types';
 import type { PaginatedResponse, ApiResponse } from '@/types/api';
 
 export async function getRepairRequests(page = 1, limit = 20): Promise<PaginatedResponse<RepairRequest>> {
@@ -40,19 +40,51 @@ export async function confirmRepairRequest(id: number): Promise<ApiResponse<Repa
   return data;
 }
 
-export async function assignTechnician(id: number, technicianId: number): Promise<ApiResponse<RepairRequest>> {
-  const { data } = await axiosInstance.patch<ApiResponse<RepairRequest>>(`/repair-requests/${id}/assign`, {
-    technicianId,
-  });
+// ─── Per-item endpoints ───────────────────────────────────────────────────────
+
+/** Technician self-accepts (claims) a specific item */
+export async function acceptItem(requestId: number, itemId: number): Promise<ApiResponse<RequestEquipment>> {
+  const { data } = await axiosInstance.patch<ApiResponse<RequestEquipment>>(
+    `/repair-requests/${requestId}/items/${itemId}/accept`,
+  );
   return data;
 }
 
-export async function unassignTechnician(id: number, technicianId: number): Promise<ApiResponse<RepairRequest>> {
-  const { data } = await axiosInstance.patch<ApiResponse<RepairRequest>>(`/repair-requests/${id}/unassign`, {
-    technicianId,
-  });
+/** Admin assigns a specific item to a technician */
+export async function assignItem(
+  requestId: number,
+  itemId: number,
+  technicianId: number,
+): Promise<ApiResponse<RequestEquipment>> {
+  const { data } = await axiosInstance.patch<ApiResponse<RequestEquipment>>(
+    `/repair-requests/${requestId}/items/${itemId}/assign`,
+    { technicianId },
+  );
   return data;
 }
+
+/** Admin unassigns a technician from a specific item */
+export async function unassignItem(requestId: number, itemId: number): Promise<ApiResponse<RequestEquipment>> {
+  const { data } = await axiosInstance.patch<ApiResponse<RequestEquipment>>(
+    `/repair-requests/${requestId}/items/${itemId}/unassign`,
+  );
+  return data;
+}
+
+/** Technician resolves a specific item */
+export async function resolveItem(
+  requestId: number,
+  itemId: number,
+  note?: string,
+): Promise<ApiResponse<RequestEquipment>> {
+  const { data } = await axiosInstance.patch<ApiResponse<RequestEquipment>>(
+    `/repair-requests/${requestId}/items/${itemId}/resolve`,
+    { note },
+  );
+  return data;
+}
+
+// ─── Logs ────────────────────────────────────────────────────────────────────
 
 export async function getStatusLogs(id: number): Promise<ApiResponse<StatusLog[]>> {
   const { data } = await axiosInstance.get<ApiResponse<StatusLog[]>>(`/repair-requests/${id}/status-logs`);

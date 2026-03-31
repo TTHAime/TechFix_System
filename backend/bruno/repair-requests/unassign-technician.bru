@@ -1,21 +1,15 @@
 meta {
-  name: Unassign Technician
+  name: Unassign Item (Admin)
   type: http
-  seq: 18
+  seq: 17
 }
 
 patch {
-  url: {{base_url}}/repair-requests/1/unassign
-  body: json
+  url: {{base_url}}/repair-requests/2/items/2/unassign
+  body: none
   auth: bearer
 }
 
 auth:bearer {
   token: {{admin_token}}
-}
-
-body:json {
-  {
-    "technicianId": 3
-  }
 }

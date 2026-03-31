@@ -1,18 +1,22 @@
 import { useParams, useNavigate } from 'react-router';
 import { useAuthStore } from '@/stores/auth';
-import { useRepairRequestQuery, useAssignTechnicianMutation, useUpdateRepairRequestMutation, useCloseRepairRequestMutation, useConfirmRepairRequestMutation } from '@/features/repair-requests/hooks';
+import {
+  useRepairRequestQuery,
+  useUpdateRepairRequestMutation,
+  useCloseRepairRequestMutation,
+  useConfirmRepairRequestMutation,
+  useAcceptItemMutation,
+  useAssignItemMutation,
+  useUnassignItemMutation,
+  useResolveItemMutation,
+} from '@/features/repair-requests/hooks';
 import { useUsersQuery } from '@/features/users/hooks';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, User, Monitor, Clock, Wrench, Hand } from 'lucide-react';
-import type { RequestStatusName } from '@/types';
-
-const STATUS_IDS: Record<string, number> = {
-  in_progress: 2,
-  resolved: 3,
-};
+import { ArrowLeft, User, Monitor, Clock, Wrench, Hand, UserX } from 'lucide-react';
+import type { RequestStatusName, RequestEquipment } from '@/types';
 
 const statusVariantMap: Record<RequestStatusName, 'warning' | 'default' | 'success' | 'secondary'> = {
   open: 'warning',
@@ -27,13 +31,18 @@ export default function RequestDetailPage() {
   const { user, hasRole } = useAuthStore();
 
   const isAdmin = hasRole('admin');
+  const isTechnician = hasRole('technician');
+
   const { data: requestData, isLoading } = useRepairRequestQuery(Number(id));
   const { data: usersData } = useUsersQuery(1, 100, isAdmin);
 
-  const assignMutation = useAssignTechnicianMutation(Number(id));
   const updateMutation = useUpdateRepairRequestMutation(Number(id));
   const closeMutation = useCloseRepairRequestMutation(Number(id));
   const confirmMutation = useConfirmRepairRequestMutation(Number(id));
+  const acceptMutation = useAcceptItemMutation(Number(id));
+  const assignMutation = useAssignItemMutation(Number(id));
+  const unassignMutation = useUnassignItemMutation(Number(id));
+  const resolveMutation = useResolveItemMutation(Number(id));
 
   if (isLoading) {
     return <p className="text-muted-foreground py-12 text-center">Loading...</p>;
@@ -45,15 +54,26 @@ export default function RequestDetailPage() {
     return (
       <div className="flex flex-col items-center gap-4 py-12">
         <p className="text-muted-foreground">Request not found.</p>
-        <Button variant="outline" onClick={() => navigate('/requests')}>Back to Requests</Button>
+        <Button variant="outline" onClick={() => navigate('/requests')}>
+          Back to Requests
+        </Button>
       </div>
     );
   }
 
-  const assignedTech = request.assignmentLogs.find((a) => a.action === 'assigned')?.technician;
   const technicians = (usersData?.data ?? []).filter((u) => u.role.name === 'technician');
-  const isUnassigned = request.status.name === 'open' && request.assignmentLogs.length === 0;
-  const isMyRequest = hasRole('technician') && assignedTech?.id === user?.id;
+  const isClosed = request.status.name === 'closed';
+
+  // Build timeline from assignment logs
+  const assignmentEvents = request.assignmentLogs.map((log) => ({
+    key: `assign-${log.id}`,
+    color: 'bg-blue-500',
+    label:
+      log.actorId === log.technicianId
+        ? `${log.technician.name} claimed ${log.item ? log.item.equipment.name : 'item'}`
+        : `${log.action} ${log.technician.name}${log.item ? ` → ${log.item.equipment.name}` : ''}`,
+    date: log.loggedAt,
+  }));
 
   return (
     <div className="space-y-6">
@@ -63,9 +83,7 @@ export default function RequestDetailPage() {
         </Button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold">Request #{request.id}</h1>
-          <p className="text-sm text-muted-foreground">
-            Created {new Date(request.createdAt).toLocaleString()}
-          </p>
+          <p className="text-sm text-muted-foreground">Created {new Date(request.createdAt).toLocaleString()}</p>
         </div>
         <Badge variant={statusVariantMap[request.status.name]} className="text-sm px-3 py-1">
           {request.status.name.replace('_', ' ')}
@@ -73,7 +91,7 @@ export default function RequestDetailPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
-        {/* Main details */}
+        {/* Main details — equipment items */}
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle>Issue Details</CardTitle>
@@ -90,19 +108,30 @@ export default function RequestDetailPage() {
               <p className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
                 <Monitor className="h-4 w-4" /> Equipment
               </p>
-              {request.requestEquipment.map((re) => (
-                <div key={re.id} className="rounded-md border p-3 mb-2">
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium">{re.equipment.name}</p>
-                    <span className="text-xs text-muted-foreground">{re.equipment.serialNo}</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">{re.issueDetail}</p>
-                  <div className="flex gap-2 mt-2">
-                    <Badge variant="outline">{re.equipment.category.name}</Badge>
-                    <Badge variant="secondary">{re.equipment.department.name}</Badge>
-                  </div>
-                </div>
-              ))}
+              <div className="space-y-3">
+                {request.requestEquipment.map((item) => (
+                  <EquipmentItemCard
+                    key={item.id}
+                    item={item}
+                    requestId={request.id}
+                    isClosed={isClosed}
+                    isAdmin={isAdmin}
+                    isTechnician={isTechnician}
+                    currentUserId={user?.id}
+                    technicians={technicians}
+                    onAccept={(itemId) => acceptMutation.mutate(itemId)}
+                    onAssign={(itemId, technicianId) => assignMutation.mutate({ itemId, technicianId })}
+                    onUnassign={(itemId) => unassignMutation.mutate(itemId)}
+                    onResolve={(itemId) => resolveMutation.mutate({ itemId })}
+                    isPending={
+                      acceptMutation.isPending ||
+                      assignMutation.isPending ||
+                      unassignMutation.isPending ||
+                      resolveMutation.isPending
+                    }
+                  />
+                ))}
+              </div>
             </div>
 
             {request.repairSummary && (
@@ -124,8 +153,9 @@ export default function RequestDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Sidebar info */}
+        {/* Sidebar */}
         <div className="space-y-4">
+          {/* Requester */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
@@ -139,56 +169,7 @@ export default function RequestDetailPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Wrench className="h-4 w-4" /> Assigned Technician
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {assignedTech ? (
-                <div>
-                  <p className="font-medium">{assignedTech.name}</p>
-                  <p className="text-sm text-muted-foreground">{assignedTech.email}</p>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Not assigned</p>
-              )}
-
-              {/* Technician can claim unassigned requests */}
-              {hasRole('technician') && isUnassigned && user && (
-                <Button
-                  className="w-full mt-3"
-                  size="sm"
-                  disabled={assignMutation.isPending}
-                  onClick={() => assignMutation.mutate(user.id)}
-                >
-                  <Hand className="mr-2 h-4 w-4" />
-                  {assignMutation.isPending ? 'Claiming...' : 'Claim This Request'}
-                </Button>
-              )}
-
-              {/* Admin can assign technician */}
-              {hasRole('admin') && isUnassigned && (
-                <div className="mt-3 space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground">Assign to:</p>
-                  {technicians.map((tech) => (
-                    <Button
-                      key={tech.id}
-                      variant="outline"
-                      size="sm"
-                      className="w-full justify-start"
-                      disabled={assignMutation.isPending}
-                      onClick={() => assignMutation.mutate(tech.id)}
-                    >
-                      {tech.name}
-                    </Button>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
+          {/* Timeline */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
@@ -203,23 +184,19 @@ export default function RequestDetailPage() {
                   {new Date(request.createdAt).toLocaleDateString()}
                 </span>
               </div>
-              {request.assignmentLogs.map((log) => (
-                <div key={log.id} className="flex items-center gap-2 text-sm">
-                  <div className="h-2 w-2 rounded-full bg-blue-500" />
-                  <span>
-                    {log.actorId === log.technicianId
-                      ? `${log.technician.name} claimed`
-                      : `${log.action} to ${log.technician.name}`}
-                  </span>
-                  <span className="ml-auto text-muted-foreground text-xs">
-                    {new Date(log.loggedAt).toLocaleDateString()}
+              {assignmentEvents.map((ev) => (
+                <div key={ev.key} className="flex items-center gap-2 text-sm">
+                  <div className={`h-2 w-2 rounded-full ${ev.color}`} />
+                  <span className="flex-1 truncate">{ev.label}</span>
+                  <span className="ml-auto text-muted-foreground text-xs shrink-0">
+                    {new Date(ev.date).toLocaleDateString()}
                   </span>
                 </div>
               ))}
               {request.completedAt && (
                 <div className="flex items-center gap-2 text-sm">
                   <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                  <span>Completed</span>
+                  <span>All items resolved</span>
                   <span className="ml-auto text-muted-foreground text-xs">
                     {new Date(request.completedAt).toLocaleDateString()}
                   </span>
@@ -228,40 +205,15 @@ export default function RequestDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Status actions — admin / technician */}
-          {hasRole('admin', 'technician') && request.status.name !== 'closed' && (
+          {/* Admin request-level actions */}
+          {isAdmin && !isClosed && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Actions</CardTitle>
-                <CardDescription>Update request status</CardDescription>
+                <CardTitle className="text-base">Admin Actions</CardTitle>
+                <CardDescription>Request-level controls</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                {request.status.name === 'open' && hasRole('admin') && (
-                  <Button
-                    className="w-full"
-                    size="sm"
-                    disabled={updateMutation.isPending}
-                    onClick={() => updateMutation.mutate({ statusId: STATUS_IDS.in_progress })}
-                  >
-                    Mark In Progress
-                  </Button>
-                )}
-                {request.status.name === 'in_progress' && (hasRole('admin') || isMyRequest) && (
-                  <Button
-                    className="w-full"
-                    size="sm"
-                    disabled={updateMutation.isPending}
-                    onClick={() =>
-                      updateMutation.mutate({
-                        statusId: STATUS_IDS.resolved,
-                        completedAt: new Date().toISOString(),
-                      })
-                    }
-                  >
-                    Mark Resolved
-                  </Button>
-                )}
-                {request.status.name === 'resolved' && hasRole('admin') && (
+                {request.status.name === 'resolved' && (
                   <Button
                     className="w-full"
                     size="sm"
@@ -269,15 +221,18 @@ export default function RequestDetailPage() {
                     disabled={closeMutation.isPending}
                     onClick={() => closeMutation.mutate()}
                   >
-                    {closeMutation.isPending ? 'Closing...' : 'Close Request'}
+                    {closeMutation.isPending ? 'Closing...' : 'Force Close Request'}
                   </Button>
+                )}
+                {request.status.name !== 'resolved' && request.status.name !== 'closed' && (
+                  <p className="text-xs text-muted-foreground">Assign/unassign items individually above.</p>
                 )}
               </CardContent>
             </Card>
           )}
 
-          {/* Confirm repair — requester only, when status is resolved */}
-          {request.status.name === 'resolved' && user?.id === request.requester.id && (
+          {/* User confirm */}
+          {request.status.name === 'resolved' && user?.id === request.requesterId && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">ยืนยันการซ่อม</CardTitle>
@@ -287,7 +242,6 @@ export default function RequestDetailPage() {
                 <Button
                   className="w-full"
                   size="sm"
-                  variant="default"
                   disabled={confirmMutation.isPending}
                   onClick={() => confirmMutation.mutate()}
                 >
@@ -298,6 +252,122 @@ export default function RequestDetailPage() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── EquipmentItemCard ────────────────────────────────────────────────────────
+
+interface EquipmentItemCardProps {
+  item: RequestEquipment;
+  requestId: number;
+  isClosed: boolean;
+  isAdmin: boolean;
+  isTechnician: boolean;
+  currentUserId?: number;
+  technicians: Array<{ id: number; name: string; role: { name: string } }>;
+  onAccept: (itemId: number) => void;
+  onAssign: (itemId: number, technicianId: number) => void;
+  onUnassign: (itemId: number) => void;
+  onResolve: (itemId: number) => void;
+  isPending: boolean;
+}
+
+function EquipmentItemCard({
+  item,
+  isClosed,
+  isAdmin,
+  isTechnician,
+  currentUserId,
+  technicians,
+  onAccept,
+  onAssign,
+  onUnassign,
+  onResolve,
+  isPending,
+}: EquipmentItemCardProps) {
+  const isMyItem = isTechnician && item.technicianId === currentUserId;
+  const itemStatusName = item.status.name as RequestStatusName;
+
+  return (
+    <div className="rounded-md border p-3 space-y-2">
+      {/* Header row */}
+      <div className="flex items-center justify-between">
+        <p className="font-medium">{item.equipment.name}</p>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">{item.equipment.serialNo}</span>
+          <Badge variant={statusVariantMap[itemStatusName]} className="text-xs">
+            {itemStatusName.replace('_', ' ')}
+          </Badge>
+        </div>
+      </div>
+
+      {/* Issue detail */}
+      <p className="text-sm text-muted-foreground">{item.issueDetail}</p>
+
+      {/* Category / Dept badges */}
+      <div className="flex gap-2">
+        <Badge variant="outline">{item.equipment.category.name}</Badge>
+        <Badge variant="secondary">{item.equipment.department.name}</Badge>
+      </div>
+
+      {/* Technician info */}
+      {item.technician && (
+        <p className="text-xs text-muted-foreground">
+          <span className="font-medium">Technician:</span> {item.technician.name}
+          {item.resolvedAt && (
+            <span className="ml-2 text-emerald-600">
+              · Resolved {new Date(item.resolvedAt).toLocaleDateString()}
+            </span>
+          )}
+        </p>
+      )}
+
+      {/* Actions — only when not closed */}
+      {!isClosed && (
+        <div className="flex flex-wrap gap-2 pt-1">
+          {/* Technician: accept open item */}
+          {isTechnician && itemStatusName === 'open' && (
+            <Button size="sm" variant="outline" disabled={isPending} onClick={() => onAccept(item.id)}>
+              <Hand className="mr-1 h-3 w-3" />
+              Accept
+            </Button>
+          )}
+
+          {/* Technician: resolve own in-progress item */}
+          {isMyItem && itemStatusName === 'in_progress' && (
+            <Button size="sm" disabled={isPending} onClick={() => onResolve(item.id)}>
+              Mark Resolved
+            </Button>
+          )}
+
+          {/* Admin: assign open item to technician */}
+          {isAdmin && itemStatusName === 'open' && (
+            <div className="flex flex-wrap gap-1">
+              {technicians.map((tech) => (
+                <Button
+                  key={tech.id}
+                  size="sm"
+                  variant="outline"
+                  disabled={isPending}
+                  onClick={() => onAssign(item.id, tech.id)}
+                  className="text-xs"
+                >
+                  Assign {tech.name}
+                </Button>
+              ))}
+            </div>
+          )}
+
+          {/* Admin: unassign in-progress item */}
+          {isAdmin && itemStatusName === 'in_progress' && (
+            <Button size="sm" variant="ghost" disabled={isPending} onClick={() => onUnassign(item.id)}>
+              <UserX className="mr-1 h-3 w-3" />
+              Unassign
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

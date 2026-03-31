@@ -50,12 +50,13 @@ model User {
   role       Role       @relation(fields: [roleId], references: [id])
   department Department @relation(fields: [deptId], references: [id])
 
-  refreshTokens     RefreshToken[]
-  repairRequests    RepairRequest[]     @relation("RequesterRequests")
-  statusLogsChanged StatusLog[]         @relation("StatusChangedBy")
-  assignmentLogsActor AssignmentLog[]   @relation("AssignmentActor")
-  assignmentLogsTech  AssignmentLog[]   @relation("AssignmentTechnician")
-  auditLogs         AuditLog[]
+  refreshTokens        RefreshToken[]
+  repairRequests       RepairRequest[]     @relation("RequesterRequests")
+  statusLogsChanged    StatusLog[]         @relation("StatusChangedBy")
+  assignmentLogsActor  AssignmentLog[]     @relation("AssignmentActor")
+  assignmentLogsTech   AssignmentLog[]     @relation("AssignmentTechnician")
+  assignedItems        RequestEquipment[]  @relation("ItemTechnician")
+  auditLogs            AuditLog[]
 
   @@index([roleId])
   @@index([deptId])
@@ -106,9 +107,10 @@ model RequestStatus {
   id   Int    @id @default(autoincrement())
   name String @db.VarChar(50)  // 'open' | 'in_progress' | 'resolved' | 'closed'
 
-  repairRequests RepairRequest[]
-  statusLogsOld  StatusLog[]     @relation("OldStatus")
-  statusLogsNew  StatusLog[]     @relation("NewStatus")
+  repairRequests   RepairRequest[]
+  statusLogsOld    StatusLog[]        @relation("OldStatus")
+  statusLogsNew    StatusLog[]        @relation("NewStatus")
+  requestEquipment RequestEquipment[] @relation("ItemStatus")
 
   @@map("request_status")
 }
@@ -136,16 +138,25 @@ model RepairRequest {
 }
 
 model RequestEquipment {
-  id          Int    @id @default(autoincrement())
-  requestId   Int    @map("request_id")
-  equipmentId Int    @map("equipment_id")
-  issueDetail String @map("issue_detail")
+  id           Int       @id @default(autoincrement())
+  requestId    Int       @map("request_id")
+  equipmentId  Int       @map("equipment_id")
+  issueDetail  String    @map("issue_detail")
+  statusId     Int       @default(1) @map("status_id")   // FK -> RequestStatus (default: open)
+  technicianId Int?      @map("technician_id")           // technician who accepted this item
+  resolvedAt   DateTime? @map("resolved_at") @db.Timestamptz
 
-  request   RepairRequest     @relation(fields: [requestId], references: [id])
-  equipment Equipment         @relation(fields: [equipmentId], references: [id])
+  request    RepairRequest @relation(fields: [requestId], references: [id])
+  equipment  Equipment     @relation(fields: [equipmentId], references: [id])
+  status     RequestStatus @relation("ItemStatus", fields: [statusId], references: [id])
+  technician User?         @relation("ItemTechnician", fields: [technicianId], references: [id])
+
+  assignmentLogs AssignmentLog[]
 
   @@index([requestId])
   @@index([equipmentId])
+  @@index([statusId])
+  @@index([technicianId])
   @@map("request_equipment")
 }
 
@@ -170,16 +181,19 @@ model StatusLog {
 model AssignmentLog {
   id           Int      @id @default(autoincrement())
   requestId    Int      @map("request_id")
+  itemId       Int?     @map("item_id")   // FK -> RequestEquipment (null = request-level assignment)
   actorId      Int      @map("actor_id")
   technicianId Int      @map("technician_id")
   action       String   @db.VarChar(20)  // 'assigned' | 'unassigned'
   loggedAt     DateTime @default(now()) @map("logged_at") @db.Timestamptz
 
-  request    RepairRequest @relation(fields: [requestId], references: [id])
-  actor      User          @relation("AssignmentActor", fields: [actorId], references: [id])
-  technician User          @relation("AssignmentTechnician", fields: [technicianId], references: [id])
+  request    RepairRequest     @relation(fields: [requestId], references: [id])
+  item       RequestEquipment? @relation(fields: [itemId], references: [id])
+  actor      User              @relation("AssignmentActor", fields: [actorId], references: [id])
+  technician User              @relation("AssignmentTechnician", fields: [technicianId], references: [id])
 
   @@index([requestId])
+  @@index([itemId])
   @@map("assignment_logs")
 }
 

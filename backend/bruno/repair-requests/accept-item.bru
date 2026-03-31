@@ -1,0 +1,15 @@
+meta {
+  name: Accept Item (Technician Self-Claim)
+  type: http
+  seq: 18
+}
+
+patch {
+  url: {{base_url}}/repair-requests/1/items/1/accept
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tech_token}}
+}

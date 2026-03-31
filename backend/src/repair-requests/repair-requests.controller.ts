@@ -16,6 +16,7 @@ import { RepairRequestsService } from './repair-requests.service';
 import { CreateRepairRequestDto } from './dto/create-repair-request.dto';
 import { UpdateRepairRequestDto } from './dto/update-repair-request.dto';
 import { AssignTechnicianDto } from './dto/assign-technician.dto';
+import { ResolveItemDto } from './dto/resolve-item.dto';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
@@ -53,6 +54,13 @@ export class RepairRequestsController {
       query,
     );
     return { ...result, message: 'Repair requests retrieved successfully' };
+  }
+
+  @Get('assignment-logs')
+  @Roles(Role.Admin, Role.HR)
+  async getAllAssignmentLogs(@Query() query: PaginationQueryDto) {
+    const result = await this.repairRequestsService.getAllAssignmentLogs(query);
+    return { ...result, message: 'Assignment logs retrieved successfully' };
   }
 
   @Get(':id/assignment-logs')
@@ -106,38 +114,78 @@ export class RepairRequestsController {
     return { data, message: 'Repair request closed successfully' };
   }
 
-  @Patch(':id/assign')
-  @Roles(Role.Admin, Role.Technician)
-  async assign(
+  // ─── Per-item endpoints ───────────────────────────────────────────────────────
+
+  /** Technician accepts (self-assigns) a specific item */
+  @Patch(':id/items/:itemId/accept')
+  @Roles(Role.Technician)
+  async acceptItem(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AssignTechnicianDto,
+    @Param('itemId', ParseIntPipe) itemId: number,
     @Req() req: Request & { user: JwtPayload },
   ) {
-    const data = await this.repairRequestsService.assignTechnician(
+    const data = await this.repairRequestsService.acceptItem(
       id,
-      dto.technicianId,
+      itemId,
       req.user.sub,
     );
-    return { data, message: 'Technician assigned successfully' };
+    return { data, message: 'Item accepted successfully' };
   }
 
-  @Patch(':id/unassign')
+  /** Admin assigns a specific item to a technician */
+  @Patch(':id/items/:itemId/assign')
   @Roles(Role.Admin)
-  async unassign(
+  async assignItem(
     @Param('id', ParseIntPipe) id: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
     @Body() dto: AssignTechnicianDto,
     @Req() req: Request & { user: JwtPayload },
   ) {
-    const data = await this.repairRequestsService.unassignTechnician(
+    const data = await this.repairRequestsService.assignItem(
       id,
+      itemId,
       dto.technicianId,
       req.user.sub,
     );
-    return { data, message: 'Technician unassigned successfully' };
+    return { data, message: 'Item assigned successfully' };
+  }
+
+  /** Admin unassigns a technician from a specific item */
+  @Patch(':id/items/:itemId/unassign')
+  @Roles(Role.Admin)
+  async unassignItem(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Req() req: Request & { user: JwtPayload },
+  ) {
+    const data = await this.repairRequestsService.unassignItem(
+      id,
+      itemId,
+      req.user.sub,
+    );
+    return { data, message: 'Item unassigned successfully' };
+  }
+
+  /** Technician marks their item as resolved */
+  @Patch(':id/items/:itemId/resolve')
+  @Roles(Role.Technician)
+  async resolveItem(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Body() dto: ResolveItemDto,
+    @Req() req: Request & { user: JwtPayload },
+  ) {
+    const data = await this.repairRequestsService.resolveItem(
+      id,
+      itemId,
+      req.user.sub,
+      dto.note,
+    );
+    return { data, message: 'Item resolved successfully' };
   }
 
   @Patch(':id')
-  @Roles(Role.Admin, Role.Technician)
+  @Roles(Role.Admin)
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateRepairRequestDto: UpdateRepairRequestDto,

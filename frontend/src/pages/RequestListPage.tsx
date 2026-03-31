@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuthStore } from '@/stores/auth';
-import { useRepairRequestsQuery } from '@/features/repair-requests/hooks';
-import { assignTechnician } from '@/features/repair-requests/api';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRepairRequestsQuery, useAcceptItemMutation } from '@/features/repair-requests/hooks';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,37 +23,21 @@ export default function RequestListPage() {
   const [statusFilter, setStatusFilter] = useState<RequestStatusName | 'all'>('all');
 
   const { data: response, isLoading, isError } = useRepairRequestsQuery(page, 20);
-  const queryClient = useQueryClient();
-  const assignMutation = useMutation({
-    mutationFn: ({ id, technicianId }: { id: number; technicianId: number }) =>
-      assignTechnician(id, technicianId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['repair-requests'] });
-    },
-  });
 
   if (!user) return null;
 
   const allRequests = response?.data ?? [];
   const meta = response?.meta;
 
-  // Filter by role (client-side — backend already filters by role via guard)
-  let requests = allRequests;
+  const requests = statusFilter !== 'all' ? allRequests.filter((r) => r.status.name === statusFilter) : allRequests;
 
-  // Filter by status
-  if (statusFilter !== 'all') {
-    requests = requests.filter((r) => r.status.name === statusFilter);
-  }
-
+  // Technician is assigned to me if any item has technicianId === me
   const isAssignedToMe = (req: RepairRequest) =>
-    req.assignmentLogs.some((a) => a.technicianId === user.id && a.action === 'assigned');
+    req.requestEquipment.some((item) => item.technicianId === user.id);
 
-  const isClaimable = (req: RepairRequest) =>
-    hasRole('technician') && req.status.name === 'open' && req.assignmentLogs.length === 0;
-
-  const handleClaim = (reqId: number) => {
-    assignMutation.mutate({ id: reqId, technicianId: user.id });
-  };
+  // Items in a request that are still open (technician can claim)
+  const claimableItems = (req: RepairRequest) =>
+    hasRole('technician') ? req.requestEquipment.filter((item) => item.status.name === 'open') : [];
 
   return (
     <div className="space-y-6">
@@ -63,7 +45,11 @@ export default function RequestListPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Repair Requests</h1>
           <p className="text-muted-foreground">
-            {hasRole('user') ? 'Your submitted requests' : hasRole('technician') ? 'Your repairs & open requests' : 'All repair requests'}
+            {hasRole('user')
+              ? 'Your submitted requests'
+              : hasRole('technician')
+                ? 'Your repairs & open requests'
+                : 'All repair requests'}
           </p>
         </div>
         {hasRole('user', 'admin') && (
@@ -98,9 +84,7 @@ export default function RequestListPage() {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : isError ? (
-            <div className="text-center text-destructive py-8">
-              Failed to load requests. Please try again.
-            </div>
+            <div className="text-center text-destructive py-8">Failed to load requests. Please try again.</div>
           ) : (
             <>
               <Table>
@@ -112,52 +96,22 @@ export default function RequestListPage() {
                     {!hasRole('user') && <TableHead>Requester</TableHead>}
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
-                    {hasRole('technician') && <TableHead className="w-24">Action</TableHead>}
+                    {hasRole('technician') && <TableHead className="w-32">Items to Claim</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {requests.map((req) => (
-                    <TableRow
+                    <RequestRow
                       key={req.id}
-                      className="cursor-pointer"
-                      onClick={() => navigate(`/requests/${req.id}`)}
-                    >
-                      <TableCell className="font-medium">#{req.id}</TableCell>
-                      <TableCell className="max-w-xs truncate">{req.description}</TableCell>
-                      <TableCell>{req.requestEquipment.map((e) => e.equipment.name).join(', ')}</TableCell>
-                      {!hasRole('user') && <TableCell>{req.requester.name}</TableCell>}
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Badge variant={statusVariantMap[req.status.name]}>
-                            {req.status.name.replace('_', ' ')}
-                          </Badge>
-                          {hasRole('technician') && isAssignedToMe(req) && (
-                            <Badge variant="outline" className="text-xs">mine</Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(req.createdAt).toLocaleDateString()}
-                      </TableCell>
-                      {hasRole('technician') && (
-                        <TableCell>
-                          {isClaimable(req) && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              disabled={assignMutation.isPending}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleClaim(req.id);
-                              }}
-                            >
-                              <Hand className="mr-1 h-3 w-3" />
-                              Claim
-                            </Button>
-                          )}
-                        </TableCell>
-                      )}
-                    </TableRow>
+                      req={req}
+                      userId={user.id}
+                      isAdmin={hasRole('admin')}
+                      isTechnician={hasRole('technician')}
+                      isUser={hasRole('user')}
+                      isAssignedToMe={isAssignedToMe(req)}
+                      claimableItems={claimableItems(req)}
+                      onRowClick={() => navigate(`/requests/${req.id}`)}
+                    />
                   ))}
                   {requests.length === 0 && (
                     <TableRow>
@@ -176,12 +130,7 @@ export default function RequestListPage() {
                     Page {meta.page} of {Math.ceil(meta.total / meta.limit)}
                   </p>
                   <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={page <= 1}
-                      onClick={() => setPage((p) => p - 1)}
-                    >
+                    <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
                       <ChevronLeft className="h-4 w-4" />
                       Previous
                     </Button>
@@ -202,5 +151,70 @@ export default function RequestListPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// ─── Sub-component: one row ───────────────────────────────────────────────────
+
+interface RequestRowProps {
+  req: RepairRequest;
+  userId: number;
+  isAdmin: boolean;
+  isTechnician: boolean;
+  isUser: boolean;
+  isAssignedToMe: boolean;
+  claimableItems: RepairRequest['requestEquipment'];
+  onRowClick: () => void;
+}
+
+function RequestRow({
+  req,
+  isTechnician,
+  isUser,
+  isAssignedToMe,
+  claimableItems,
+  onRowClick,
+}: RequestRowProps) {
+  const acceptMutation = useAcceptItemMutation(req.id);
+
+  return (
+    <TableRow className="cursor-pointer" onClick={onRowClick}>
+      <TableCell className="font-medium">#{req.id}</TableCell>
+      <TableCell className="max-w-xs truncate">{req.description}</TableCell>
+      <TableCell>{req.requestEquipment.map((e) => e.equipment.name).join(', ')}</TableCell>
+      {!isUser && <TableCell>{req.requester.name}</TableCell>}
+      <TableCell>
+        <div className="flex items-center gap-2">
+          <Badge variant={statusVariantMap[req.status.name]}>{req.status.name.replace('_', ' ')}</Badge>
+          {isTechnician && isAssignedToMe && (
+            <Badge variant="outline" className="text-xs">
+              mine
+            </Badge>
+          )}
+        </div>
+      </TableCell>
+      <TableCell className="text-muted-foreground">{new Date(req.createdAt).toLocaleDateString()}</TableCell>
+      {isTechnician && (
+        <TableCell onClick={(e) => e.stopPropagation()}>
+          {claimableItems.length > 0 && (
+            <div className="flex flex-col gap-1">
+              {claimableItems.map((item) => (
+                <Button
+                  key={item.id}
+                  size="sm"
+                  variant="outline"
+                  disabled={acceptMutation.isPending}
+                  onClick={() => acceptMutation.mutate(item.id)}
+                  className="text-xs justify-start"
+                >
+                  <Hand className="mr-1 h-3 w-3" />
+                  {item.equipment.name}
+                </Button>
+              ))}
+            </div>
+          )}
+        </TableCell>
+      )}
+    </TableRow>
   );
 }

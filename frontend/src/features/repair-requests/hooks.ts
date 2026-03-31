@@ -6,8 +6,10 @@ import {
   updateRepairRequest,
   closeRepairRequest,
   confirmRepairRequest,
-  assignTechnician,
-  unassignTechnician,
+  acceptItem,
+  assignItem,
+  unassignItem,
+  resolveItem,
   getStatusLogs,
   getAssignmentLogs,
   getAllAssignmentLogs,
@@ -92,20 +94,43 @@ export function useConfirmRepairRequestMutation(id: number) {
   });
 }
 
-export function useAssignTechnicianMutation(id: number) {
+// ─── Per-item mutations ───────────────────────────────────────────────────────
+
+export function useAcceptItemMutation(requestId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (technicianId: number) => assignTechnician(id, technicianId),
+    mutationFn: (itemId: number) => acceptItem(requestId, itemId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['repair-requests'] });
     },
   });
 }
 
-export function useUnassignTechnicianMutation(id: number) {
+export function useAssignItemMutation(requestId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (technicianId: number) => unassignTechnician(id, technicianId),
+    mutationFn: ({ itemId, technicianId }: { itemId: number; technicianId: number }) =>
+      assignItem(requestId, itemId, technicianId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['repair-requests'] });
+    },
+  });
+}
+
+export function useUnassignItemMutation(requestId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (itemId: number) => unassignItem(requestId, itemId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['repair-requests'] });
+    },
+  });
+}
+
+export function useResolveItemMutation(requestId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ itemId, note }: { itemId: number; note?: string }) => resolveItem(requestId, itemId, note),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['repair-requests'] });
     },

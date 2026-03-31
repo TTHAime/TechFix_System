@@ -1,0 +1,15 @@
+meta {
+  name: Accept Item - Already Taken (400)
+  type: http
+  seq: 19
+}
+
+patch {
+  url: {{base_url}}/repair-requests/2/items/2/accept
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tech_token}}
+}

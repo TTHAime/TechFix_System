@@ -262,13 +262,17 @@ async function main() {
         create: {
           equipmentId: eq2.id,
           issueDetail: 'จอดำ มีไฟ power แต่ไม่แสดงภาพ',
+          statusId: inProgressStatus.id,
+          technicianId: tech1.id,
         },
       },
     },
+    include: { requestEquipment: true },
   });
   await prisma.assignmentLog.create({
     data: {
       requestId: req2.id,
+      itemId: req2.requestEquipment[0].id,
       actorId: admin.id,
       technicianId: tech1.id,
       action: 'assigned',
@@ -297,13 +301,18 @@ async function main() {
         create: {
           equipmentId: eq3.id,
           issueDetail: 'กระดาษติดบ่อย พิมพ์แล้วเส้นเป็นทาง',
+          statusId: resolvedStatus.id,
+          technicianId: tech2.id,
+          resolvedAt: new Date('2026-03-15T10:30:00Z'),
         },
       },
     },
+    include: { requestEquipment: true },
   });
   await prisma.assignmentLog.create({
     data: {
       requestId: req3.id,
+      itemId: req3.requestEquipment[0].id,
       actorId: admin.id,
       technicianId: tech2.id,
       action: 'assigned',

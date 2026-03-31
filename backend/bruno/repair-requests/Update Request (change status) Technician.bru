@@ -1,11 +1,11 @@
 meta {
-  name: Update Request (change status) Technician
+  name: Resolve Item (Technician)
   type: http
-  seq: 25
+  seq: 21
 }
 
 patch {
-  url: {{base_url}}/repair-requests/1
+  url: {{base_url}}/repair-requests/2/items/2/resolve
   body: json
   auth: bearer
 }
@@ -16,8 +16,6 @@ auth:bearer {
 
 body:json {
   {
-    "statusId": 3,
-    "partsUsed": "Power supply unit",
-    "repairSummary": "เปลี่ยน power supply"
+    "note": "ซ่อมเรียบร้อย ทดสอบแล้วปกติ"
   }
 }

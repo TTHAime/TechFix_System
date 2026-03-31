@@ -1,0 +1,23 @@
+meta {
+  name: Resolve Item (Technician) copy
+  type: http
+  seq: 31
+}
+
+patch {
+  url: {{base_url}}/repair-requests/1
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tech_token}}
+}
+
+body:json {
+  {
+    "statusId": 3,
+    "partsUsed": "Power supply unit",
+    "repairSummary": "เปลี่ยน power supply"
+  }
+}

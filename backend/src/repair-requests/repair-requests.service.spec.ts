@@ -357,93 +357,86 @@ describe('RepairRequestsService', () => {
     });
   });
 
-  describe('assignTechnician', () => {
+  describe('assignItem', () => {
     const fakeTechnician = {
       id: 7,
       name: 'Bob',
       role: { name: Role.Technician },
     };
-    const fakeLog = {
-      id: 1,
-      requestId: 10,
-      technicianId: 7,
-      action: 'assigned',
+    const fakeItem = { id: 20, statusId: 1, status: { name: 'open' }, technicianId: null };
+    const fakeRequestWithItem = {
+      ...fakeRequest,
+      requestEquipment: [fakeItem],
     };
 
-    it('should create assignmentLog with action "assigned" when technician is assigned', async () => {
-      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequest);
-      mockPrisma.user.findUnique.mockResolvedValue(fakeTechnician);
-      mockPrisma.assignmentLog.create.mockResolvedValue(fakeLog);
-
-      await service.assignTechnician(10, 7, 99);
-
-      expect(mockPrisma.assignmentLog.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ action: 'assigned' }) as unknown,
-        }),
-      );
-    });
-
     it('should throw BadRequestException when target user is not a Technician', async () => {
-      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequest);
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequestWithItem);
       mockPrisma.user.findUnique.mockResolvedValue({
         ...fakeTechnician,
         role: { name: Role.User },
       });
-      mockPrisma.assignmentLog.create.mockResolvedValue(fakeLog);
 
-      await expect(service.assignTechnician(10, 7, 99)).rejects.toThrow(
+      await expect(service.assignItem(10, 20, 7, 99)).rejects.toThrow(
         BadRequestException,
       );
     });
 
     it('should throw BadRequestException when target user does not exist', async () => {
-      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequest);
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequestWithItem);
       mockPrisma.user.findUnique.mockResolvedValue(null);
-      mockPrisma.assignmentLog.create.mockResolvedValue(fakeLog);
 
-      await expect(service.assignTechnician(10, 99, 99)).rejects.toThrow(
+      await expect(service.assignItem(10, 20, 99, 99)).rejects.toThrow(
         BadRequestException,
       );
     });
 
     it('should throw NotFoundException when repair request does not exist', async () => {
       mockPrisma.repairRequest.findUnique.mockResolvedValue(null);
-      mockPrisma.user.findUnique.mockResolvedValue(fakeTechnician);
-      mockPrisma.assignmentLog.create.mockResolvedValue(fakeLog);
 
-      await expect(service.assignTechnician(999, 7, 99)).rejects.toThrow(
+      await expect(service.assignItem(999, 20, 7, 99)).rejects.toThrow(
         NotFoundException,
       );
     });
   });
 
-  describe('unassignTechnician', () => {
-    const fakeLog = {
-      id: 2,
-      requestId: 10,
+  describe('unassignItem', () => {
+    const fakeItemInProgress = {
+      id: 20,
+      statusId: 2,
+      status: { name: 'in_progress' },
       technicianId: 7,
-      action: 'unassigned',
     };
-
-    it('should create assignmentLog with action "unassigned" when technician is unassigned', async () => {
-      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequest);
-      mockPrisma.assignmentLog.create.mockResolvedValue(fakeLog);
-
-      await service.unassignTechnician(10, 7, 99);
-
-      expect(mockPrisma.assignmentLog.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ action: 'unassigned' }) as unknown,
-        }),
-      );
-    });
+    const fakeRequestInProgress = {
+      ...fakeRequest,
+      statusId: 2,
+      status: { name: 'in_progress' },
+      requestEquipment: [fakeItemInProgress],
+    };
 
     it('should throw NotFoundException when repair request does not exist', async () => {
       mockPrisma.repairRequest.findUnique.mockResolvedValue(null);
-      mockPrisma.assignmentLog.create.mockResolvedValue(fakeLog);
 
-      await expect(service.unassignTechnician(999, 7, 99)).rejects.toThrow(
+      await expect(service.unassignItem(999, 20, 99)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw BadRequestException when item is not in_progress', async () => {
+      const requestWithOpenItem = {
+        ...fakeRequest,
+        requestEquipment: [{ id: 20, statusId: 1, status: { name: 'open' }, technicianId: null }],
+      };
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(requestWithOpenItem);
+
+      await expect(service.unassignItem(10, 20, 99)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should throw NotFoundException when item does not belong to request', async () => {
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequestInProgress);
+
+      await expect(service.unassignItem(10, 999, 99)).rejects.toThrow(
         NotFoundException,
       );
     });

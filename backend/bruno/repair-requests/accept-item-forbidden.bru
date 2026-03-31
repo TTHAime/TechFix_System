@@ -1,0 +1,15 @@
+meta {
+  name: Accept Item - Non-Technician (403)
+  type: http
+  seq: 20
+}
+
+patch {
+  url: {{base_url}}/repair-requests/1/items/1/accept
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{user_token}}
+}

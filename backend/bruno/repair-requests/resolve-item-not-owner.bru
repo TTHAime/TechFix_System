@@ -1,0 +1,21 @@
+meta {
+  name: Resolve Item - Not Owner (403)
+  type: http
+  seq: 23
+}
+
+patch {
+  url: {{base_url}}/repair-requests/3/items/3/resolve
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tech_token}}
+}
+
+body:json {
+  {
+    "note": "tech1 พยายาม resolve item ที่ assign ให้ tech2"
+  }
+}

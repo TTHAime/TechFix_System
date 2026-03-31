@@ -1,11 +1,11 @@
 meta {
-  name: Assign Technician
+  name: Assign Item to Technician (Admin)
   type: http
-  seq: 15
+  seq: 14
 }
 
 patch {
-  url: {{base_url}}/repair-requests/1/assign
+  url: {{base_url}}/repair-requests/1/items/1/assign
   body: json
   auth: bearer
 }

@@ -1,0 +1,21 @@
+meta {
+  name: Resolve Item - Wrong Status (400)
+  type: http
+  seq: 22
+}
+
+patch {
+  url: {{base_url}}/repair-requests/1/items/1/resolve
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tech_token}}
+}
+
+body:json {
+  {
+    "note": "พยายาม resolve item ที่ยัง open"
+  }
+}
