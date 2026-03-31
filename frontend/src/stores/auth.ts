@@ -32,7 +32,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     // Fetch user profile after login
     const { data: user } = await getMeApi();
-    localStorage.setItem('hasSession', 'true');
     set({ user });
   },
 
@@ -48,7 +47,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch {
       // Clear state even if API fails
     }
-    localStorage.removeItem('hasSession');
     set({ user: null, accessToken: null, isAuthenticated: false });
   },
 
@@ -57,10 +55,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const newToken = await refreshTokenApi();
       set({ accessToken: newToken.accessToken });
       const { data: user } = await getMeApi();
-      localStorage.setItem('hasSession', 'true');
       set({ user, isAuthenticated: true, isInitializing: false });
     } catch {
-      localStorage.removeItem('hasSession');
       set({ user: null, accessToken: null, isAuthenticated: false, isInitializing: false });
     }
   },

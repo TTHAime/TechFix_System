@@ -82,8 +82,8 @@ export default function LoginPage() {
           >
             {({ isSubmitting }) => (
               <Form className="space-y-4">
-                <FormikInput name="email" label="Email" type="email" placeholder="admin@company.com" />
-                <FormikInput name="password" label="Password" type="password" placeholder="P@ssw0rd" />
+                <FormikInput name="email" label="Email" type="email" placeholder="Enter your email" />
+                <FormikInput name="password" label="Password" type="password" placeholder="Enter your password" />
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
                   {isSubmitting ? 'Signing in...' : 'Sign In'}
                 </Button>
@@ -111,17 +111,6 @@ export default function LoginPage() {
               </Form>
             )}
           </Formik>
-
-          <div className="mt-6 rounded-md border bg-muted/50 p-3">
-            <p className="mb-2 text-xs font-medium text-muted-foreground">Demo Accounts</p>
-            <div className="space-y-1 text-xs text-muted-foreground">
-              <p><span className="font-medium">Admin:</span> admin@company.com</p>
-              <p><span className="font-medium">HR:</span> hr@company.com</p>
-              <p><span className="font-medium">Technician:</span> tech1@company.com</p>
-              <p><span className="font-medium">User:</span> somjai@company.com</p>
-              <p className="text-muted-foreground/70">Password: P@ssw0rd</p>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>
