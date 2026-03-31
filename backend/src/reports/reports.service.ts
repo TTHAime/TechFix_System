@@ -113,7 +113,6 @@ export class ReportsService {
         WHERE completed_at IS NOT NULL`,
     ]);
 
-
     const statuses = await this.prisma.requestStatus.findMany();
     const statusMap = new Map(statuses.map((s) => [s.id, s.name]));
 

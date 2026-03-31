@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Query,
-  Req,
-  Res,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Query, Req, Res, UseGuards } from '@nestjs/common';
 import * as express from 'express';
 import { JwtPayload } from 'src/common/interfaces/jwt-payload.interface';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
@@ -65,7 +58,11 @@ export class ReportsController {
 
   // ─── Export Excel ───────────────────────────────────────────────
 
-  private sendExcel(res: express.Response, buffer: ArrayBuffer, filename: string) {
+  private sendExcel(
+    res: express.Response,
+    buffer: ArrayBuffer,
+    filename: string,
+  ) {
     res.set({
       'Content-Type':
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
