@@ -68,7 +68,7 @@ export class ReportsController {
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': `attachment; filename="${filename}"`,
     });
-    res.end(Buffer.from(buffer as ArrayBuffer));
+    res.end(Buffer.from(buffer));
   }
 
   @Get('export/repair-requests')

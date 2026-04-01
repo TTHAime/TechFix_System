@@ -67,10 +67,10 @@ export class AuditLogsService {
         entityId: params.entityId,
         action: params.action,
         oldValue: params.oldValue
-          ? JSON.parse(JSON.stringify(params.oldValue))
+          ? structuredClone(params.oldValue)
           : undefined,
         newValue: params.newValue
-          ? JSON.parse(JSON.stringify(params.newValue))
+          ? structuredClone(params.newValue)
           : undefined,
       },
     });
