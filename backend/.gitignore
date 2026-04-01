@@ -46,3 +46,4 @@ src/generated/prisma
 CLAUDE.md
 docs
 bruno/environments/local.bru
+.scannerwork/
