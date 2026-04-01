@@ -52,7 +52,7 @@ export default function RequestListPage() {
                 : 'All repair requests'}
           </p>
         </div>
-        {hasRole('user', 'admin') && (
+        {hasRole('user', 'admin', 'hr') && (
           <Button onClick={() => navigate('/requests/new')}>
             <Plus className="mr-2 h-4 w-4" />
             New Request

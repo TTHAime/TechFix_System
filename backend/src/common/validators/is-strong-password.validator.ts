@@ -57,8 +57,8 @@ export class IsStrongPasswordConstraint implements ValidatorConstraintInterface 
       return false;
     }
 
-    if (value.length < 12) {
-      this.reason = 'Password must be at least 12 characters';
+    if (value.length < 15) {
+      this.reason = 'Password must be at least 15 characters';
       return false;
     }
 

@@ -42,7 +42,7 @@ export const router = createBrowserRouter([
 
   // Protected routes — user, admin can create requests
   {
-    element: <RequireAuth allowedRoles={['user', 'admin']} />,
+    element: <RequireAuth allowedRoles={['user', 'admin', 'hr']} />,
     children: [
       {
         element: <AppLayout />,
