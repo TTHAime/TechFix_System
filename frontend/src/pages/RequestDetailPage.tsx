@@ -71,8 +71,8 @@ export default function RequestDetailPage() {
     color: 'bg-blue-500',
     label:
       log.actorId === log.technicianId
-        ? `${log.technician.name} claimed ${log.item ? log.item.equipment.name : 'item'}`
-        : `${log.action} ${log.technician.name}${log.item ? ` → ${log.item.equipment.name}` : ''}`,
+        ? `${log.technician?.name ?? 'Technician'} claimed ${log.item?.equipment?.name ?? 'item'}`
+        : `${log.action} ${log.technician?.name ?? 'Technician'}${log.item?.equipment?.name ? ` → ${log.item.equipment.name}` : ''}`,
     date: log.loggedAt,
   }));
 
