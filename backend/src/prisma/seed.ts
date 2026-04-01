@@ -94,7 +94,7 @@ async function main() {
   });
 
   // ─── Users ───
-  const demoHash = await hashPassword('P@ssw0rd');
+  const demoHash = await hashPassword('P@ssw0rdD3m0!23');
 
   const admin = await prisma.user.create({
     data: {

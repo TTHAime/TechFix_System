@@ -34,7 +34,7 @@ interface HrCreateValues {
 const safeTextPattern = /^[^<>"';{}()|\\]*$/;
 
 const strongPasswordSchema = Yup.string()
-  .min(12, 'Password must be at least 12 characters')
+  .min(15, 'Password must be at least 15 characters')
   .max(64, 'Password must not exceed 64 characters')
   .required('Password is required');
 
@@ -62,7 +62,7 @@ const hrCreateSchema = Yup.object({
     .max(254, 'Email address is too long')
     .required('Email is required'),
   deptId: Yup.string().required('Department is required'),
-  password: Yup.string().min(12, 'Password must be at least 12 characters').max(64, 'Password must not exceed 64 characters'),
+  password: Yup.string().min(15, 'Password must be at least 15 characters').max(64, 'Password must not exceed 64 characters'),
 });
 
 const adminEditSchema = Yup.object({
@@ -100,7 +100,7 @@ function PasswordPolicyHint() {
         Password requirements
       </p>
       <ul className="list-disc list-inside space-y-0.5 font-medium">
-        <li>12–64 characters</li>
+        <li>15–64 characters</li>
         <li>No common or easily guessable patterns (e.g. 1234, abcd, qwerty)</li>
       </ul>
     </div>
