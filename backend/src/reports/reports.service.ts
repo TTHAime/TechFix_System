@@ -90,7 +90,7 @@ export class ReportsService {
       // Top 5 most repaired equipment
       this.prisma.$queryRaw<
         { equipment_name: string; serial_no: string; count: number }[]
-      >`SELECT e.name AS equipment_name, e.serial_no, CAST(COUNT(re.id) AS integer) AS count
+      >`SELECT e.name AS equipment_name, e.serial_no, CAST(COUNT(*) AS integer) AS count
         FROM request_equipment re
         JOIN equipment e ON e.id = re.equipment_id
         GROUP BY e.name, e.serial_no
