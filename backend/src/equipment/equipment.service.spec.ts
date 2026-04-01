@@ -18,6 +18,7 @@ const fakeEquipment = {
   serialNo: 'SN-0001',
   categoryId: fakeCategory.id,
   deptId: fakeDepartment.id,
+  isActive: true,
   category: fakeCategory,
   department: fakeDepartment,
 };
@@ -243,19 +244,26 @@ describe('EquipmentService', () => {
     });
   });
 
-  describe('delete', () => {
-    it('should return the deleted equipment when id exists', async () => {
+  describe('delete (soft delete)', () => {
+    const deactivatedEquipment = { ...fakeEquipment, isActive: false };
+
+    it('should soft-delete equipment by setting isActive to false', async () => {
       mockPrisma.equipment.findUnique.mockResolvedValue(fakeEquipment);
-      mockPrisma.equipment.delete.mockResolvedValue(fakeEquipment);
+      mockPrisma.equipment.update.mockResolvedValue(deactivatedEquipment);
 
       const result = await service.remove(fakeEquipment.id, actorId);
 
-      expect(result).toEqual(fakeEquipment);
+      expect(result).toEqual(deactivatedEquipment);
+      expect(mockPrisma.equipment.update).toHaveBeenCalledWith({
+        where: { id: fakeEquipment.id },
+        data: { isActive: false },
+        include: { department: true, category: true },
+      });
     });
 
-    it('should call auditLogsService.create with correct payload when equipment is deleted', async () => {
+    it('should call auditLogsService.create with correct payload when equipment is soft-deleted', async () => {
       mockPrisma.equipment.findUnique.mockResolvedValue(fakeEquipment);
-      mockPrisma.equipment.delete.mockResolvedValue(fakeEquipment);
+      mockPrisma.equipment.update.mockResolvedValue(deactivatedEquipment);
       mockAuditLogs.create.mockResolvedValue(undefined);
 
       await service.remove(fakeEquipment.id, actorId);
@@ -266,6 +274,7 @@ describe('EquipmentService', () => {
         entityId: fakeEquipment.id,
         action: 'deleted',
         oldValue: fakeEquipment,
+        newValue: deactivatedEquipment,
       });
     });
 
@@ -277,24 +286,12 @@ describe('EquipmentService', () => {
       );
     });
 
-    it('should throw ConflictException when equipment is referenced by a repair request (P2003)', async () => {
-      mockPrisma.equipment.findUnique.mockResolvedValue(fakeEquipment);
-      mockPrisma.equipment.delete.mockRejectedValue(makePrismaError('P2003'));
+    it('should throw BadRequestException when equipment is already deactivated', async () => {
+      mockPrisma.equipment.findUnique.mockResolvedValue(deactivatedEquipment);
 
-      await expect(service.remove(fakeEquipment.id, actorId)).rejects.toThrow(
-        ConflictException,
-      );
-    });
-
-    it('should re-throw unexpected errors without wrapping when an unknown error occurs', async () => {
-      mockPrisma.equipment.findUnique.mockResolvedValue(fakeEquipment);
-      mockPrisma.equipment.delete.mockRejectedValue(
-        new Error('DB connection lost'),
-      );
-
-      await expect(service.remove(fakeEquipment.id, actorId)).rejects.toThrow(
-        'DB connection lost',
-      );
+      await expect(
+        service.remove(fakeEquipment.id, actorId),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });

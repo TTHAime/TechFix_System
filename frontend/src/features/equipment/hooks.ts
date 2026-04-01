@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getEquipment, getEquipmentCategories, createEquipment, updateEquipment } from './api';
+import { getEquipment, getEquipmentCategories, createEquipment, updateEquipment, deleteEquipment } from './api';
 
 export function useEquipmentQuery(page = 1, limit = 20) {
   return useQuery({
@@ -37,6 +37,16 @@ export function useUpdateEquipmentMutation() {
       id: number;
       payload: { name?: string; serialNo?: string; categoryId?: number; deptId?: number; isActive?: boolean };
     }) => updateEquipment(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+    },
+  });
+}
+
+export function useDeleteEquipmentMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => deleteEquipment(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
     },

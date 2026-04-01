@@ -54,14 +54,16 @@ export class EquipmentService {
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
 
+    const where = { isActive: true };
     const [data, total] = await Promise.all([
       this.prisma.equipment.findMany({
+        where,
         skip,
         take: limit,
         orderBy: { id: 'asc' },
         include: { department: true, category: true },
       }),
-      this.prisma.equipment.count(),
+      this.prisma.equipment.count({ where }),
     ]);
 
     return { data, meta: { page, limit, total } };
@@ -113,27 +115,23 @@ export class EquipmentService {
 
   async remove(id: number, actorId: number) {
     const oldEquipment = await this.findOne(id);
-    try {
-      const result = await this.prisma.equipment.delete({ where: { id } });
-      this.logger.log(`Equipment deleted: ${id} by actor ${actorId}`);
-      await this.auditLogsService.create({
-        actorId,
-        entityType: 'equipment',
-        entityId: id,
-        action: 'deleted',
-        oldValue: oldEquipment,
-      });
-      return result;
-    } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError) {
-        if (e.code === 'P2025')
-          throw new NotFoundException(`Equipment #${id} not found`);
-        if (e.code === 'P2003')
-          throw new ConflictException(
-            'Cannot delete equipment: it is referenced by a repair request',
-          );
-      }
-      throw e;
+    if (!oldEquipment.isActive) {
+      throw new BadRequestException(`Equipment #${id} is already deactivated`);
     }
+    const result = await this.prisma.equipment.update({
+      where: { id },
+      data: { isActive: false },
+      include: { department: true, category: true },
+    });
+    this.logger.log(`Equipment soft-deleted: ${id} by actor ${actorId}`);
+    await this.auditLogsService.create({
+      actorId,
+      entityType: 'equipment',
+      entityId: id,
+      action: 'deleted',
+      oldValue: oldEquipment,
+      newValue: result,
+    });
+    return result;
   }
 }

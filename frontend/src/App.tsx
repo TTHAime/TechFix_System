@@ -5,6 +5,7 @@ import { AppErrorBoundary } from '@/app/ErrorBoundary';
 import { router } from '@/app/router';
 import { useEffect } from 'react';
 import { useAuthStore } from './stores/auth';
+import { Toaster } from 'sonner';
 
 function App() {
   useEffect(() => {
@@ -15,6 +16,7 @@ function App() {
     <AppErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
+        <Toaster richColors position="top-right" />
       </QueryClientProvider>
     </AppErrorBoundary>
   );

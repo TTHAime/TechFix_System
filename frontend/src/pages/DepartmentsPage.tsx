@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useDepartmentsQuery, useCreateDepartmentMutation, useUpdateDepartmentMutation } from '@/features/departments/hooks';
+import { useDepartmentsQuery, useCreateDepartmentMutation, useUpdateDepartmentMutation, useDeleteDepartmentMutation } from '@/features/departments/hooks';
 import type { Department } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,8 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import { FormikInput } from '@/components/ui/FormikInput';
-import { Plus, Pencil, MapPin } from 'lucide-react';
+import { Plus, Pencil, MapPin, Trash2 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
+import { toast } from 'sonner';
+import { getErrorMessage } from '@/lib/error';
 
 interface DepartmentFormValues {
   name: string;
@@ -24,12 +26,14 @@ const departmentSchema = Yup.object({
 export default function DepartmentsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedDept, setSelectedDept] = useState<Department | null>(null);
   const { hasRole } = useAuthStore();
 
   const { data: response, isLoading, isError } = useDepartmentsQuery();
   const createMutation = useCreateDepartmentMutation();
   const updateMutation = useUpdateDepartmentMutation();
+  const deleteMutation = useDeleteDepartmentMutation();
 
   const canManage = hasRole('admin');
 
@@ -86,13 +90,20 @@ export default function DepartmentsPage() {
                     </div>
                   </TableCell>
                   {canManage && (
-                    <TableCell>
+                    <TableCell className="flex gap-1">
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => { setSelectedDept(dept); setEditDialogOpen(true); }}
                       >
                         <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => { setSelectedDept(dept); setDeleteDialogOpen(true); }}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </TableCell>
                   )}
@@ -116,9 +127,11 @@ export default function DepartmentsPage() {
             onSubmit={(values, { setSubmitting, resetForm }) => {
               createMutation.mutate(values, {
                 onSuccess: () => {
+                  toast.success('Department created successfully');
                   resetForm();
                   setDialogOpen(false);
                 },
+                onError: (err) => toast.error(getErrorMessage(err)),
                 onSettled: () => setSubmitting(false),
               });
             }}
@@ -139,6 +152,42 @@ export default function DepartmentsPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Delete department confirmation dialog */}
+      {selectedDept && (
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Department</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete &quot;{selectedDept.name}&quot;?
+                This action cannot be undone. The department must have no users or equipment assigned.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={deleteMutation.isPending}
+                onClick={() => {
+                  deleteMutation.mutate(selectedDept.id, {
+                    onSuccess: () => {
+                      toast.success('Department deleted successfully');
+                      setDeleteDialogOpen(false);
+                      setSelectedDept(null);
+                    },
+                    onError: (err) => toast.error(getErrorMessage(err)),
+                  });
+                }}
+              >
+                {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
       {/* Edit department dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent>
@@ -155,9 +204,11 @@ export default function DepartmentsPage() {
                   { id: selectedDept.id, payload: values },
                   {
                     onSuccess: () => {
+                      toast.success('Department updated successfully');
                       setEditDialogOpen(false);
                       setSelectedDept(null);
                     },
+                    onError: (err) => toast.error(getErrorMessage(err)),
                     onSettled: () => setSubmitting(false),
                   },
                 );

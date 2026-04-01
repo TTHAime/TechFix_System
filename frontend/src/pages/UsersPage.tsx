@@ -15,6 +15,8 @@ import { FormikSelect } from '@/components/ui/FormikSelect';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Plus, Pencil, KeyRound, UserX, UserCheck } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
+import { toast } from 'sonner';
+import { getErrorMessage } from '@/lib/error';
 
 interface AdminCreateValues {
   name: string;
@@ -111,6 +113,7 @@ export default function UsersPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const { hasRole } = useAuthStore();
 
@@ -204,33 +207,29 @@ export default function UsersPage() {
                             <Pencil className="h-4 w-4" />
                           </Button>
                           {isAdmin && (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                title="Reset Password"
-                                onClick={() => { setSelectedUser(u); setResetDialogOpen(true); }}
-                              >
-                                <KeyRound className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                title={u.isActive ? 'Deactivate' : 'Activate'}
-                                onClick={() =>
-                                  hrUpdateMutation.mutate({
-                                    id: u.id,
-                                    payload: { isActive: !u.isActive },
-                                  })
-                                }
-                              >
-                                {u.isActive
-                                  ? <UserX className="h-4 w-4 text-destructive" />
-                                  : <UserCheck className="h-4 w-4 text-emerald-600" />
-                                }
-                              </Button>
-                            </>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Reset Password"
+                              onClick={() => { setSelectedUser(u); setResetDialogOpen(true); }}
+                            >
+                              <KeyRound className="h-4 w-4" />
+                            </Button>
                           )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title={u.isActive ? 'Deactivate' : 'Activate'}
+                            onClick={() => {
+                              setSelectedUser(u);
+                              setDeactivateDialogOpen(true);
+                            }}
+                          >
+                            {u.isActive
+                              ? <UserX className="h-4 w-4 text-destructive" />
+                              : <UserCheck className="h-4 w-4 text-emerald-600" />
+                            }
+                          </Button>
                         </div>
                       </TableCell>
                     )}
@@ -265,7 +264,8 @@ export default function UsersPage() {
                     deptId: Number(values.deptId),
                   },
                   {
-                    onSuccess: () => { resetForm(); setDialogOpen(false); },
+                    onSuccess: () => { toast.success('User created successfully'); resetForm(); setDialogOpen(false); },
+                    onError: (err) => toast.error(getErrorMessage(err)),
                     onSettled: () => setSubmitting(false),
                   },
                 );
@@ -301,7 +301,8 @@ export default function UsersPage() {
                     password: values.password || undefined,
                   },
                   {
-                    onSuccess: () => { resetForm(); setDialogOpen(false); },
+                    onSuccess: () => { toast.success('Employee added successfully'); resetForm(); setDialogOpen(false); },
+                    onError: (err) => toast.error(getErrorMessage(err)),
                     onSettled: () => setSubmitting(false),
                   },
                 );
@@ -356,7 +357,8 @@ export default function UsersPage() {
                     },
                   },
                   {
-                    onSuccess: () => { setEditDialogOpen(false); setSelectedUser(null); },
+                    onSuccess: () => { toast.success('User updated successfully'); setEditDialogOpen(false); setSelectedUser(null); },
+                    onError: (err) => toast.error(getErrorMessage(err)),
                     onSettled: () => setSubmitting(false),
                   },
                 );
@@ -395,7 +397,8 @@ export default function UsersPage() {
                     },
                   },
                   {
-                    onSuccess: () => { setEditDialogOpen(false); setSelectedUser(null); },
+                    onSuccess: () => { toast.success('User updated successfully'); setEditDialogOpen(false); setSelectedUser(null); },
+                    onError: (err) => toast.error(getErrorMessage(err)),
                     onSettled: () => setSubmitting(false),
                   },
                 );
@@ -439,9 +442,11 @@ export default function UsersPage() {
                 },
                 {
                   onSuccess: () => {
+                    toast.success('Password reset successfully');
                     setResetDialogOpen(false);
                     setSelectedUser(null);
                   },
+                  onError: (err) => toast.error(getErrorMessage(err)),
                   onSettled: () => setSubmitting(false),
                 },
               );
@@ -463,6 +468,54 @@ export default function UsersPage() {
           </Formik>
         </DialogContent>
       </Dialog>
+
+      {/* Deactivate / Activate confirmation dialog */}
+      {selectedUser && (
+        <Dialog open={deactivateDialogOpen} onOpenChange={setDeactivateDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {selectedUser.isActive ? 'Deactivate' : 'Activate'} User
+              </DialogTitle>
+              <DialogDescription>
+                {selectedUser.isActive
+                  ? `Are you sure you want to deactivate "${selectedUser.name}"? They will no longer be able to log in.`
+                  : `Are you sure you want to reactivate "${selectedUser.name}"? They will be able to log in again.`}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setDeactivateDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant={selectedUser.isActive ? 'destructive' : 'default'}
+                disabled={hrUpdateMutation.isPending}
+                onClick={() => {
+                  hrUpdateMutation.mutate(
+                    { id: selectedUser.id, payload: { isActive: !selectedUser.isActive } },
+                    {
+                      onSuccess: () => {
+                        toast.success(
+                          selectedUser.isActive
+                            ? `${selectedUser.name} has been deactivated`
+                            : `${selectedUser.name} has been activated`,
+                        );
+                        setDeactivateDialogOpen(false);
+                        setSelectedUser(null);
+                      },
+                      onError: (err) => toast.error(getErrorMessage(err)),
+                    },
+                  );
+                }}
+              >
+                {hrUpdateMutation.isPending
+                  ? (selectedUser.isActive ? 'Deactivating...' : 'Activating...')
+                  : (selectedUser.isActive ? 'Deactivate' : 'Activate')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

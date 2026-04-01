@@ -4,6 +4,7 @@ import {
   useEquipmentCategoriesQuery,
   useCreateEquipmentMutation,
   useUpdateEquipmentMutation,
+  useDeleteEquipmentMutation,
 } from '@/features/equipment/hooks';
 import { useDepartmentsQuery } from '@/features/departments/hooks';
 import { Badge } from '@/components/ui/badge';
@@ -29,8 +30,10 @@ import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import { FormikInput } from '@/components/ui/FormikInput';
 import { FormikSelect } from '@/components/ui/FormikSelect';
-import { Plus, Pencil } from 'lucide-react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
+import { toast } from 'sonner';
+import { getErrorMessage } from '@/lib/error';
 
 interface EquipmentFormValues {
   name: string;
@@ -49,10 +52,12 @@ const equipmentSchema = Yup.object({
 export default function EquipmentPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedEquipment, setSelectEquipment] = useState<
     (typeof equipment)[0] | null
   >(null);
   const updateMutation = useUpdateEquipmentMutation();
+  const deleteMutation = useDeleteEquipmentMutation();
   const { hasRole } = useAuthStore();
 
   const isAdmin = hasRole('admin');
@@ -139,7 +144,7 @@ export default function EquipmentPage() {
                     </Badge>
                   </TableCell>
                   {hasRole('admin') && (
-                    <TableCell>
+                    <TableCell className="flex gap-1">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -149,6 +154,16 @@ export default function EquipmentPage() {
                         }}
                       >
                         <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setSelectEquipment(eq);
+                          setDeleteDialogOpen(true);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </TableCell>
                   )}
@@ -181,9 +196,11 @@ export default function EquipmentPage() {
                 },
                 {
                   onSuccess: () => {
+                    toast.success('Equipment created successfully');
                     resetForm();
                     setDialogOpen(false);
                   },
+                  onError: (err) => toast.error(getErrorMessage(err)),
                   onSettled: () => setSubmitting(false),
                 },
               );
@@ -231,6 +248,45 @@ export default function EquipmentPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Delete confirmation dialog */}
+      {selectedEquipment && (
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Deactivate Equipment</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to deactivate &quot;{selectedEquipment.name}&quot;?
+                This equipment will no longer appear in the list but can be restored later.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setDeleteDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={deleteMutation.isPending}
+                onClick={() => {
+                  deleteMutation.mutate(selectedEquipment.id, {
+                    onSuccess: () => {
+                      toast.success('Equipment deactivated successfully');
+                      setDeleteDialogOpen(false);
+                    },
+                    onError: (err) => toast.error(getErrorMessage(err)),
+                  });
+                }}
+              >
+                {deleteMutation.isPending ? 'Deactivating...' : 'Deactivate'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
       {selectedEquipment && (
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent>
@@ -258,7 +314,11 @@ export default function EquipmentPage() {
                     },
                   },
                   {
-                    onSuccess: () => setEditDialogOpen(false),
+                    onSuccess: () => {
+                      toast.success('Equipment updated successfully');
+                      setEditDialogOpen(false);
+                    },
+                    onError: (err) => toast.error(getErrorMessage(err)),
                     onSettled: () => setSubmitting(false),
                   },
                 );
