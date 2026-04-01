@@ -1,1 +1,20 @@
+# Claude Code
 .claude
+
+.env
+.env.*
+
+.DS_Store
+Thumbs.db
+
+.vscode/
+.idea/
+*.suo
+*.sw?
+
+docker-compose.override.yml
+
+.scannerwork/
+
+*.log
+logs/

@@ -36,7 +36,7 @@ const mockUserService = {
 };
 
 const TEST_EMAIL = 'test@techfix.com';
-const TEST_PASSWORD = 'P@ssw0rd1234';
+const TEST_PASSWORD = 'P@ssw0rd1234!Te';
 
 const mockUser = {
   id: 1,

@@ -85,7 +85,7 @@ describe('UsersService', () => {
       roleId: 1,
       deptId: 1,
       provider: AuthProvider.LOCAL,
-      password: 'Secret1234!',
+      password: 'Secret1234!@#Te',
     };
 
     it('should return created user when input is valid', async () => {
@@ -101,7 +101,7 @@ describe('UsersService', () => {
 
       await service.create(createDto, actorId);
 
-      expect(mockHash.hash).toHaveBeenCalledWith('Secret1234!');
+      expect(mockHash.hash).toHaveBeenCalledWith('Secret1234!@#Te');
       expect(mockPrisma.user.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ passwordHash: 'hashed_password' }),
@@ -216,7 +216,7 @@ describe('UsersService', () => {
   });
 
   describe('update', () => {
-    const updateDto = { name: 'User Updated', password: 'NewSecret1234!' };
+    const updateDto = { name: 'User Updated', password: 'NewSecret1234!@@#Te' };
     const updatedUser = { ...fakeUser, name: 'User Updated' };
 
     it('should return the updated user when input is valid', async () => {
@@ -234,7 +234,7 @@ describe('UsersService', () => {
 
       await service.update(1, updateDto, actorId);
 
-      expect(mockHash.hash).toHaveBeenCalledWith('NewSecret1234!');
+      expect(mockHash.hash).toHaveBeenCalledWith('NewSecret1234!@@#Te');
     });
 
     it('should call auditLogsService.create with old and new values after successful update', async () => {
@@ -289,7 +289,7 @@ describe('UsersService', () => {
       email: 'user@example.com',
       deptId: 1,
       provider: AuthProvider.LOCAL,
-      password: 'Secret1234!',
+      password: 'Secret1234!@#Te',
     };
 
     it('should return created user with default role when input is valid', async () => {
