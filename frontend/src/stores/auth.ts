@@ -6,6 +6,7 @@ import {
   getMeApi,
   refreshTokenApi,
 } from '@/features/auth/api';
+import { queryClient } from '@/lib/query-client';
 
 interface AuthState {
   user: User | null;
@@ -47,6 +48,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch {
       // Clear state even if API fails
     }
+    queryClient.clear();
     set({ user: null, accessToken: null, isAuthenticated: false });
   },
 

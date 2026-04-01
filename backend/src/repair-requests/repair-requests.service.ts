@@ -574,7 +574,7 @@ export class RepairRequestsService {
         include: {
           technician: { omit: { passwordHash: true } },
           actor: { omit: { passwordHash: true } },
-          item: true,
+          item: { include: { equipment: true } },
         },
       }),
       this.prisma.assignmentLog.count(),
@@ -592,7 +592,7 @@ export class RepairRequestsService {
       include: {
         technician: { omit: { passwordHash: true } },
         actor: { omit: { passwordHash: true } },
-        item: true,
+        item: { include: { equipment: true } },
       },
     });
   }
