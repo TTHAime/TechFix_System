@@ -208,24 +208,37 @@ export class ReportsService {
       id: { in: ids.length > 0 ? ids : [-1] },
     };
 
-    const [byStatus, totalAssigned, completedThisMonth] = await Promise.all([
-      this.prisma.repairRequest.groupBy({
-        by: ['statusId'],
-        where: myWhere,
-        _count: { id: true },
-      }),
-      this.prisma.repairRequest.count({
-        where: { id: { in: ids.length > 0 ? ids : [-1] } },
-      }),
-      this.prisma.repairRequest.count({
-        where: {
-          id: { in: ids.length > 0 ? ids : [-1] },
-          completedAt: {
-            gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+    const [byStatus, totalAssigned, completedThisMonth, activeRequests] =
+      await Promise.all([
+        this.prisma.repairRequest.groupBy({
+          by: ['statusId'],
+          where: myWhere,
+          _count: { id: true },
+        }),
+        this.prisma.repairRequest.count({
+          where: { id: { in: ids.length > 0 ? ids : [-1] } },
+        }),
+        this.prisma.repairRequest.count({
+          where: {
+            id: { in: ids.length > 0 ? ids : [-1] },
+            completedAt: {
+              gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+            },
           },
-        },
-      }),
-    ]);
+        }),
+        this.prisma.repairRequest.findMany({
+          where: {
+            id: { in: ids.length > 0 ? ids : [-1] },
+            status: { name: { notIn: ['resolved', 'closed'] } },
+          },
+          orderBy: { createdAt: 'desc' },
+          include: {
+            status: true,
+            requester: { include: { department: true } },
+            requestEquipment: { include: { equipment: true } },
+          },
+        }),
+      ]);
 
     const statuses = await this.prisma.requestStatus.findMany();
     const statusMap = new Map(statuses.map((s) => [s.id, s.name]));
@@ -236,6 +249,15 @@ export class ReportsService {
       byStatus: byStatus.map((s) => ({
         status: statusMap.get(s.statusId) ?? `Unknown(${s.statusId})`,
         count: s._count.id,
+      })),
+      activeRequests: activeRequests.map((r) => ({
+        id: r.id,
+        description: r.description,
+        status: r.status.name,
+        requester: r.requester.name,
+        department: r.requester.department.name,
+        equipment: r.requestEquipment.map((re) => re.equipment.name),
+        createdAt: r.createdAt.toISOString(),
       })),
     };
   }
@@ -414,8 +436,12 @@ export class ReportsService {
     return workbook.xlsx.writeBuffer();
   }
 
-  async exportMyTasks(userId: number): Promise<ArrayBuffer> {
+  async exportMyTasks(
+    userId: number,
+    filter: ReportFilterDto,
+  ): Promise<ArrayBuffer> {
     this.logger.log(`Exporting tasks for technician ${userId}`);
+    const dateFilter = this.buildDateFilter(filter);
 
     const assignedRequestIds = await this.prisma.$queryRaw<
       { request_id: number }[]
@@ -434,7 +460,7 @@ export class ReportsService {
     const ids = assignedRequestIds.map((r) => r.request_id);
 
     const requests = await this.prisma.repairRequest.findMany({
-      where: { id: { in: ids.length > 0 ? ids : [-1] } },
+      where: { id: { in: ids.length > 0 ? ids : [-1] }, ...dateFilter },
       orderBy: { createdAt: 'desc' },
       include: {
         requester: { include: { department: true } },
@@ -517,11 +543,15 @@ export class ReportsService {
     return workbook.xlsx.writeBuffer();
   }
 
-  async exportMyRequests(userId: number): Promise<ArrayBuffer> {
+  async exportMyRequests(
+    userId: number,
+    filter: ReportFilterDto,
+  ): Promise<ArrayBuffer> {
     this.logger.log(`Exporting requests for user ${userId}`);
+    const dateFilter = this.buildDateFilter(filter);
 
     const requests = await this.prisma.repairRequest.findMany({
-      where: { requesterId: userId },
+      where: { requesterId: userId, ...dateFilter },
       orderBy: { createdAt: 'desc' },
       include: {
         status: true,

@@ -75,14 +75,14 @@ export function exportEquipment(filter?: ReportFilter) {
   return downloadExcel('/reports/export/equipment', 'equipment.xlsx', filter);
 }
 
-export function exportMyTasks() {
-  return downloadExcel('/reports/export/my-tasks', 'my-tasks.xlsx');
+export function exportMyTasks(filter?: ReportFilter) {
+  return downloadExcel('/reports/export/my-tasks', 'my-tasks.xlsx', filter);
 }
 
 export function exportUsers(filter?: ReportFilter) {
   return downloadExcel('/reports/export/users', 'users.xlsx', filter);
 }
 
-export function exportMyRequests() {
-  return downloadExcel('/reports/export/my-requests', 'my-requests.xlsx');
+export function exportMyRequests(filter?: ReportFilter) {
+  return downloadExcel('/reports/export/my-requests', 'my-requests.xlsx', filter);
 }

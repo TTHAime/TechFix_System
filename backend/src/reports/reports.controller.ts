@@ -94,10 +94,11 @@ export class ReportsController {
   @Get('export/my-tasks')
   @Roles(Role.Technician)
   async exportMyTasks(
+    @Query() filter: ReportFilterDto,
     @Req() req: express.Request & { user: JwtPayload },
     @Res() res: express.Response,
   ) {
-    const buffer = await this.reportsService.exportMyTasks(req.user.sub);
+    const buffer = await this.reportsService.exportMyTasks(req.user.sub, filter);
     this.sendExcel(res, buffer, 'my-tasks.xlsx');
   }
 
@@ -114,10 +115,11 @@ export class ReportsController {
   @Get('export/my-requests')
   @Roles(Role.User)
   async exportMyRequests(
+    @Query() filter: ReportFilterDto,
     @Req() req: express.Request & { user: JwtPayload },
     @Res() res: express.Response,
   ) {
-    const buffer = await this.reportsService.exportMyRequests(req.user.sub);
+    const buffer = await this.reportsService.exportMyRequests(req.user.sub, filter);
     this.sendExcel(res, buffer, 'my-requests.xlsx');
   }
 }

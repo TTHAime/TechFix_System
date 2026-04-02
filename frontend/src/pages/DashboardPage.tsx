@@ -253,6 +253,7 @@ function AdminDashboard({ filter }: { filter: ReportFilter }) {
 function TechDashboard({ filter }: { filter: ReportFilter }) {
   const { data, isLoading } = useTechnicianDashboardQuery(filter);
   const exportTasks = useExportMyTasksMutation();
+  const navigate = useNavigate();
   const dashboard = data?.data;
 
   if (isLoading) return <DashboardSkeleton />;
@@ -328,6 +329,41 @@ function TechDashboard({ filter }: { filter: ReportFilter }) {
         </CardContent>
       </Card>
 
+      {/* Active requests */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Wrench className="h-4 w-4" />
+            Active Tasks
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {dashboard.activeRequests.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4">No active tasks.</p>
+          ) : (
+            <div className="space-y-3">
+              {dashboard.activeRequests.map((req) => (
+                <div
+                  key={req.id}
+                  className="flex items-center gap-4 rounded-lg border p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => navigate(`/requests/${req.id}`)}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{req.description}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {req.requester} &middot; {req.department} &middot; {req.equipment.join(', ')} &middot; {new Date(req.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <Badge variant={StatusBadgeVariant(req.status)}>
+                    {req.status.replace('_', ' ')}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
@@ -338,7 +374,7 @@ function TechDashboard({ filter }: { filter: ReportFilter }) {
         <CardContent>
           <Button
             variant="outline"
-            onClick={() => exportTasks.mutate()}
+            onClick={() => exportTasks.mutate(filter)}
             disabled={exportTasks.isPending}
           >
             <Download className="h-4 w-4 mr-2" />
@@ -518,7 +554,7 @@ function UserDashboardView({ filter }: { filter: ReportFilter }) {
         <CardContent>
           <Button
             variant="outline"
-            onClick={() => exportRequests.mutate()}
+            onClick={() => exportRequests.mutate(filter)}
             disabled={exportRequests.isPending}
           >
             <Download className="h-4 w-4 mr-2" />

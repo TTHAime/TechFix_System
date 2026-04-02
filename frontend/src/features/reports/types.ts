@@ -40,10 +40,21 @@ export interface AdminDashboard {
 }
 
 // Technician dashboard
+export interface ActiveRequest {
+  id: number;
+  description: string;
+  status: string;
+  requester: string;
+  department: string;
+  equipment: string[];
+  createdAt: string;
+}
+
 export interface TechnicianDashboard {
   totalAssigned: number;
   completedThisMonth: number;
   byStatus: StatusCount[];
+  activeRequests: ActiveRequest[];
 }
 
 // HR dashboard

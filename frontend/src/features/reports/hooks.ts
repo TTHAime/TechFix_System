@@ -49,7 +49,7 @@ export function useExportEquipmentMutation() {
 }
 
 export function useExportMyTasksMutation() {
-  return useMutation({ mutationFn: () => exportMyTasks() });
+  return useMutation({ mutationFn: exportMyTasks });
 }
 
 export function useExportUsersMutation() {
@@ -57,5 +57,5 @@ export function useExportUsersMutation() {
 }
 
 export function useExportMyRequestsMutation() {
-  return useMutation({ mutationFn: () => exportMyRequests() });
+  return useMutation({ mutationFn: exportMyRequests });
 }
