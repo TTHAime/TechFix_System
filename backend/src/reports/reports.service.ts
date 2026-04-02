@@ -63,6 +63,54 @@ export class ReportsService {
       GROUP BY d.name ORDER BY count DESC`;
   }
 
+  // ─── Avg resolution time helper with date filter ─────────────────
+
+  private getAvgResolutionTime(filter: ReportFilterDto) {
+    type Row = { avg_hours: number };
+    if (filter.startDate && filter.endDate) {
+      return this.prisma.$queryRaw<Row[]>`
+        SELECT CAST(COALESCE(
+          ROUND(CAST(AVG(EXTRACT(EPOCH FROM (completed_at - created_at)) / 3600) AS numeric), 1),
+          0
+        ) AS float8) AS avg_hours
+        FROM repair_requests
+        WHERE completed_at IS NOT NULL
+          AND completed_at > created_at
+          AND created_at >= ${new Date(filter.startDate)}
+          AND created_at <= ${new Date(filter.endDate)}`;
+    }
+    if (filter.startDate) {
+      return this.prisma.$queryRaw<Row[]>`
+        SELECT CAST(COALESCE(
+          ROUND(CAST(AVG(EXTRACT(EPOCH FROM (completed_at - created_at)) / 3600) AS numeric), 1),
+          0
+        ) AS float8) AS avg_hours
+        FROM repair_requests
+        WHERE completed_at IS NOT NULL
+          AND completed_at > created_at
+          AND created_at >= ${new Date(filter.startDate)}`;
+    }
+    if (filter.endDate) {
+      return this.prisma.$queryRaw<Row[]>`
+        SELECT CAST(COALESCE(
+          ROUND(CAST(AVG(EXTRACT(EPOCH FROM (completed_at - created_at)) / 3600) AS numeric), 1),
+          0
+        ) AS float8) AS avg_hours
+        FROM repair_requests
+        WHERE completed_at IS NOT NULL
+          AND completed_at > created_at
+          AND created_at <= ${new Date(filter.endDate)}`;
+    }
+    return this.prisma.$queryRaw<Row[]>`
+      SELECT CAST(COALESCE(
+        ROUND(CAST(AVG(EXTRACT(EPOCH FROM (completed_at - created_at)) / 3600) AS numeric), 1),
+        0
+      ) AS float8) AS avg_hours
+      FROM repair_requests
+      WHERE completed_at IS NOT NULL
+        AND completed_at > created_at`;
+  }
+
   // ═══════════════════════════════════════════════════════════════════
   //  DASHBOARD
   // ═══════════════════════════════════════════════════════════════════
@@ -105,12 +153,7 @@ export class ReportsService {
       // Total requests
       this.prisma.repairRequest.count({ where: dateFilter }),
       // Average resolution time (requests that have completedAt)
-      this.prisma.$queryRaw<{ avg_hours: number }[]>`SELECT CAST(COALESCE(
-          ROUND(CAST(AVG(EXTRACT(EPOCH FROM (completed_at - created_at)) / 3600) AS numeric), 1),
-          0
-        ) AS float8) AS avg_hours
-        FROM repair_requests
-        WHERE completed_at IS NOT NULL`,
+      this.getAvgResolutionTime(filter),
     ]);
 
     const statuses = await this.prisma.requestStatus.findMany();
