@@ -32,8 +32,9 @@ services:
       GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL}
       CORS_ORIGIN: ${CORS_ORIGIN}
     depends_on:
-      - postgres
-  
+      postgres:
+        condition: service_healthy
+
   frontend:
     build:
       context: ./frontend
@@ -55,15 +56,30 @@ services:
       - frontend
       - backend
 
+  migrator:
+    build:
+      context: ./backend
+      target: builder
+    command: ["pnpm", "prisma", "migrate", "deploy"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - migrate
+
   seeder:
     build:
       context: ./backend
       target: builder
+    command: ["node", "dist/prisma/seed.js"]
     environment:
       DATABASE_URL: ${DATABASE_URL}
       PEPPER: ${PEPPER}
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     profiles:
       - seed
     
