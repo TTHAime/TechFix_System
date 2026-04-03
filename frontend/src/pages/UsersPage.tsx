@@ -133,6 +133,21 @@ function PasswordPolicyHint() {
   );
 }
 
+function getDeactivateInfo(user: User | null, isPending: boolean) {
+  const active = user?.isActive;
+  const actionLabel = active ? 'Deactivate' : 'Activate';
+  const pendingLabel = active ? 'Deactivating...' : 'Activating...';
+  return {
+    buttonLabel: isPending ? pendingLabel : actionLabel,
+    toastMsg: active
+      ? `${user?.name} has been deactivated`
+      : `${user?.name} has been activated`,
+    dialogDesc: active
+      ? `Are you sure you want to deactivate "${user?.name}"? They will no longer be able to log in.`
+      : `Are you sure you want to reactivate "${user?.name}"? They will be able to log in again.`,
+  };
+}
+
 export default function UsersPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -175,21 +190,8 @@ export default function UsersPage() {
       </div>
     );
 
-  const deactivateActionLabel = selectedUser?.isActive
-    ? 'Deactivate'
-    : 'Activate';
-  const deactivatePendingLabel = selectedUser?.isActive
-    ? 'Deactivating...'
-    : 'Activating...';
-  const deactivateButtonLabel = hrUpdateMutation.isPending
-    ? deactivatePendingLabel
-    : deactivateActionLabel;
-  const deactivateToastMsg = selectedUser?.isActive
-    ? `${selectedUser?.name} has been deactivated`
-    : `${selectedUser?.name} has been activated`;
-  const deactivateDialogDesc = selectedUser?.isActive
-    ? `Are you sure you want to deactivate "${selectedUser?.name}"? They will no longer be able to log in.`
-    : `Are you sure you want to reactivate "${selectedUser?.name}"? They will be able to log in again.`;
+  const { buttonLabel: deactivateButtonLabel, toastMsg: deactivateToastMsg, dialogDesc: deactivateDialogDesc } =
+    getDeactivateInfo(selectedUser, hrUpdateMutation.isPending);
 
   return (
     <div className="space-y-6">
