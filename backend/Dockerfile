@@ -2,12 +2,13 @@ FROM node:22-alpine AS deps
 WORKDIR /app
 RUN apk add --no-cache python3 make g++
 RUN corepack enable
-COPY package.json pnpm-lock.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml .npmrc pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 FROM deps AS deps-prod
 COPY prisma/ prisma/
 RUN pnpm prune --prod
+
 
 FROM deps AS builder
 COPY src/ src/
@@ -17,6 +18,19 @@ COPY prisma/ prisma/
 COPY prisma.config.ts .
 RUN pnpm prisma generate
 RUN pnpm run build
+
+FROM node:22-alpine AS migrator
+WORKDIR /app
+RUN corepack enable
+RUN addgroup -S nodejs && adduser -S nodejs -G nodejs
+COPY package.json pnpm-lock.yaml .npmrc ./
+COPY --from=deps-prod /app/node_modules ./node_modules
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
+RUN pnpm prisma generate
+RUN chown -R nodejs:nodejs /app/node_modules
+USER nodejs
+CMD ["pnpm", "prisma", "migrate", "deploy"]
 
 FROM node:22-alpine AS runner
 WORKDIR /app

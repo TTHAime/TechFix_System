@@ -39,7 +39,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   loginWithGoogle: () => {
     // Redirect to backend Google OAuth endpoint
     const baseUrl = import.meta.env.VITE_API_BASE_URL as string;
-    window.location.href = `${baseUrl}/auth/google`;
+    globalThis.location.href = `${baseUrl}/auth/google`;
   },
 
   logout: async () => {

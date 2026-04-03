@@ -149,7 +149,7 @@ export class AuthService {
     res.clearCookie('refresh_token', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
     });
 
     this.logger.log(`User logged out: ${userId}`);
@@ -203,7 +203,7 @@ export class AuthService {
     res.cookie('refresh_token', rawToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge: REFRESH_TOKEN_EXPIRY_MS,
     });
   }

@@ -33,8 +33,7 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
 
   frontend:
     build:
@@ -61,28 +60,30 @@ services:
     build:
       context: ./backend
       target: builder
+    user: root
     command: ["pnpm", "prisma", "migrate", "deploy"]
     environment:
       DATABASE_URL: ${DATABASE_URL}
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
     profiles:
       - migrate
 
-  seeder:
+  create-admin:
     build:
       context: ./backend
       target: builder
-    command: ["node", "dist/prisma/seed.js"]
+    command: ["node", "dist/prisma/create-admin.js"]
     environment:
       DATABASE_URL: ${DATABASE_URL}
       PEPPER: ${PEPPER}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ADMIN_NAME: ${ADMIN_NAME:-Administrator}
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
     profiles:
-      - seed
+      - create-admin
     
 volumes:
   pgdata:
