@@ -22,12 +22,12 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 RUN corepack enable
 RUN addgroup -S nodejs && adduser -S nodejs -G nodejs
-COPY --chown=nodejs:nodejs package.json .
-COPY --chown=nodejs:nodejs pnpm-lock.yaml .
-COPY --chown=nodejs:nodejs --from=deps-prod /app/node_modules ./node_modules
-COPY --chown=nodejs:nodejs --from=builder /app/dist ./dist
-COPY --chown=nodejs:nodejs --from=builder /app/prisma ./prisma
-COPY --chown=nodejs:nodejs --from=builder /app/prisma.config.ts ./prisma.config.ts
+COPY package.json .
+COPY pnpm-lock.yaml .
+COPY --from=deps-prod /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 USER nodejs
 EXPOSE 3000
 CMD ["node", "dist/main"]
