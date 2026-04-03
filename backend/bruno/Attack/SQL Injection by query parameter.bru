@@ -1,0 +1,25 @@
+meta {
+  name: SQL Injection by query parameter
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/users?page=1&DROP TABLE users;
+  body: json
+  auth: bearer
+}
+
+params:query {
+  page: 1
+  "DROP TABLE users;": 
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

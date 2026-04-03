@@ -1,0 +1,25 @@
+meta {
+  name: XSS script in name field
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/users/onboard
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{hr_token}}
+}
+
+body:json {
+  {
+    "name": "<script>alert(1)</script>",
+    "email": "newemployee@company.com",
+    "deptId": 2,
+    "provider": "local",
+    "password": "Str0ngP@ss1234123456"
+  }
+}

