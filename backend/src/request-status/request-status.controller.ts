@@ -7,9 +7,12 @@ import {
   Param,
   Delete,
   Query,
+  Req,
   UseGuards,
   ParseIntPipe,
 } from '@nestjs/common';
+import type { Request } from 'express';
+import type { JwtPayload } from 'src/common/interfaces/jwt-payload.interface';
 import { RequestStatusService } from './request-status.service';
 import { CreateRequestStatusDto } from './dto/create-request-status.dto';
 import { UpdateRequestStatusDto } from './dto/update-request-status.dto';
@@ -26,8 +29,14 @@ export class RequestStatusController {
   constructor(private readonly requestStatusService: RequestStatusService) {}
 
   @Post()
-  async create(@Body() createRequestStatusDto: CreateRequestStatusDto) {
-    const data = await this.requestStatusService.create(createRequestStatusDto);
+  async create(
+    @Body() createRequestStatusDto: CreateRequestStatusDto,
+    @Req() req: Request & { user: JwtPayload },
+  ) {
+    const data = await this.requestStatusService.create(
+      createRequestStatusDto,
+      req.user.sub,
+    );
     return { data, message: 'Request status created successfully' };
   }
 
@@ -49,17 +58,22 @@ export class RequestStatusController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateRequestStatusDto: UpdateRequestStatusDto,
+    @Req() req: Request & { user: JwtPayload },
   ) {
     const data = await this.requestStatusService.update(
       id,
       updateRequestStatusDto,
+      req.user.sub,
     );
     return { data, message: 'Request status updated successfully' };
   }
 
   @Delete(':id')
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    const data = await this.requestStatusService.remove(id);
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request & { user: JwtPayload },
+  ) {
+    const data = await this.requestStatusService.remove(id, req.user.sub);
     return { data, message: 'Request status deleted successfully' };
   }
 }

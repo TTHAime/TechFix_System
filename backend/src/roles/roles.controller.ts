@@ -7,9 +7,12 @@ import {
   Param,
   Delete,
   Query,
+  Req,
   ParseIntPipe,
   UseGuards,
 } from '@nestjs/common';
+import type { Request } from 'express';
+import type { JwtPayload } from 'src/common/interfaces/jwt-payload.interface';
 import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
@@ -26,8 +29,11 @@ export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 
   @Post()
-  async create(@Body() createRoleDto: CreateRoleDto) {
-    const data = await this.rolesService.create(createRoleDto);
+  async create(
+    @Body() createRoleDto: CreateRoleDto,
+    @Req() req: Request & { user: JwtPayload },
+  ) {
+    const data = await this.rolesService.create(createRoleDto, req.user.sub);
     return { data, message: 'Role created successfully' };
   }
 
@@ -47,14 +53,22 @@ export class RolesController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateRoleDto: UpdateRoleDto,
+    @Req() req: Request & { user: JwtPayload },
   ) {
-    const data = await this.rolesService.update(id, updateRoleDto);
+    const data = await this.rolesService.update(
+      id,
+      updateRoleDto,
+      req.user.sub,
+    );
     return { data, message: 'Role updated successfully' };
   }
 
   @Delete(':id')
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    const data = await this.rolesService.remove(id);
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request & { user: JwtPayload },
+  ) {
+    const data = await this.rolesService.remove(id, req.user.sub);
     return { data, message: 'Role deleted successfully' };
   }
 }

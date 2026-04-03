@@ -43,6 +43,10 @@ export class DepartmentsService {
       ) {
         throw new ConflictException('Department name already exists');
       }
+      this.logger.error(
+        `Failed to create department`,
+        error instanceof Error ? error.stack : error,
+      );
       throw error;
     }
   }
@@ -102,6 +106,10 @@ export class DepartmentsService {
         if (error.code === 'P2002')
           throw new ConflictException('Department name already exists');
       }
+      this.logger.error(
+        `Failed to update department ${id}`,
+        error instanceof Error ? error.stack : error,
+      );
       throw error;
     }
   }
@@ -128,6 +136,10 @@ export class DepartmentsService {
             'Cannot delete department: it still has users or equipment',
           );
       }
+      this.logger.error(
+        `Failed to delete department ${id}`,
+        error instanceof Error ? error.stack : error,
+      );
       throw error;
     }
   }

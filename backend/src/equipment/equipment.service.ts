@@ -45,6 +45,10 @@ export class EquipmentService {
           throw new BadRequestException('Invalid categoryId or deptId');
         }
       }
+      this.logger.error(
+        `Failed to create equipment`,
+        e instanceof Error ? e.stack : e,
+      );
       throw e;
     }
   }
@@ -109,6 +113,10 @@ export class EquipmentService {
         if (e.code === 'P2002')
           throw new ConflictException('Serial number already exists');
       }
+      this.logger.error(
+        `Failed to update equipment ${id}`,
+        e instanceof Error ? e.stack : e,
+      );
       throw e;
     }
   }

@@ -393,7 +393,9 @@ describe('RepairRequestsService', () => {
     };
 
     it('should throw BadRequestException when target user is not a Technician', async () => {
-      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequestWithItem);
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(
+        fakeRequestWithItem,
+      );
       mockPrisma.user.findUnique.mockResolvedValue({
         ...fakeTechnician,
         role: { name: Role.User },
@@ -405,7 +407,9 @@ describe('RepairRequestsService', () => {
     });
 
     it('should throw BadRequestException when target user does not exist', async () => {
-      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequestWithItem);
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(
+        fakeRequestWithItem,
+      );
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
       await expect(service.assignItem(10, 1, 99, 99)).rejects.toThrow(
@@ -422,7 +426,9 @@ describe('RepairRequestsService', () => {
     });
 
     it('should throw NotFoundException when seqNo does not exist in request', async () => {
-      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequestWithItem);
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(
+        fakeRequestWithItem,
+      );
       mockPrisma.user.findUnique.mockResolvedValue(fakeTechnician);
 
       await expect(service.assignItem(10, 99, 7, 99)).rejects.toThrow(
@@ -467,7 +473,9 @@ describe('RepairRequestsService', () => {
           },
         ],
       };
-      mockPrisma.repairRequest.findUnique.mockResolvedValue(requestWithOpenItem);
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(
+        requestWithOpenItem,
+      );
 
       await expect(service.unassignItem(10, 1, 99)).rejects.toThrow(
         BadRequestException,
@@ -556,7 +564,9 @@ describe('RepairRequestsService', () => {
           },
         ],
       };
-      mockPrisma.repairRequest.findUnique.mockResolvedValue(requestWithOpenItem);
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(
+        requestWithOpenItem,
+      );
       mockPrisma.requestStatus.findFirst.mockResolvedValue(resolvedStatus);
 
       await expect(service.resolveItem(10, 1, 7, {})).rejects.toThrow(
@@ -706,13 +716,17 @@ describe('RepairRequestsService', () => {
       };
       mockPrisma.repairRequest.findUnique.mockResolvedValue(closedRequest);
 
-      await expect(service.acceptItem(10, 1, 7)).rejects.toThrow(BadRequestException);
+      await expect(service.acceptItem(10, 1, 7)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw NotFoundException when seqNo not found in request', async () => {
       mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequestOpen);
 
-      await expect(service.acceptItem(10, 99, 7)).rejects.toThrow(NotFoundException);
+      await expect(service.acceptItem(10, 99, 7)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw BadRequestException when item is not open', async () => {
@@ -720,18 +734,31 @@ describe('RepairRequestsService', () => {
         ...fakeRequest,
         status: { name: 'in_progress' },
         requestEquipment: [
-          { seqNo: 1, requestId: 10, statusId: 2, status: { name: 'in_progress' }, technicianId: 7 },
+          {
+            seqNo: 1,
+            requestId: 10,
+            statusId: 2,
+            status: { name: 'in_progress' },
+            technicianId: 7,
+          },
         ],
       };
-      mockPrisma.repairRequest.findUnique.mockResolvedValue(requestWithInProgressItem);
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(
+        requestWithInProgressItem,
+      );
 
-      await expect(service.acceptItem(10, 1, 7)).rejects.toThrow(BadRequestException);
+      await expect(service.acceptItem(10, 1, 7)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should accept item and move request to in_progress when request is open', async () => {
       mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequestOpen);
       mockPrisma.requestStatus.findFirst.mockResolvedValue(inProgressStatus);
-      mockTx.requestEquipment.update.mockResolvedValue({ ...fakeItemOpen, statusId: 2 });
+      mockTx.requestEquipment.update.mockResolvedValue({
+        ...fakeItemOpen,
+        statusId: 2,
+      });
       mockTx.assignmentLog.create.mockResolvedValue({});
       mockTx.repairRequest.update.mockResolvedValue({});
       mockTx.statusLog.create.mockResolvedValue({});
@@ -751,9 +778,14 @@ describe('RepairRequestsService', () => {
         status: { name: 'in_progress' },
         requestEquipment: [fakeItemOpen],
       };
-      mockPrisma.repairRequest.findUnique.mockResolvedValue(requestAlreadyInProgress);
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(
+        requestAlreadyInProgress,
+      );
       mockPrisma.requestStatus.findFirst.mockResolvedValue(inProgressStatus);
-      mockTx.requestEquipment.update.mockResolvedValue({ ...fakeItemOpen, statusId: 2 });
+      mockTx.requestEquipment.update.mockResolvedValue({
+        ...fakeItemOpen,
+        statusId: 2,
+      });
       mockTx.assignmentLog.create.mockResolvedValue({});
 
       await service.acceptItem(10, 1, 7);
@@ -776,19 +808,26 @@ describe('RepairRequestsService', () => {
     it('should close request and create statusLog when requester confirms', async () => {
       mockPrisma.repairRequest.findUnique.mockResolvedValue(resolvedRequest);
       mockPrisma.requestStatus.findFirst.mockResolvedValue(closedStatus);
-      mockTx.repairRequest.update.mockResolvedValue({ ...resolvedRequest, statusId: 4 });
+      mockTx.repairRequest.update.mockResolvedValue({
+        ...resolvedRequest,
+        statusId: 4,
+      });
       mockTx.statusLog.create.mockResolvedValue({});
 
       await service.confirm(10, 42);
 
       expect(mockTx.repairRequest.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ statusId: closedStatus.id }) as unknown,
+          data: expect.objectContaining({
+            statusId: closedStatus.id,
+          }) as unknown,
         }),
       );
       expect(mockTx.statusLog.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ note: 'Confirmed by requester' }) as unknown,
+          data: expect.objectContaining({
+            note: 'Confirmed by requester',
+          }) as unknown,
         }),
       );
     });
@@ -800,10 +839,16 @@ describe('RepairRequestsService', () => {
     });
 
     it('should throw BadRequestException when request is not resolved', async () => {
-      const openRequest = { ...fakeRequest, requesterId: 42, status: openStatus };
+      const openRequest = {
+        ...fakeRequest,
+        requesterId: 42,
+        status: openStatus,
+      };
       mockPrisma.repairRequest.findUnique.mockResolvedValue(openRequest);
 
-      await expect(service.confirm(10, 42)).rejects.toThrow(BadRequestException);
+      await expect(service.confirm(10, 42)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -843,7 +888,9 @@ describe('RepairRequestsService', () => {
     };
 
     it('should auto-resolve request and create statusLog when all items resolved', async () => {
-      mockPrisma.repairRequest.findUnique.mockResolvedValue(fakeRequestInProgress);
+      mockPrisma.repairRequest.findUnique.mockResolvedValue(
+        fakeRequestInProgress,
+      );
       mockPrisma.requestStatus.findFirst.mockResolvedValue(resolvedStatus);
       mockTx.requestEquipment.update.mockResolvedValue({
         ...fakeItemInProgress,
@@ -871,7 +918,13 @@ describe('RepairRequestsService', () => {
         ...fakeRequestInProgress,
         requestEquipment: [
           fakeItemInProgress,
-          { seqNo: 2, requestId: 10, statusId: 2, status: { name: 'in_progress' }, technicianId: 7 },
+          {
+            seqNo: 2,
+            requestId: 10,
+            statusId: 2,
+            status: { name: 'in_progress' },
+            technicianId: 7,
+          },
         ],
       });
       mockPrisma.requestStatus.findFirst.mockResolvedValue(resolvedStatus);

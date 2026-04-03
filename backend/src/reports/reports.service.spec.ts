@@ -71,7 +71,9 @@ describe('ReportsService', () => {
       expect(mockPrisma.repairRequest.groupBy).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            createdAt: expect.objectContaining({ gte: expect.any(Date) }) as unknown,
+            createdAt: expect.objectContaining({
+              gte: expect.any(Date),
+            }) as unknown,
           }) as unknown,
         }),
       );
@@ -88,7 +90,9 @@ describe('ReportsService', () => {
       expect(mockPrisma.repairRequest.groupBy).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            createdAt: expect.objectContaining({ lte: expect.any(Date) }) as unknown,
+            createdAt: expect.objectContaining({
+              lte: expect.any(Date),
+            }) as unknown,
           }) as unknown,
         }),
       );
@@ -100,7 +104,10 @@ describe('ReportsService', () => {
       mockPrisma.repairRequest.count.mockResolvedValue(0);
       mockPrisma.requestStatus.findMany.mockResolvedValue([]);
 
-      await service.getDashboardAdmin({ startDate: '2024-01-01', endDate: '2024-12-31' });
+      await service.getDashboardAdmin({
+        startDate: '2024-01-01',
+        endDate: '2024-12-31',
+      });
 
       expect(mockPrisma.repairRequest.groupBy).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -144,7 +151,9 @@ describe('ReportsService', () => {
       ]);
       mockPrisma.$queryRaw
         .mockResolvedValueOnce([{ dept_name: 'IT', count: 5 }]) // byDepartment
-        .mockResolvedValueOnce([{ equipment_name: 'Dell', serial_no: 'PC-001', count: 2 }]) // topEquipment
+        .mockResolvedValueOnce([
+          { equipment_name: 'Dell', serial_no: 'PC-001', count: 2 },
+        ]) // topEquipment
         .mockResolvedValueOnce([{ month: '2024-01', count: 10 }]) // monthlyTrend
         .mockResolvedValueOnce([{ avg_hours: 4.5 }]); // avgResolutionTime
       mockPrisma.repairRequest.count.mockResolvedValue(10);
@@ -156,7 +165,9 @@ describe('ReportsService', () => {
       expect(result.avgResolutionHours).toBe(4.5);
       expect(result.byStatus).toEqual([{ status: 'open', count: 3 }]);
       expect(result.byDepartment).toEqual([{ department: 'IT', count: 5 }]);
-      expect(result.topEquipment).toEqual([{ name: 'Dell', serialNo: 'PC-001', count: 2 }]);
+      expect(result.topEquipment).toEqual([
+        { name: 'Dell', serialNo: 'PC-001', count: 2 },
+      ]);
       expect(result.monthlyTrend).toEqual([{ month: '2024-01', count: 10 }]);
     });
 
@@ -210,7 +221,10 @@ describe('ReportsService', () => {
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([{ avg_hours: 0 }]);
 
-      await service.getDashboardAdmin({ startDate: '2024-01-01', endDate: '2024-12-31' });
+      await service.getDashboardAdmin({
+        startDate: '2024-01-01',
+        endDate: '2024-12-31',
+      });
 
       expect(mockPrisma.$queryRaw).toHaveBeenCalled();
     });
@@ -259,13 +273,17 @@ describe('ReportsService', () => {
 
   describe('getDashboardTechnician', () => {
     it('should return totalAssigned, completedThisMonth and byStatus when called', async () => {
-      mockPrisma.$queryRaw.mockResolvedValue([{ request_id: 1 }, { request_id: 2 }]);
+      mockPrisma.$queryRaw.mockResolvedValue([
+        { request_id: 1 },
+        { request_id: 2 },
+      ]);
       mockPrisma.repairRequest.groupBy.mockResolvedValue([
         { statusId: 2, _count: { id: 2 } },
       ]);
       mockPrisma.repairRequest.count
-        .mockResolvedValueOnce(2)   // totalAssigned
-        .mockResolvedValueOnce(1);  // completedThisMonth
+        .mockResolvedValueOnce(2) // totalAssigned
+        .mockResolvedValueOnce(1); // completedThisMonth
+      mockPrisma.repairRequest.findMany.mockResolvedValue([]);
       mockPrisma.requestStatus.findMany.mockResolvedValue([
         { id: 2, name: 'in_progress' },
       ]);
@@ -281,6 +299,7 @@ describe('ReportsService', () => {
       mockPrisma.$queryRaw.mockResolvedValue([]); // no assignments
       mockPrisma.repairRequest.groupBy.mockResolvedValue([]);
       mockPrisma.repairRequest.count.mockResolvedValue(0);
+      mockPrisma.repairRequest.findMany.mockResolvedValue([]);
       mockPrisma.requestStatus.findMany.mockResolvedValue([]);
 
       const result = await service.getDashboardTechnician(7, {});
@@ -292,6 +311,7 @@ describe('ReportsService', () => {
       mockPrisma.$queryRaw.mockResolvedValue([]);
       mockPrisma.repairRequest.groupBy.mockResolvedValue([]);
       mockPrisma.repairRequest.count.mockResolvedValue(0);
+      mockPrisma.repairRequest.findMany.mockResolvedValue([]);
       mockPrisma.requestStatus.findMany.mockResolvedValue([]);
 
       await service.getDashboardTechnician(7, { startDate: '2024-01-01' });
@@ -311,13 +331,17 @@ describe('ReportsService', () => {
   describe('getDashboardHr', () => {
     it('should return usersByDepartment and requestsByDepartment', async () => {
       mockPrisma.$queryRaw
-        .mockResolvedValueOnce([{ dept_name: 'HR', count: 3 }])  // usersByDepartment
+        .mockResolvedValueOnce([{ dept_name: 'HR', count: 3 }]) // usersByDepartment
         .mockResolvedValueOnce([{ dept_name: 'IT', count: 5 }]); // requestsByDepartment
 
       const result = await service.getDashboardHr({});
 
-      expect(result.usersByDepartment).toEqual([{ department: 'HR', count: 3 }]);
-      expect(result.requestsByDepartment).toEqual([{ department: 'IT', count: 5 }]);
+      expect(result.usersByDepartment).toEqual([
+        { department: 'HR', count: 3 },
+      ]);
+      expect(result.requestsByDepartment).toEqual([
+        { department: 'IT', count: 5 },
+      ]);
     });
   });
 
@@ -330,9 +354,7 @@ describe('ReportsService', () => {
         description: 'Screen broken',
         createdAt: new Date('2024-01-01'),
         status: { name: 'open' },
-        requestEquipment: [
-          { equipment: { name: 'Dell PC' } },
-        ],
+        requestEquipment: [{ equipment: { name: 'Dell PC' } }],
       },
     ];
 
@@ -342,7 +364,9 @@ describe('ReportsService', () => {
       ]);
       mockPrisma.repairRequest.count.mockResolvedValue(1);
       mockPrisma.repairRequest.findMany.mockResolvedValue(fakeRequests);
-      mockPrisma.requestStatus.findMany.mockResolvedValue([{ id: 1, name: 'open' }]);
+      mockPrisma.requestStatus.findMany.mockResolvedValue([
+        { id: 1, name: 'open' },
+      ]);
 
       const result = await service.getDashboardUser(42, {});
 
@@ -365,7 +389,11 @@ describe('ReportsService', () => {
         requester: { name: 'Alice', department: { name: 'IT' } },
         status: { name: 'resolved' },
         requestEquipment: [
-          { equipment: { name: 'Dell PC' }, partsUsed: 'Screen', repairSummary: 'Replaced' },
+          {
+            equipment: { name: 'Dell PC' },
+            partsUsed: 'Screen',
+            repairSummary: 'Replaced',
+          },
         ],
       },
     ];
@@ -398,11 +426,17 @@ describe('ReportsService', () => {
           ...fakeRequests[0],
           completedAt: null,
           requestEquipment: [
-            { equipment: { name: 'Dell PC' }, partsUsed: null, repairSummary: null },
+            {
+              equipment: { name: 'Dell PC' },
+              partsUsed: null,
+              repairSummary: null,
+            },
           ],
         },
       ];
-      mockPrisma.repairRequest.findMany.mockResolvedValue(requestWithoutCompletedAt);
+      mockPrisma.repairRequest.findMany.mockResolvedValue(
+        requestWithoutCompletedAt,
+      );
 
       const result = await service.exportRepairRequests({});
       expect(result).toBeDefined();
@@ -481,7 +515,7 @@ describe('ReportsService', () => {
       mockPrisma.$queryRaw.mockResolvedValue([{ request_id: 1 }]);
       mockPrisma.repairRequest.findMany.mockResolvedValue(fakeRequests);
 
-      const result = await service.exportMyTasks(7);
+      const result = await service.exportMyTasks(7, {});
 
       expect(result).toBeDefined();
     });
@@ -490,7 +524,7 @@ describe('ReportsService', () => {
       mockPrisma.$queryRaw.mockResolvedValue([]);
       mockPrisma.repairRequest.findMany.mockResolvedValue([]);
 
-      await service.exportMyTasks(7);
+      await service.exportMyTasks(7, {});
 
       expect(mockPrisma.repairRequest.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -554,7 +588,11 @@ describe('ReportsService', () => {
         completedAt: new Date('2024-01-05'),
         status: { name: 'resolved' },
         requestEquipment: [
-          { equipment: { name: 'Keyboard' }, partsUsed: 'Keys', repairSummary: 'Cleaned' },
+          {
+            equipment: { name: 'Keyboard' },
+            partsUsed: 'Keys',
+            repairSummary: 'Cleaned',
+          },
         ],
       },
     ];
@@ -562,7 +600,7 @@ describe('ReportsService', () => {
     it('should return ArrayBuffer for user requests', async () => {
       mockPrisma.repairRequest.findMany.mockResolvedValue(fakeRequests);
 
-      const result = await service.exportMyRequests(42);
+      const result = await service.exportMyRequests(42, {});
 
       expect(result).toBeDefined();
       expect(mockPrisma.repairRequest.findMany).toHaveBeenCalledWith(
@@ -578,13 +616,17 @@ describe('ReportsService', () => {
           ...fakeRequests[0],
           completedAt: null,
           requestEquipment: [
-            { equipment: { name: 'Mouse' }, partsUsed: null, repairSummary: null },
+            {
+              equipment: { name: 'Mouse' },
+              partsUsed: null,
+              repairSummary: null,
+            },
           ],
         },
       ];
       mockPrisma.repairRequest.findMany.mockResolvedValue(requestsNoCompletion);
 
-      const result = await service.exportMyRequests(42);
+      const result = await service.exportMyRequests(42, {});
       expect(result).toBeDefined();
     });
   });

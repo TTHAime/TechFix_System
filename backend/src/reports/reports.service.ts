@@ -389,8 +389,16 @@ export class ReportsService {
         department: r.requester.department.name,
         equipment: r.requestEquipment.map((re) => re.equipment.name).join(', '),
         status: r.status.name,
-        partsUsed: r.requestEquipment.map((re) => re.partsUsed).filter(Boolean).join('; ') || '-',
-        repairSummary: r.requestEquipment.map((re) => re.repairSummary).filter(Boolean).join('; ') || '-',
+        partsUsed:
+          r.requestEquipment
+            .map((re) => re.partsUsed)
+            .filter(Boolean)
+            .join('; ') || '-',
+        repairSummary:
+          r.requestEquipment
+            .map((re) => re.repairSummary)
+            .filter(Boolean)
+            .join('; ') || '-',
         createdAt: r.createdAt.toISOString().split('T')[0],
         completedAt: r.completedAt?.toISOString().split('T')[0] ?? '-',
       });
@@ -492,7 +500,11 @@ export class ReportsService {
         department: r.requester.department.name,
         equipment: r.requestEquipment.map((re) => re.equipment.name).join(', '),
         status: r.status.name,
-        partsUsed: r.requestEquipment.map((re) => re.partsUsed).filter(Boolean).join('; ') || '-',
+        partsUsed:
+          r.requestEquipment
+            .map((re) => re.partsUsed)
+            .filter(Boolean)
+            .join('; ') || '-',
         createdAt: r.createdAt.toISOString().split('T')[0],
         completedAt: r.completedAt?.toISOString().split('T')[0] ?? '-',
       });
@@ -579,8 +591,16 @@ export class ReportsService {
         description: r.description,
         equipment: r.requestEquipment.map((re) => re.equipment.name).join(', '),
         status: r.status.name,
-        partsUsed: r.requestEquipment.map((re) => re.partsUsed).filter(Boolean).join('; ') || '-',
-        repairSummary: r.requestEquipment.map((re) => re.repairSummary).filter(Boolean).join('; ') || '-',
+        partsUsed:
+          r.requestEquipment
+            .map((re) => re.partsUsed)
+            .filter(Boolean)
+            .join('; ') || '-',
+        repairSummary:
+          r.requestEquipment
+            .map((re) => re.repairSummary)
+            .filter(Boolean)
+            .join('; ') || '-',
         createdAt: r.createdAt.toISOString().split('T')[0],
         completedAt: r.completedAt?.toISOString().split('T')[0] ?? '-',
       });

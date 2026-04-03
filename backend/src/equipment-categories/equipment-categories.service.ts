@@ -1,23 +1,44 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { CreateEquipmentCategoryDto } from './dto/create-equipment-category.dto';
 import { UpdateEquipmentCategoryDto } from './dto/update-equipment-category.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from 'src/generated/prisma/client';
+import { AuditLogsService } from 'src/audit-logs/audit-logs.service';
 import type { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 @Injectable()
 export class EquipmentCategoriesService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(EquipmentCategoriesService.name);
 
-  async create(createEquipmentCategoryDto: CreateEquipmentCategoryDto) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLogsService: AuditLogsService,
+  ) {}
+
+  async create(
+    createEquipmentCategoryDto: CreateEquipmentCategoryDto,
+    actorId: number,
+  ) {
     try {
-      return await this.prisma.equipmentCategory.create({
+      const category = await this.prisma.equipmentCategory.create({
         data: { ...createEquipmentCategoryDto },
       });
+      this.logger.log(
+        `Equipment category created: ${category.id} by actor ${actorId}`,
+      );
+      await this.auditLogsService.create({
+        actorId,
+        entityType: 'equipment_category',
+        entityId: category.id,
+        action: 'created',
+        newValue: category,
+      });
+      return category;
     } catch (e) {
       if (
         e instanceof Prisma.PrismaClientKnownRequestError &&
@@ -25,6 +46,10 @@ export class EquipmentCategoriesService {
       ) {
         throw new ConflictException('Equipment category name already exists');
       }
+      this.logger.error(
+        `Failed to create equipment category`,
+        e instanceof Error ? e.stack : e,
+      );
       throw e;
     }
   }
@@ -61,12 +86,24 @@ export class EquipmentCategoriesService {
   async update(
     id: number,
     updateEquipmentCategoryDto: UpdateEquipmentCategoryDto,
+    actorId: number,
   ) {
+    const oldCategory = await this.findOne(id);
     try {
-      return await this.prisma.equipmentCategory.update({
+      const category = await this.prisma.equipmentCategory.update({
         where: { id },
         data: updateEquipmentCategoryDto,
       });
+      this.logger.log(`Equipment category updated: ${id} by actor ${actorId}`);
+      await this.auditLogsService.create({
+        actorId,
+        entityType: 'equipment_category',
+        entityId: id,
+        action: 'updated',
+        oldValue: oldCategory,
+        newValue: category,
+      });
+      return category;
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError) {
         if (e.code === 'P2025')
@@ -74,13 +111,29 @@ export class EquipmentCategoriesService {
         if (e.code === 'P2002')
           throw new ConflictException('Equipment category name already exists');
       }
+      this.logger.error(
+        `Failed to update equipment category ${id}`,
+        e instanceof Error ? e.stack : e,
+      );
       throw e;
     }
   }
 
-  async remove(id: number) {
+  async remove(id: number, actorId: number) {
+    const oldCategory = await this.findOne(id);
     try {
-      return await this.prisma.equipmentCategory.delete({ where: { id } });
+      const category = await this.prisma.equipmentCategory.delete({
+        where: { id },
+      });
+      this.logger.log(`Equipment category deleted: ${id} by actor ${actorId}`);
+      await this.auditLogsService.create({
+        actorId,
+        entityType: 'equipment_category',
+        entityId: id,
+        action: 'deleted',
+        oldValue: oldCategory,
+      });
+      return category;
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError) {
         if (e.code === 'P2025')
@@ -90,6 +143,10 @@ export class EquipmentCategoriesService {
             'Cannot delete category: it still has equipment assigned',
           );
       }
+      this.logger.error(
+        `Failed to delete equipment category ${id}`,
+        e instanceof Error ? e.stack : e,
+      );
       throw e;
     }
   }

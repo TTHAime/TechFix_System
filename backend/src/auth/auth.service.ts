@@ -32,6 +32,7 @@ export class AuthService {
     }
 
     if (user.lockedUntil && user.lockedUntil > new Date()) {
+      this.logger.warn(`Login blocked — account locked: userId=${user.id}`);
       throw new UnauthorizedException('Account temporarily locked');
     }
 
@@ -49,8 +50,12 @@ export class AuthService {
           where: { id: user.id },
           data: { lockedUntil: new Date(Date.now() + LOCK_DURATION_MS) },
         });
+        this.logger.warn(
+          `Account locked after ${MAX_FAILED_ATTEMPTS} failed attempts: userId=${user.id}`,
+        );
       }
 
+      this.logger.warn(`Failed login attempt: userId=${user.id}`);
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -146,6 +151,8 @@ export class AuthService {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
     });
+
+    this.logger.log(`User logged out: ${userId}`);
   }
 
   async googleLogin(
@@ -155,12 +162,16 @@ export class AuthService {
     const user = await this.usersService.findByEmailForAuth(googleUser.email);
 
     if (!user) {
+      this.logger.warn(
+        `Google login failed — no account: email=${googleUser.email}`,
+      );
       throw new UnauthorizedException(
         'No account found — please contact HR to be onboarded first',
       );
     }
 
     if (!user.isActive) {
+      this.logger.warn(`Google login failed — deactivated: userId=${user.id}`);
       throw new UnauthorizedException('Account is deactivated');
     }
 
@@ -170,6 +181,7 @@ export class AuthService {
         where: { id: user.id },
         data: { provider: 'google', providerUid: googleUser.providerUid },
       });
+      this.logger.log(`Google provider linked: userId=${user.id}`);
     }
 
     return this.login(

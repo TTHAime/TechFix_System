@@ -98,7 +98,10 @@ export class ReportsController {
     @Req() req: express.Request & { user: JwtPayload },
     @Res() res: express.Response,
   ) {
-    const buffer = await this.reportsService.exportMyTasks(req.user.sub, filter);
+    const buffer = await this.reportsService.exportMyTasks(
+      req.user.sub,
+      filter,
+    );
     this.sendExcel(res, buffer, 'my-tasks.xlsx');
   }
 
@@ -119,7 +122,10 @@ export class ReportsController {
     @Req() req: express.Request & { user: JwtPayload },
     @Res() res: express.Response,
   ) {
-    const buffer = await this.reportsService.exportMyRequests(req.user.sub, filter);
+    const buffer = await this.reportsService.exportMyRequests(
+      req.user.sub,
+      filter,
+    );
     this.sendExcel(res, buffer, 'my-requests.xlsx');
   }
 }

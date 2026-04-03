@@ -101,6 +101,10 @@ export class RepairRequestsService {
           );
         }
       }
+      this.logger.error(
+        `Failed to create repair request`,
+        e instanceof Error ? e.stack : e,
+      );
       throw e;
     }
   }
@@ -496,6 +500,10 @@ export class RepairRequestsService {
           throw new BadRequestException('Invalid statusId — status not found');
         }
       }
+      this.logger.error(
+        `Failed to update repair request ${id}`,
+        e instanceof Error ? e.stack : e,
+      );
       throw e;
     }
   }

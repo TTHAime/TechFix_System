@@ -289,9 +289,9 @@ describe('EquipmentService', () => {
     it('should throw BadRequestException when equipment is already deactivated', async () => {
       mockPrisma.equipment.findUnique.mockResolvedValue(deactivatedEquipment);
 
-      await expect(
-        service.remove(fakeEquipment.id, actorId),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.remove(fakeEquipment.id, actorId)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 });

@@ -357,7 +357,7 @@ describe('UsersService', () => {
       mockPrisma.user.findUnique.mockResolvedValue(fakeUser);
       mockPrisma.user.update.mockResolvedValue(updatedUser);
 
-      const result = await service.hrUpdate(1, hrUpdateDto, actorId);
+      const result = await service.hrUpdate(1, hrUpdateDto, actorId, Role.Admin);
 
       expect(result).toEqual(updatedUser);
     });
@@ -366,7 +366,7 @@ describe('UsersService', () => {
       mockPrisma.user.findUnique.mockResolvedValue(fakeUser);
       mockPrisma.user.update.mockResolvedValue(updatedUser);
 
-      await service.hrUpdate(1, hrUpdateDto, actorId);
+      await service.hrUpdate(1, hrUpdateDto, actorId, Role.Admin);
 
       expect(mockAuditLogs.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -384,7 +384,7 @@ describe('UsersService', () => {
       mockPrisma.user.findUnique.mockResolvedValue(fakeUser);
       mockPrisma.user.update.mockRejectedValue(makePrismaError('P2025'));
 
-      await expect(service.hrUpdate(999, hrUpdateDto, actorId)).rejects.toThrow(
+      await expect(service.hrUpdate(999, hrUpdateDto, actorId, Role.Admin)).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -393,7 +393,7 @@ describe('UsersService', () => {
       mockPrisma.user.findUnique.mockResolvedValue(fakeUser);
       mockPrisma.user.update.mockRejectedValue(makePrismaError('P2002'));
 
-      await expect(service.hrUpdate(1, hrUpdateDto, actorId)).rejects.toThrow(
+      await expect(service.hrUpdate(1, hrUpdateDto, actorId, Role.Admin)).rejects.toThrow(
         ConflictException,
       );
     });
@@ -402,7 +402,7 @@ describe('UsersService', () => {
       mockPrisma.user.findUnique.mockResolvedValue(fakeUser);
       mockPrisma.user.update.mockRejectedValue(new Error('DB connection lost'));
 
-      await expect(service.hrUpdate(1, hrUpdateDto, actorId)).rejects.toThrow(
+      await expect(service.hrUpdate(1, hrUpdateDto, actorId, Role.Admin)).rejects.toThrow(
         'DB connection lost',
       );
     });
@@ -491,7 +491,7 @@ describe('UsersService', () => {
         isActive: false,
       });
 
-      await service.remove(1, actorId);
+      await service.remove(1, actorId, Role.Admin);
 
       expect(mockPrisma.user.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -508,7 +508,7 @@ describe('UsersService', () => {
         isActive: false,
       });
 
-      await service.remove(1, actorId);
+      await service.remove(1, actorId, Role.Admin);
 
       expect(mockAuditLogs.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -525,7 +525,7 @@ describe('UsersService', () => {
       mockPrisma.user.findUnique.mockResolvedValue(fakeUser);
       mockPrisma.user.update.mockRejectedValue(makePrismaError('P2025'));
 
-      await expect(service.remove(999, actorId)).rejects.toThrow(
+      await expect(service.remove(999, actorId, Role.Admin)).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -534,7 +534,7 @@ describe('UsersService', () => {
       mockPrisma.user.findUnique.mockResolvedValue(fakeUser);
       mockPrisma.user.update.mockRejectedValue(new Error('DB connection lost'));
 
-      await expect(service.remove(1, actorId)).rejects.toThrow(
+      await expect(service.remove(1, actorId, Role.Admin)).rejects.toThrow(
         'DB connection lost',
       );
     });

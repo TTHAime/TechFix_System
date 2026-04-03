@@ -7,9 +7,12 @@ import {
   Param,
   Delete,
   Query,
+  Req,
   UseGuards,
   ParseIntPipe,
 } from '@nestjs/common';
+import type { Request } from 'express';
+import type { JwtPayload } from 'src/common/interfaces/jwt-payload.interface';
 import { EquipmentCategoriesService } from './equipment-categories.service';
 import { CreateEquipmentCategoryDto } from './dto/create-equipment-category.dto';
 import { UpdateEquipmentCategoryDto } from './dto/update-equipment-category.dto';
@@ -28,9 +31,13 @@ export class EquipmentCategoriesController {
   ) {}
 
   @Post()
-  async create(@Body() createEquipmentCategoryDto: CreateEquipmentCategoryDto) {
+  async create(
+    @Body() createEquipmentCategoryDto: CreateEquipmentCategoryDto,
+    @Req() req: Request & { user: JwtPayload },
+  ) {
     const data = await this.equipmentCategoriesService.create(
       createEquipmentCategoryDto,
+      req.user.sub,
     );
     return { data, message: 'Equipment category created successfully' };
   }
@@ -56,17 +63,22 @@ export class EquipmentCategoriesController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateEquipmentCategoryDto: UpdateEquipmentCategoryDto,
+    @Req() req: Request & { user: JwtPayload },
   ) {
     const data = await this.equipmentCategoriesService.update(
       id,
       updateEquipmentCategoryDto,
+      req.user.sub,
     );
     return { data, message: 'Equipment category updated successfully' };
   }
 
   @Delete(':id')
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    const data = await this.equipmentCategoriesService.remove(id);
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request & { user: JwtPayload },
+  ) {
+    const data = await this.equipmentCategoriesService.remove(id, req.user.sub);
     return { data, message: 'Equipment category deleted successfully' };
   }
 }

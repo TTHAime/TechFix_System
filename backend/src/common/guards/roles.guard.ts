@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 import { ROLES_KEY } from 'src/common/decorators/roles.decorator';
@@ -7,6 +12,8 @@ import type { JwtPayload } from 'src/common/interfaces/jwt-payload.interface';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
+  private readonly logger = new Logger(RolesGuard.name);
+
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
@@ -20,8 +27,17 @@ export class RolesGuard implements CanActivate {
       .switchToHttp()
       .getRequest<Request & { user: JwtPayload }>();
 
-    if (!user?.roleName) return false;
+    if (!user?.roleName) {
+      this.logger.warn(`Access denied: no role — required=[${requiredRoles}]`);
+      return false;
+    }
 
-    return requiredRoles.includes(user.roleName as Role);
+    const allowed = requiredRoles.includes(user.roleName as Role);
+    if (!allowed) {
+      this.logger.warn(
+        `Access denied: user=${user.sub} role=${user.roleName} required=[${requiredRoles}]`,
+      );
+    }
+    return allowed;
   }
 }

@@ -65,6 +65,10 @@ export class UsersService {
       ) {
         throw new ConflictException('User already exists');
       }
+      this.logger.error(
+        `Failed to create user`,
+        e instanceof Error ? e.stack : e,
+      );
       throw e;
     }
   }
@@ -172,6 +176,10 @@ export class UsersService {
       ) {
         throw new ConflictException('User already exists');
       }
+      this.logger.error(
+        `Failed to onboard user by HR`,
+        e instanceof Error ? e.stack : e,
+      );
       throw e;
     }
   }
@@ -214,6 +222,10 @@ export class UsersService {
         if (e.code === 'P2002')
           throw new ConflictException('Email already in use');
       }
+      this.logger.error(
+        `Failed to update user ${id} by HR`,
+        e instanceof Error ? e.stack : e,
+      );
       throw e;
     }
   }
@@ -248,6 +260,10 @@ export class UsersService {
         if (e.code === 'P2002')
           throw new ConflictException('Email already in use');
       }
+      this.logger.error(
+        `Failed to update profile ${id}`,
+        e instanceof Error ? e.stack : e,
+      );
       throw e;
     }
   }

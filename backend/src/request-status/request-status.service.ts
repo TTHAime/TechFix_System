@@ -1,23 +1,44 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { CreateRequestStatusDto } from './dto/create-request-status.dto';
 import { UpdateRequestStatusDto } from './dto/update-request-status.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from 'src/generated/prisma/client';
+import { AuditLogsService } from 'src/audit-logs/audit-logs.service';
 import type { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 @Injectable()
 export class RequestStatusService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(RequestStatusService.name);
 
-  async create(createRequestStatusDto: CreateRequestStatusDto) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLogsService: AuditLogsService,
+  ) {}
+
+  async create(
+    createRequestStatusDto: CreateRequestStatusDto,
+    actorId: number,
+  ) {
     try {
-      return await this.prisma.requestStatus.create({
+      const status = await this.prisma.requestStatus.create({
         data: createRequestStatusDto,
       });
+      this.logger.log(
+        `Request status created: ${status.id} by actor ${actorId}`,
+      );
+      await this.auditLogsService.create({
+        actorId,
+        entityType: 'request_status',
+        entityId: status.id,
+        action: 'created',
+        newValue: status,
+      });
+      return status;
     } catch (e) {
       if (
         e instanceof Prisma.PrismaClientKnownRequestError &&
@@ -25,6 +46,10 @@ export class RequestStatusService {
       ) {
         throw new ConflictException('Request status name already exists');
       }
+      this.logger.error(
+        `Failed to create request status`,
+        e instanceof Error ? e.stack : e,
+      );
       throw e;
     }
   }
@@ -58,12 +83,27 @@ export class RequestStatusService {
     return status;
   }
 
-  async update(id: number, updateRequestStatusDto: UpdateRequestStatusDto) {
+  async update(
+    id: number,
+    updateRequestStatusDto: UpdateRequestStatusDto,
+    actorId: number,
+  ) {
+    const oldStatus = await this.findOne(id);
     try {
-      return await this.prisma.requestStatus.update({
+      const status = await this.prisma.requestStatus.update({
         where: { id },
         data: updateRequestStatusDto,
       });
+      this.logger.log(`Request status updated: ${id} by actor ${actorId}`);
+      await this.auditLogsService.create({
+        actorId,
+        entityType: 'request_status',
+        entityId: id,
+        action: 'updated',
+        oldValue: oldStatus,
+        newValue: status,
+      });
+      return status;
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError) {
         if (e.code === 'P2025')
@@ -71,13 +111,29 @@ export class RequestStatusService {
         if (e.code === 'P2002')
           throw new ConflictException('Request status name already exists');
       }
+      this.logger.error(
+        `Failed to update request status ${id}`,
+        e instanceof Error ? e.stack : e,
+      );
       throw e;
     }
   }
 
-  async remove(id: number) {
+  async remove(id: number, actorId: number) {
+    const oldStatus = await this.findOne(id);
     try {
-      return await this.prisma.requestStatus.delete({ where: { id } });
+      const status = await this.prisma.requestStatus.delete({
+        where: { id },
+      });
+      this.logger.log(`Request status deleted: ${id} by actor ${actorId}`);
+      await this.auditLogsService.create({
+        actorId,
+        entityType: 'request_status',
+        entityId: id,
+        action: 'deleted',
+        oldValue: oldStatus,
+      });
+      return status;
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError) {
         if (e.code === 'P2025')
@@ -87,6 +143,10 @@ export class RequestStatusService {
             'Cannot delete status: it is still used by repair requests',
           );
       }
+      this.logger.error(
+        `Failed to delete request status ${id}`,
+        e instanceof Error ? e.stack : e,
+      );
       throw e;
     }
   }
