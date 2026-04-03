@@ -3,10 +3,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 
 interface FormikSelectProps {
-  name: string;
-  label: string;
-  placeholder?: string;
-  options: { value: string; label: string }[];
+  readonly name: string;
+  readonly label: string;
+  readonly placeholder?: string;
+  readonly options: { value: string; label: string }[];
 }
 
 export function FormikSelect({ name, label, placeholder, options }: FormikSelectProps) {

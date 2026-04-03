@@ -4,6 +4,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Shield } from 'lucide-react';
 
+const roleBadgeVariant: Record<string, 'destructive' | 'default' | 'warning' | 'secondary'> = {
+  admin: 'destructive',
+  hr: 'default',
+  technician: 'warning',
+};
+
 const roleDescriptions: Record<string, { label: string; permissions: string[] }> = {
   admin: {
     label: 'System Administrator',
@@ -90,12 +96,7 @@ export default function RolesPage() {
                     <TableCell className="font-medium">{role.id}</TableCell>
                     <TableCell className="font-medium capitalize">{role.name}</TableCell>
                     <TableCell>
-                      <Badge variant={
-                        role.name === 'admin' ? 'destructive'
-                          : role.name === 'hr' ? 'default'
-                            : role.name === 'technician' ? 'warning'
-                              : 'secondary'
-                      }>
+                      <Badge variant={roleBadgeVariant[role.name] ?? 'secondary'}>
                         {desc?.label ?? role.name}
                       </Badge>
                     </TableCell>

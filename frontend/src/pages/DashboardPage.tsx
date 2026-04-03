@@ -27,7 +27,6 @@ import {
   ResponsiveContainer,
   PieChart,
   Pie,
-  Cell,
   LineChart,
   Line,
 } from 'recharts';
@@ -45,9 +44,18 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router';
 
-const PIE_COLORS = ['#f59e0b', '#3b82f6', '#10b981', '#6b7280', '#ef4444', '#8b5cf6'];
+const PIE_COLORS = [
+  '#f59e0b',
+  '#3b82f6',
+  '#10b981',
+  '#6b7280',
+  '#ef4444',
+  '#8b5cf6',
+];
 
-function StatusBadgeVariant(status: string): 'warning' | 'default' | 'success' | 'secondary' {
+function StatusBadgeVariant(
+  status: string,
+): 'warning' | 'default' | 'success' | 'secondary' {
   const lower = status.toLowerCase();
   if (lower === 'open') return 'warning';
   if (lower === 'in_progress' || lower === 'in progress') return 'default';
@@ -57,7 +65,7 @@ function StatusBadgeVariant(status: string): 'warning' | 'default' | 'success' |
 
 // ─── Admin Dashboard ──────────────────────────────────────────────
 
-function AdminDashboard({ filter }: { filter: ReportFilter }) {
+function AdminDashboard({ filter }: Readonly<{ filter: ReportFilter }>) {
   const { data, isLoading } = useAdminDashboardQuery(filter);
   const exportRequests = useExportRepairRequestsMutation();
   const exportEquipment = useExportEquipmentMutation();
@@ -71,25 +79,39 @@ function AdminDashboard({ filter }: { filter: ReportFilter }) {
     <>
       {/* Stats cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/requests')}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Requests</CardTitle>
-            <ClipboardList className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dashboard.totalRequests}</div>
-            <p className="text-xs text-muted-foreground">All repair requests</p>
-          </CardContent>
+        <Card>
+          <button
+            type="button"
+            className="w-full text-left hover:bg-muted/50 transition-colors rounded-xl"
+            onClick={() => navigate('/requests')}
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Total Requests
+              </CardTitle>
+              <ClipboardList className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{dashboard.totalRequests}</div>
+              <p className="text-xs text-muted-foreground">All repair requests</p>
+            </CardContent>
+          </button>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Resolution</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Avg Resolution
+            </CardTitle>
             <Timer className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dashboard.avgResolutionHours}h</div>
-            <p className="text-xs text-muted-foreground">Average resolution time</p>
+            <div className="text-2xl font-bold">
+              {dashboard.avgResolutionHours}h
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Average resolution time
+            </p>
           </CardContent>
         </Card>
 
@@ -122,18 +144,17 @@ function AdminDashboard({ filter }: { filter: ReportFilter }) {
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie
-                  data={dashboard.byStatus}
+                  data={dashboard.byStatus.map((s, i) => ({
+                    ...s,
+                    fill: PIE_COLORS[i % PIE_COLORS.length],
+                  }))}
                   dataKey="count"
                   nameKey="status"
                   cx="50%"
                   cy="50%"
                   outerRadius={90}
                   label={({ name, value }) => `${name} (${value})`}
-                >
-                  {dashboard.byStatus.map((_, i) => (
-                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                  ))}
-                </Pie>
+                />
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
@@ -155,7 +176,12 @@ function AdminDashboard({ filter }: { filter: ReportFilter }) {
                 <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                 <YAxis allowDecimals={false} />
                 <Tooltip />
-                <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} />
+                <Line
+                  type="monotone"
+                  dataKey="count"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -183,7 +209,9 @@ function AdminDashboard({ filter }: { filter: ReportFilter }) {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-sm text-muted-foreground py-8 text-center">No data available</p>
+              <p className="text-sm text-muted-foreground py-8 text-center">
+                No data available
+              </p>
             )}
           </CardContent>
         </Card>
@@ -200,18 +228,24 @@ function AdminDashboard({ filter }: { filter: ReportFilter }) {
             {dashboard.topEquipment.length > 0 ? (
               <div className="space-y-3">
                 {dashboard.topEquipment.map((eq, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <span className="text-sm font-bold text-muted-foreground w-5">{i + 1}</span>
+                  <div key={eq.serialNo} className="flex items-center gap-3">
+                    <span className="text-sm font-bold text-muted-foreground w-5">
+                      {i + 1}
+                    </span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{eq.name}</p>
-                      <p className="text-xs text-muted-foreground">{eq.serialNo}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {eq.serialNo}
+                      </p>
                     </div>
                     <Badge variant="secondary">{eq.count} repairs</Badge>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground py-8 text-center">No data available</p>
+              <p className="text-sm text-muted-foreground py-8 text-center">
+                No data available
+              </p>
             )}
           </CardContent>
         </Card>
@@ -250,7 +284,7 @@ function AdminDashboard({ filter }: { filter: ReportFilter }) {
 
 // ─── Technician Dashboard ─────────────────────────────────────────
 
-function TechDashboard({ filter }: { filter: ReportFilter }) {
+function TechDashboard({ filter }: Readonly<{ filter: ReportFilter }>) {
   const { data, isLoading } = useTechnicianDashboardQuery(filter);
   const exportTasks = useExportMyTasksMutation();
   const navigate = useNavigate();
@@ -264,7 +298,9 @@ function TechDashboard({ filter }: { filter: ReportFilter }) {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Assigned to Me</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Assigned to Me
+            </CardTitle>
             <Wrench className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -275,11 +311,15 @@ function TechDashboard({ filter }: { filter: ReportFilter }) {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed This Month</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Completed This Month
+            </CardTitle>
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dashboard.completedThisMonth}</div>
+            <div className="text-2xl font-bold">
+              {dashboard.completedThisMonth}
+            </div>
             <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
         </Card>
@@ -308,23 +348,24 @@ function TechDashboard({ filter }: { filter: ReportFilter }) {
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie
-                  data={dashboard.byStatus}
+                  data={dashboard.byStatus.map((s, i) => ({
+                    ...s,
+                    fill: PIE_COLORS[i % PIE_COLORS.length],
+                  }))}
                   dataKey="count"
                   nameKey="status"
                   cx="50%"
                   cy="50%"
                   outerRadius={90}
                   label={({ name, value }) => `${name} (${value})`}
-                >
-                  {dashboard.byStatus.map((_, i) => (
-                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                  ))}
-                </Pie>
+                />
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-sm text-muted-foreground py-8 text-center">No assigned tasks</p>
+            <p className="text-sm text-muted-foreground py-8 text-center">
+              No assigned tasks
+            </p>
           )}
         </CardContent>
       </Card>
@@ -339,25 +380,32 @@ function TechDashboard({ filter }: { filter: ReportFilter }) {
         </CardHeader>
         <CardContent>
           {dashboard.activeRequests.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">No active tasks.</p>
+            <p className="text-sm text-muted-foreground py-4">
+              No active tasks.
+            </p>
           ) : (
             <div className="space-y-3">
               {dashboard.activeRequests.map((req) => (
-                <div
+                <button
                   key={req.id}
-                  className="flex items-center gap-4 rounded-lg border p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                  type="button"
+                  className="flex w-full items-center gap-4 rounded-lg border p-3 text-left hover:bg-muted/50 transition-colors"
                   onClick={() => navigate(`/requests/${req.id}`)}
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{req.description}</p>
+                    <p className="text-sm font-medium truncate">
+                      {req.description}
+                    </p>
                     <p className="text-xs text-muted-foreground">
-                      {req.requester} &middot; {req.department} &middot; {req.equipment.join(', ')} &middot; {new Date(req.createdAt).toLocaleDateString()}
+                      {req.requester} &middot; {req.department} &middot;{' '}
+                      {req.equipment.join(', ')} &middot;{' '}
+                      {new Date(req.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                   <Badge variant={StatusBadgeVariant(req.status)}>
                     {req.status.replace('_', ' ')}
                   </Badge>
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -388,7 +436,7 @@ function TechDashboard({ filter }: { filter: ReportFilter }) {
 
 // ─── HR Dashboard ─────────────────────────────────────────────────
 
-function HrDashboardView({ filter }: { filter: ReportFilter }) {
+function HrDashboardView({ filter }: Readonly<{ filter: ReportFilter }>) {
   const { data, isLoading } = useHrDashboardQuery(filter);
   const exportUsersMut = useExportUsersMutation();
   const dashboard = data?.data;
@@ -419,7 +467,9 @@ function HrDashboardView({ filter }: { filter: ReportFilter }) {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-sm text-muted-foreground py-8 text-center">No data available</p>
+              <p className="text-sm text-muted-foreground py-8 text-center">
+                No data available
+              </p>
             )}
           </CardContent>
         </Card>
@@ -444,7 +494,9 @@ function HrDashboardView({ filter }: { filter: ReportFilter }) {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-sm text-muted-foreground py-8 text-center">No data available</p>
+              <p className="text-sm text-muted-foreground py-8 text-center">
+                No data available
+              </p>
             )}
           </CardContent>
         </Card>
@@ -474,7 +526,7 @@ function HrDashboardView({ filter }: { filter: ReportFilter }) {
 
 // ─── User Dashboard ───────────────────────────────────────────────
 
-function UserDashboardView({ filter }: { filter: ReportFilter }) {
+function UserDashboardView({ filter }: Readonly<{ filter: ReportFilter }>) {
   const { data, isLoading } = useUserDashboardQuery(filter);
   const exportRequests = useExportMyRequestsMutation();
   const navigate = useNavigate();
@@ -486,15 +538,21 @@ function UserDashboardView({ filter }: { filter: ReportFilter }) {
   return (
     <>
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/requests')}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">My Requests</CardTitle>
-            <Wrench className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dashboard.totalRequests}</div>
-            <p className="text-xs text-muted-foreground">Total submitted</p>
-          </CardContent>
+        <Card>
+          <button
+            type="button"
+            className="w-full text-left hover:bg-muted/50 transition-colors rounded-xl"
+            onClick={() => navigate('/requests')}
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">My Requests</CardTitle>
+              <Wrench className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{dashboard.totalRequests}</div>
+              <p className="text-xs text-muted-foreground">Total submitted</p>
+            </CardContent>
+          </button>
         </Card>
 
         {dashboard.byStatus.map((s) => (
@@ -519,25 +577,31 @@ function UserDashboardView({ filter }: { filter: ReportFilter }) {
         </CardHeader>
         <CardContent>
           {dashboard.recentRequests.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">No requests yet.</p>
+            <p className="text-sm text-muted-foreground py-4">
+              No requests yet.
+            </p>
           ) : (
             <div className="space-y-3">
               {dashboard.recentRequests.map((req) => (
-                <div
+                <button
                   key={req.id}
-                  className="flex items-center gap-4 rounded-lg border p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                  type="button"
+                  className="flex w-full items-center gap-4 rounded-lg border p-3 text-left hover:bg-muted/50 transition-colors"
                   onClick={() => navigate(`/requests/${req.id}`)}
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{req.description}</p>
+                    <p className="text-sm font-medium truncate">
+                      {req.description}
+                    </p>
                     <p className="text-xs text-muted-foreground">
-                      {req.equipment.join(', ')} &middot; {new Date(req.createdAt).toLocaleDateString()}
+                      {req.equipment.join(', ')} &middot;{' '}
+                      {new Date(req.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                   <Badge variant={StatusBadgeVariant(req.status)}>
                     {req.status.replace('_', ' ')}
                   </Badge>
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -590,29 +654,37 @@ function DashboardSkeleton() {
 function DateFilterBar({
   filter,
   onChange,
-}: {
+}: Readonly<{
   filter: ReportFilter;
   onChange: (f: ReportFilter) => void;
-}) {
+}>) {
   return (
     <div className="flex flex-wrap items-end gap-4">
       <div className="space-y-1">
-        <Label htmlFor="startDate" className="text-xs">Start Date</Label>
+        <Label htmlFor="startDate" className="text-xs">
+          Start Date
+        </Label>
         <Input
           id="startDate"
           type="date"
           value={filter.startDate ?? ''}
-          onChange={(e) => onChange({ ...filter, startDate: e.target.value || undefined })}
+          onChange={(e) =>
+            onChange({ ...filter, startDate: e.target.value || undefined })
+          }
           className="w-40"
         />
       </div>
       <div className="space-y-1">
-        <Label htmlFor="endDate" className="text-xs">End Date</Label>
+        <Label htmlFor="endDate" className="text-xs">
+          End Date
+        </Label>
         <Input
           id="endDate"
           type="date"
           value={filter.endDate ?? ''}
-          onChange={(e) => onChange({ ...filter, endDate: e.target.value || undefined })}
+          onChange={(e) =>
+            onChange({ ...filter, endDate: e.target.value || undefined })
+          }
           className="w-40"
         />
       </div>

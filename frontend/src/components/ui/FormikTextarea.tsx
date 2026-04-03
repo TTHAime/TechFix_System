@@ -3,10 +3,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 
 interface FormikTextareaProps {
-  name: string;
-  label: string;
-  placeholder?: string;
-  rows?: number;
+  readonly name: string;
+  readonly label: string;
+  readonly placeholder?: string;
+  readonly rows?: number;
 }
 
 export function FormikTextarea({ name, label, placeholder, rows }: FormikTextareaProps) {

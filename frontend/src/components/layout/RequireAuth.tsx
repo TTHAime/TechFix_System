@@ -3,7 +3,7 @@ import { useAuthStore } from '@/stores/auth';
 import type { RoleName } from '@/types';
 
 interface RequireAuthProps {
-  allowedRoles?: RoleName[];
+  readonly allowedRoles?: RoleName[];
 }
 
 export function RequireAuth({ allowedRoles }: RequireAuthProps) {

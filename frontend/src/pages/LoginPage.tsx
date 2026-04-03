@@ -20,6 +20,23 @@ const loginSchema = Yup.object({
   password: Yup.string().required('Password is required'),
 });
 
+function getLoginErrorMessage(error: unknown): string {
+  if (!isAxiosError(error) || !error.response) {
+    return 'Cannot connect to server. Please try again.';
+  }
+  const msg = error.response.data?.message;
+  let msgStr = '';
+  if (typeof msg === 'string') {
+    msgStr = msg;
+  } else if (typeof msg?.message === 'string') {
+    msgStr = msg.message;
+  }
+  if (msgStr.toLowerCase().includes('locked')) {
+    return 'Account temporarily locked due to too many failed attempts. Please try again in 15 minutes.';
+  }
+  return 'Invalid email or password';
+}
+
 function GoogleIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
@@ -65,17 +82,7 @@ export default function LoginPage() {
                 await login(values.email, values.password);
                 navigate('/dashboard');
               } catch (error) {
-                if (isAxiosError(error) && error.response) {
-                  const msg = error.response.data?.message;
-                  const msgStr = typeof msg === 'string' ? msg : typeof msg?.message === 'string' ? msg.message : '';
-                  if (msgStr.toLowerCase().includes('locked')) {
-                    setFieldError('email', 'Account temporarily locked due to too many failed attempts. Please try again in 15 minutes.');
-                  } else {
-                    setFieldError('email', 'Invalid email or password');
-                  }
-                } else {
-                  setFieldError('email', 'Cannot connect to server. Please try again.');
-                }
+                setFieldError('email', getLoginErrorMessage(error));
               }
               setSubmitting(false);
             }}

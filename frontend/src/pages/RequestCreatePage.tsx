@@ -4,7 +4,13 @@ import * as Yup from 'yup';
 import { FormikTextarea } from '@/components/ui/FormikTextarea';
 import { FormikSelect } from '@/components/ui/FormikSelect';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import { useEquipmentQuery } from '@/features/equipment/hooks';
 import { useCreateRepairRequestMutation } from '@/features/repair-requests/hooks';
 import { ArrowLeft } from 'lucide-react';
@@ -40,19 +46,27 @@ export default function RequestCreatePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/requests')}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate('/requests')}
+        >
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
           <h1 className="text-2xl font-bold">New Repair Request</h1>
-          <p className="text-sm text-muted-foreground">Submit a new repair request for equipment</p>
+          <p className="text-sm text-muted-foreground">
+            Submit a new repair request for equipment
+          </p>
         </div>
       </div>
 
       <Card className="max-w-2xl">
         <CardHeader>
           <CardTitle>Request Details</CardTitle>
-          <CardDescription>Describe the issue and select the equipment</CardDescription>
+          <CardDescription>
+            Describe the issue and select the equipment
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Formik<RequestCreateValues>
@@ -62,12 +76,22 @@ export default function RequestCreatePage() {
               createMutation.mutate(
                 {
                   description: values.description,
-                  equipments: [{ equipmentId: Number(values.equipmentId), issueDetail: values.issueDetail }],
+                  equipments: [
+                    {
+                      equipmentId: Number(values.equipmentId),
+                      issueDetail: values.issueDetail,
+                    },
+                  ],
                 },
                 {
-                  onSuccess: () => navigate('/requests'),
+                  onSuccess: () => {
+                    navigate('/requests');
+                  },
                   onError: () => {
-                    setFieldError('description', 'Failed to submit request. Please try again.');
+                    setFieldError(
+                      'description',
+                      'Failed to submit request. Please try again.',
+                    );
                     setSubmitting(false);
                   },
                 },
@@ -95,10 +119,19 @@ export default function RequestCreatePage() {
                   rows={3}
                 />
                 <div className="flex gap-3 pt-2">
-                  <Button type="submit" disabled={isSubmitting || createMutation.isPending}>
-                    {createMutation.isPending ? 'Submitting...' : 'Submit Request'}
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting || createMutation.isPending}
+                  >
+                    {createMutation.isPending
+                      ? 'Submitting...'
+                      : 'Submit Request'}
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => navigate('/requests')}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => navigate('/requests')}
+                  >
                     Cancel
                   </Button>
                 </div>

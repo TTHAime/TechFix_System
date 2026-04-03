@@ -41,7 +41,7 @@ axiosInstance.interceptors.response.use(
       originalRequest.url?.includes('/auth/login') ||
       originalRequest.url?.includes('/auth/refresh')
     ) {
-      return Promise.reject(error);
+      throw error;
     }
 
     originalRequest._retry = true;
@@ -71,13 +71,13 @@ axiosInstance.interceptors.response.use(
       // Refresh failed — logout
       processQueue(null);
       useAuthStore.getState().logout();
-      window.location.href = '/login';
-      return Promise.reject(error);
+      globalThis.location.href = '/login';
+      throw error;
     } catch {
       processQueue(null);
       useAuthStore.getState().logout();
-      window.location.href = '/login';
-      return Promise.reject(error);
+      globalThis.location.href = '/login';
+      throw error;
     } finally {
       isRefreshing = false;
     }

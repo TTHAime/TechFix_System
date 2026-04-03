@@ -53,7 +53,7 @@ export default function EquipmentPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedEquipment, setSelectEquipment] = useState<
+  const [selectedEquipment, setSelectedEquipment] = useState<
     (typeof equipment)[0] | null
   >(null);
   const updateMutation = useUpdateEquipmentMutation();
@@ -149,7 +149,7 @@ export default function EquipmentPage() {
                         variant="ghost"
                         size="icon"
                         onClick={() => {
-                          setSelectEquipment(eq);
+                          setSelectedEquipment(eq);
                           setEditDialogOpen(true);
                         }}
                       >
@@ -159,7 +159,7 @@ export default function EquipmentPage() {
                         variant="ghost"
                         size="icon"
                         onClick={() => {
-                          setSelectEquipment(eq);
+                          setSelectedEquipment(eq);
                           setDeleteDialogOpen(true);
                         }}
                       >

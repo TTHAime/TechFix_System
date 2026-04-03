@@ -1,13 +1,33 @@
 import { useState } from 'react';
-import { useUsersQuery, useCreateUserMutation, useUpdateUserMutation, useOnboardUserMutation, useHrUpdateUserMutation } from '@/features/users/hooks';
+import {
+  useUsersQuery,
+  useCreateUserMutation,
+  useUpdateUserMutation,
+  useOnboardUserMutation,
+  useHrUpdateUserMutation,
+} from '@/features/users/hooks';
 import { useRolesQuery } from '@/features/roles/hooks';
 import { useDepartmentsQuery } from '@/features/departments/hooks';
 import type { User } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import { FormikInput } from '@/components/ui/FormikInput';
@@ -64,7 +84,9 @@ const hrCreateSchema = Yup.object({
     .max(254, 'Email address is too long')
     .required('Email is required'),
   deptId: Yup.string().required('Department is required'),
-  password: Yup.string().min(15, 'Password must be at least 15 characters').max(64, 'Password must not exceed 64 characters'),
+  password: Yup.string()
+    .min(15, 'Password must be at least 15 characters')
+    .max(64, 'Password must not exceed 64 characters'),
 });
 
 const adminEditSchema = Yup.object({
@@ -103,7 +125,9 @@ function PasswordPolicyHint() {
       </p>
       <ul className="list-disc list-inside space-y-0.5 font-medium">
         <li>15–64 characters</li>
-        <li>No common or easily guessable patterns (e.g. 1234, abcd, qwerty)</li>
+        <li>
+          No common or easily guessable patterns (e.g. 1234, abcd, qwerty)
+        </li>
       </ul>
     </div>
   );
@@ -129,11 +153,43 @@ export default function UsersPage() {
   const users = usersResponse?.data ?? [];
   const canManageUsers = hasRole('admin', 'hr');
 
-  const roleOptions = (rolesResponse?.data ?? []).map((r) => ({ value: String(r.id), label: r.name }));
-  const deptOptions = (deptsResponse?.data ?? []).map((d) => ({ value: String(d.id), label: d.name }));
+  const roleOptions = (rolesResponse?.data ?? []).map((r) => ({
+    value: String(r.id),
+    label: r.name,
+  }));
+  const deptOptions = (deptsResponse?.data ?? []).map((d) => ({
+    value: String(d.id),
+    label: d.name,
+  }));
 
-  if (isLoading) return <div className="flex items-center justify-center p-8">Loading users...</div>;
-  if (isError) return <div className="flex items-center justify-center p-8 text-destructive">Failed to load users</div>;
+  if (isLoading)
+    return (
+      <div className="flex items-center justify-center p-8">
+        Loading users...
+      </div>
+    );
+  if (isError)
+    return (
+      <div className="flex items-center justify-center p-8 text-destructive">
+        Failed to load users
+      </div>
+    );
+
+  const deactivateActionLabel = selectedUser?.isActive
+    ? 'Deactivate'
+    : 'Activate';
+  const deactivatePendingLabel = selectedUser?.isActive
+    ? 'Deactivating...'
+    : 'Activating...';
+  const deactivateButtonLabel = hrUpdateMutation.isPending
+    ? deactivatePendingLabel
+    : deactivateActionLabel;
+  const deactivateToastMsg = selectedUser?.isActive
+    ? `${selectedUser?.name} has been deactivated`
+    : `${selectedUser?.name} has been activated`;
+  const deactivateDialogDesc = selectedUser?.isActive
+    ? `Are you sure you want to deactivate "${selectedUser?.name}"? They will no longer be able to log in.`
+    : `Are you sure you want to reactivate "${selectedUser?.name}"? They will be able to log in again.`;
 
   return (
     <div className="space-y-6">
@@ -143,7 +199,9 @@ export default function UsersPage() {
             {isAdmin ? 'User Management' : 'Employees'}
           </h1>
           <p className="text-muted-foreground">
-            {isAdmin ? 'Manage user accounts, roles and permissions' : 'Manage employee information'}
+            {isAdmin
+              ? 'Manage user accounts, roles and permissions'
+              : 'Manage employee information'}
           </p>
         </div>
         {canManageUsers && (
@@ -157,7 +215,9 @@ export default function UsersPage() {
       <Card>
         <CardHeader>
           <CardTitle>
-            {isAdmin ? `All Users (${users.length})` : `All Employees (${users.length})`}
+            {isAdmin
+              ? `All Users (${users.length})`
+              : `All Employees (${users.length})`}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -169,25 +229,36 @@ export default function UsersPage() {
                 <TableHead>Role</TableHead>
                 <TableHead>Department</TableHead>
                 <TableHead>Status</TableHead>
-                {canManageUsers && <TableHead className="w-32">Actions</TableHead>}
+                {canManageUsers && (
+                  <TableHead className="w-32">Actions</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
               {users.map((u) => {
-                const initials = u.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
+                const initials = u.name
+                  .split(' ')
+                  .map((n) => n[0])
+                  .join('')
+                  .toUpperCase()
+                  .slice(0, 2);
                 return (
                   <TableRow key={u.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
-                          <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+                          <AvatarFallback className="text-xs">
+                            {initials}
+                          </AvatarFallback>
                         </Avatar>
                         <span className="font-medium">{u.name}</span>
                       </div>
                     </TableCell>
                     <TableCell>{u.email}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="capitalize">{u.role.name}</Badge>
+                      <Badge variant="outline" className="capitalize">
+                        {u.role.name}
+                      </Badge>
                     </TableCell>
                     <TableCell>{u.department.name}</TableCell>
                     <TableCell>
@@ -202,7 +273,10 @@ export default function UsersPage() {
                             variant="ghost"
                             size="icon"
                             title="Edit"
-                            onClick={() => { setSelectedUser(u); setEditDialogOpen(true); }}
+                            onClick={() => {
+                              setSelectedUser(u);
+                              setEditDialogOpen(true);
+                            }}
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -211,7 +285,10 @@ export default function UsersPage() {
                               variant="ghost"
                               size="icon"
                               title="Reset Password"
-                              onClick={() => { setSelectedUser(u); setResetDialogOpen(true); }}
+                              onClick={() => {
+                                setSelectedUser(u);
+                                setResetDialogOpen(true);
+                              }}
                             >
                               <KeyRound className="h-4 w-4" />
                             </Button>
@@ -225,10 +302,11 @@ export default function UsersPage() {
                               setDeactivateDialogOpen(true);
                             }}
                           >
-                            {u.isActive
-                              ? <UserX className="h-4 w-4 text-destructive" />
-                              : <UserCheck className="h-4 w-4 text-emerald-600" />
-                            }
+                            {u.isActive ? (
+                              <UserX className="h-4 w-4 text-destructive" />
+                            ) : (
+                              <UserCheck className="h-4 w-4 text-emerald-600" />
+                            )}
                           </Button>
                         </div>
                       </TableCell>
@@ -247,12 +325,20 @@ export default function UsersPage() {
           <DialogHeader>
             <DialogTitle>{isAdmin ? 'Add User' : 'Add Employee'}</DialogTitle>
             <DialogDescription>
-              {isAdmin ? 'Create a new user account with role assignment' : 'Add a new employee record'}
+              {isAdmin
+                ? 'Create a new user account with role assignment'
+                : 'Add a new employee record'}
             </DialogDescription>
           </DialogHeader>
           {isAdmin ? (
             <Formik<AdminCreateValues>
-              initialValues={{ name: '', email: '', roleId: '', deptId: '', password: '' }}
+              initialValues={{
+                name: '',
+                email: '',
+                roleId: '',
+                deptId: '',
+                password: '',
+              }}
               validationSchema={adminCreateSchema}
               onSubmit={(values, { setSubmitting, resetForm }) => {
                 createMutation.mutate(
@@ -264,7 +350,11 @@ export default function UsersPage() {
                     deptId: Number(values.deptId),
                   },
                   {
-                    onSuccess: () => { toast.success('User created successfully'); resetForm(); setDialogOpen(false); },
+                    onSuccess: () => {
+                      toast.success('User created successfully');
+                      resetForm();
+                      setDialogOpen(false);
+                    },
                     onError: (err) => toast.error(getErrorMessage(err)),
                     onSettled: () => setSubmitting(false),
                   },
@@ -273,14 +363,44 @@ export default function UsersPage() {
             >
               {({ isSubmitting }) => (
                 <Form className="space-y-4">
-                  <FormikInput name="name" label="Name" placeholder="Full name" />
-                  <FormikInput name="email" label="Email" type="email" placeholder="user@company.com" />
-                  <FormikInput name="password" label="Password" type="password" placeholder="15–64 characters" />
+                  <FormikInput
+                    name="name"
+                    label="Name"
+                    placeholder="Full name"
+                  />
+                  <FormikInput
+                    name="email"
+                    label="Email"
+                    type="email"
+                    placeholder="user@company.com"
+                  />
+                  <FormikInput
+                    name="password"
+                    label="Password"
+                    type="password"
+                    placeholder="15–64 characters"
+                  />
                   <PasswordPolicyHint />
-                  <FormikSelect name="roleId" label="Role" placeholder="Select role..." options={roleOptions} />
-                  <FormikSelect name="deptId" label="Department" placeholder="Select department..." options={deptOptions} />
+                  <FormikSelect
+                    name="roleId"
+                    label="Role"
+                    placeholder="Select role..."
+                    options={roleOptions}
+                  />
+                  <FormikSelect
+                    name="deptId"
+                    label="Department"
+                    placeholder="Select department..."
+                    options={deptOptions}
+                  />
                   <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
                     <Button type="submit" disabled={isSubmitting}>
                       {isSubmitting ? 'Creating...' : 'Create'}
                     </Button>
@@ -301,7 +421,11 @@ export default function UsersPage() {
                     password: values.password || undefined,
                   },
                   {
-                    onSuccess: () => { toast.success('Employee added successfully'); resetForm(); setDialogOpen(false); },
+                    onSuccess: () => {
+                      toast.success('Employee added successfully');
+                      resetForm();
+                      setDialogOpen(false);
+                    },
                     onError: (err) => toast.error(getErrorMessage(err)),
                     onSettled: () => setSubmitting(false),
                   },
@@ -310,12 +434,37 @@ export default function UsersPage() {
             >
               {({ isSubmitting }) => (
                 <Form className="space-y-4">
-                  <FormikInput name="name" label="Name" placeholder="Full name" />
-                  <FormikInput name="email" label="Email" type="email" placeholder="user@company.com" />
-                  <FormikInput name="password" label="Password (optional)" type="password" placeholder="Min 15 characters" />
-                  <FormikSelect name="deptId" label="Department" placeholder="Select department..." options={deptOptions} />
+                  <FormikInput
+                    name="name"
+                    label="Name"
+                    placeholder="Full name"
+                  />
+                  <FormikInput
+                    name="email"
+                    label="Email"
+                    type="email"
+                    placeholder="user@company.com"
+                  />
+                  <FormikInput
+                    name="password"
+                    label="Password (optional)"
+                    type="password"
+                    placeholder="Min 15 characters"
+                  />
+                  <FormikSelect
+                    name="deptId"
+                    label="Department"
+                    placeholder="Select department..."
+                    options={deptOptions}
+                  />
                   <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
                     <Button type="submit" disabled={isSubmitting}>
                       {isSubmitting ? 'Creating...' : 'Create'}
                     </Button>
@@ -333,7 +482,9 @@ export default function UsersPage() {
           <DialogHeader>
             <DialogTitle>Edit {selectedUser?.name}</DialogTitle>
             <DialogDescription>
-              {isAdmin ? 'Update account details and role' : 'Update employee information'}
+              {isAdmin
+                ? 'Update account details and role'
+                : 'Update employee information'}
             </DialogDescription>
           </DialogHeader>
           {selectedUser && isAdmin && (
@@ -357,7 +508,11 @@ export default function UsersPage() {
                     },
                   },
                   {
-                    onSuccess: () => { toast.success('User updated successfully'); setEditDialogOpen(false); setSelectedUser(null); },
+                    onSuccess: () => {
+                      toast.success('User updated successfully');
+                      setEditDialogOpen(false);
+                      setSelectedUser(null);
+                    },
                     onError: (err) => toast.error(getErrorMessage(err)),
                     onSettled: () => setSubmitting(false),
                   },
@@ -366,12 +521,37 @@ export default function UsersPage() {
             >
               {({ isSubmitting }) => (
                 <Form className="space-y-4">
-                  <FormikInput name="name" label="Name" placeholder="Full name" />
-                  <FormikInput name="email" label="Email" type="email" placeholder="user@company.com" />
-                  <FormikSelect name="roleId" label="Role" placeholder="Select role..." options={roleOptions} />
-                  <FormikSelect name="deptId" label="Department" placeholder="Select department..." options={deptOptions} />
+                  <FormikInput
+                    name="name"
+                    label="Name"
+                    placeholder="Full name"
+                  />
+                  <FormikInput
+                    name="email"
+                    label="Email"
+                    type="email"
+                    placeholder="user@company.com"
+                  />
+                  <FormikSelect
+                    name="roleId"
+                    label="Role"
+                    placeholder="Select role..."
+                    options={roleOptions}
+                  />
+                  <FormikSelect
+                    name="deptId"
+                    label="Department"
+                    placeholder="Select department..."
+                    options={deptOptions}
+                  />
                   <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setEditDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
                     <Button type="submit" disabled={isSubmitting}>
                       {isSubmitting ? 'Saving...' : 'Save Changes'}
                     </Button>
@@ -397,7 +577,11 @@ export default function UsersPage() {
                     },
                   },
                   {
-                    onSuccess: () => { toast.success('User updated successfully'); setEditDialogOpen(false); setSelectedUser(null); },
+                    onSuccess: () => {
+                      toast.success('User updated successfully');
+                      setEditDialogOpen(false);
+                      setSelectedUser(null);
+                    },
                     onError: (err) => toast.error(getErrorMessage(err)),
                     onSettled: () => setSubmitting(false),
                   },
@@ -406,10 +590,25 @@ export default function UsersPage() {
             >
               {({ isSubmitting }) => (
                 <Form className="space-y-4">
-                  <FormikInput name="name" label="Name" placeholder="Full name" />
-                  <FormikSelect name="deptId" label="Department" placeholder="Select department..." options={deptOptions} />
+                  <FormikInput
+                    name="name"
+                    label="Name"
+                    placeholder="Full name"
+                  />
+                  <FormikSelect
+                    name="deptId"
+                    label="Department"
+                    placeholder="Select department..."
+                    options={deptOptions}
+                  />
                   <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setEditDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
                     <Button type="submit" disabled={isSubmitting}>
                       {isSubmitting ? 'Saving...' : 'Save Changes'}
                     </Button>
@@ -427,7 +626,8 @@ export default function UsersPage() {
           <DialogHeader>
             <DialogTitle>Reset Password</DialogTitle>
             <DialogDescription>
-              Set a new password for {selectedUser?.name} ({selectedUser?.email})
+              Set a new password for {selectedUser?.name} ({selectedUser?.email}
+              )
             </DialogDescription>
           </DialogHeader>
           <Formik
@@ -455,10 +655,26 @@ export default function UsersPage() {
             {({ isSubmitting }) => (
               <Form className="space-y-4">
                 <PasswordPolicyHint />
-                <FormikInput name="newPassword" label="New Password" type="password" placeholder="15–64 characters" />
-                <FormikInput name="confirmPassword" label="Confirm Password" type="password" placeholder="Repeat password" />
+                <FormikInput
+                  name="newPassword"
+                  label="New Password"
+                  type="password"
+                  placeholder="15–64 characters"
+                />
+                <FormikInput
+                  name="confirmPassword"
+                  label="Confirm Password"
+                  type="password"
+                  placeholder="Repeat password"
+                />
                 <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setResetDialogOpen(false)}>Cancel</Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setResetDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
                   <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting ? 'Resetting...' : 'Reset Password'}
                   </Button>
@@ -471,20 +687,23 @@ export default function UsersPage() {
 
       {/* Deactivate / Activate confirmation dialog */}
       {selectedUser && (
-        <Dialog open={deactivateDialogOpen} onOpenChange={setDeactivateDialogOpen}>
+        <Dialog
+          open={deactivateDialogOpen}
+          onOpenChange={setDeactivateDialogOpen}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
                 {selectedUser.isActive ? 'Deactivate' : 'Activate'} User
               </DialogTitle>
-              <DialogDescription>
-                {selectedUser.isActive
-                  ? `Are you sure you want to deactivate "${selectedUser.name}"? They will no longer be able to log in.`
-                  : `Are you sure you want to reactivate "${selectedUser.name}"? They will be able to log in again.`}
-              </DialogDescription>
+              <DialogDescription>{deactivateDialogDesc}</DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDeactivateDialogOpen(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setDeactivateDialogOpen(false)}
+              >
                 Cancel
               </Button>
               <Button
@@ -492,14 +711,13 @@ export default function UsersPage() {
                 disabled={hrUpdateMutation.isPending}
                 onClick={() => {
                   hrUpdateMutation.mutate(
-                    { id: selectedUser.id, payload: { isActive: !selectedUser.isActive } },
+                    {
+                      id: selectedUser.id,
+                      payload: { isActive: !selectedUser.isActive },
+                    },
                     {
                       onSuccess: () => {
-                        toast.success(
-                          selectedUser.isActive
-                            ? `${selectedUser.name} has been deactivated`
-                            : `${selectedUser.name} has been activated`,
-                        );
+                        toast.success(deactivateToastMsg);
                         setDeactivateDialogOpen(false);
                         setSelectedUser(null);
                       },
@@ -508,9 +726,7 @@ export default function UsersPage() {
                   );
                 }}
               >
-                {hrUpdateMutation.isPending
-                  ? (selectedUser.isActive ? 'Deactivating...' : 'Activating...')
-                  : (selectedUser.isActive ? 'Deactivate' : 'Activate')}
+                {deactivateButtonLabel}
               </Button>
             </DialogFooter>
           </DialogContent>

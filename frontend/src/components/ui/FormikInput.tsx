@@ -3,10 +3,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 interface FormikInputProps {
-  name: string;
-  label: string;
-  type?: string;
-  placeholder?: string;
+  readonly name: string;
+  readonly label: string;
+  readonly type?: string;
+  readonly placeholder?: string;
 }
 
 export function FormikInput({ name, label, type = 'text', placeholder }: FormikInputProps) {

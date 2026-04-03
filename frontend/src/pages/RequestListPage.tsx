@@ -1,15 +1,28 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuthStore } from '@/stores/auth';
-import { useRepairRequestsQuery, useAcceptItemMutation } from '@/features/repair-requests/hooks';
+import {
+  useRepairRequestsQuery,
+  useAcceptItemMutation,
+} from '@/features/repair-requests/hooks';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Plus, Hand, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import type { RequestStatusName, RepairRequest } from '@/types';
 
-const statusVariantMap: Record<RequestStatusName, 'warning' | 'default' | 'success' | 'secondary'> = {
+const statusVariantMap: Record<
+  RequestStatusName,
+  'warning' | 'default' | 'success' | 'secondary'
+> = {
   open: 'warning',
   in_progress: 'default',
   resolved: 'success',
@@ -20,16 +33,25 @@ export default function RequestListPage() {
   const navigate = useNavigate();
   const { user, hasRole } = useAuthStore();
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<RequestStatusName | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<RequestStatusName | 'all'>(
+    'all',
+  );
 
-  const { data: response, isLoading, isError } = useRepairRequestsQuery(page, 20);
+  const {
+    data: response,
+    isLoading,
+    isError,
+  } = useRepairRequestsQuery(page, 20);
 
   if (!user) return null;
 
   const allRequests = response?.data ?? [];
   const meta = response?.meta;
 
-  const requests = statusFilter !== 'all' ? allRequests.filter((r) => r.status.name === statusFilter) : allRequests;
+  const requests =
+    statusFilter === 'all'
+      ? allRequests
+      : allRequests.filter((r) => r.status.name === statusFilter);
 
   // Technician is assigned to me if any item has technicianId === me
   const isAssignedToMe = (req: RepairRequest) =>
@@ -37,19 +59,21 @@ export default function RequestListPage() {
 
   // Items in a request that are still open (technician can claim)
   const claimableItems = (req: RepairRequest) =>
-    hasRole('technician') ? req.requestEquipment.filter((item) => item.status.name === 'open') : [];
+    hasRole('technician')
+      ? req.requestEquipment.filter((item) => item.status.name === 'open')
+      : [];
 
+  const technicianRoleMsg = hasRole('technician')
+    ? 'Your repairs & open requests'
+    : 'All repair requests';
+  const userRoleMsg = hasRole('user')? 'Your submitted requests' : technicianRoleMsg;
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Repair Requests</h1>
           <p className="text-muted-foreground">
-            {hasRole('user')
-              ? 'Your submitted requests'
-              : hasRole('technician')
-                ? 'Your repairs & open requests'
-                : 'All repair requests'}
+            {userRoleMsg}
           </p>
         </div>
         {hasRole('user', 'admin', 'hr') && (
@@ -62,16 +86,18 @@ export default function RequestListPage() {
 
       {/* Filters */}
       <div className="flex gap-2">
-        {(['all', 'open', 'in_progress', 'resolved', 'closed'] as const).map((s) => (
-          <Button
-            key={s}
-            variant={statusFilter === s ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setStatusFilter(s)}
-          >
-            {s === 'all' ? 'All' : s.replace('_', ' ')}
-          </Button>
-        ))}
+        {(['all', 'open', 'in_progress', 'resolved', 'closed'] as const).map(
+          (s) => (
+            <Button
+              key={s}
+              variant={statusFilter === s ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setStatusFilter(s)}
+            >
+              {s === 'all' ? 'All' : s.replace('_', ' ')}
+            </Button>
+          ),
+        )}
       </div>
 
       <Card>
@@ -79,13 +105,17 @@ export default function RequestListPage() {
           <CardTitle>Requests {meta ? `(${meta.total})` : ''}</CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {isLoading && (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : isError ? (
-            <div className="text-center text-destructive py-8">Failed to load requests. Please try again.</div>
-          ) : (
+          )}
+          {isError && (
+            <div className="text-center text-destructive py-8">
+              Failed to load requests. Please try again.
+            </div>
+          )}
+          {!isLoading && !isError && (
             <>
               <Table>
                 <TableHeader>
@@ -96,7 +126,9 @@ export default function RequestListPage() {
                     {!hasRole('user') && <TableHead>Requester</TableHead>}
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
-                    {hasRole('technician') && <TableHead className="w-32">Items to Claim</TableHead>}
+                    {hasRole('technician') && (
+                      <TableHead className="w-32">Items to Claim</TableHead>
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -104,8 +136,6 @@ export default function RequestListPage() {
                     <RequestRow
                       key={req.id}
                       req={req}
-                      userId={user.id}
-                      isAdmin={hasRole('admin')}
                       isTechnician={hasRole('technician')}
                       isUser={hasRole('user')}
                       isAssignedToMe={isAssignedToMe(req)}
@@ -115,7 +145,10 @@ export default function RequestListPage() {
                   ))}
                   {requests.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                      <TableCell
+                        colSpan={7}
+                        className="text-center text-muted-foreground py-8"
+                      >
                         No requests found.
                       </TableCell>
                     </TableRow>
@@ -130,7 +163,12 @@ export default function RequestListPage() {
                     Page {meta.page} of {Math.ceil(meta.total / meta.limit)}
                   </p>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={page <= 1}
+                      onClick={() => setPage((p) => p - 1)}
+                    >
                       <ChevronLeft className="h-4 w-4" />
                       Previous
                     </Button>
@@ -157,14 +195,12 @@ export default function RequestListPage() {
 // ─── Sub-component: one row ───────────────────────────────────────────────────
 
 interface RequestRowProps {
-  req: RepairRequest;
-  userId: number;
-  isAdmin: boolean;
-  isTechnician: boolean;
-  isUser: boolean;
-  isAssignedToMe: boolean;
-  claimableItems: RepairRequest['requestEquipment'];
-  onRowClick: () => void;
+  readonly req: RepairRequest;
+  readonly isTechnician: boolean;
+  readonly isUser: boolean;
+  readonly isAssignedToMe: boolean;
+  readonly claimableItems: RepairRequest['requestEquipment'];
+  readonly onRowClick: () => void;
 }
 
 function RequestRow({
@@ -181,11 +217,15 @@ function RequestRow({
     <TableRow className="cursor-pointer" onClick={onRowClick}>
       <TableCell className="font-medium">#{req.id}</TableCell>
       <TableCell className="max-w-xs truncate">{req.description}</TableCell>
-      <TableCell>{req.requestEquipment.map((e) => e.equipment.name).join(', ')}</TableCell>
+      <TableCell>
+        {req.requestEquipment.map((e) => e.equipment.name).join(', ')}
+      </TableCell>
       {!isUser && <TableCell>{req.requester.name}</TableCell>}
       <TableCell>
         <div className="flex items-center gap-2">
-          <Badge variant={statusVariantMap[req.status.name]}>{req.status.name.replace('_', ' ')}</Badge>
+          <Badge variant={statusVariantMap[req.status.name]}>
+            {req.status.name.replace('_', ' ')}
+          </Badge>
           {isTechnician && isAssignedToMe && (
             <Badge variant="outline" className="text-xs">
               mine
@@ -193,7 +233,9 @@ function RequestRow({
           )}
         </div>
       </TableCell>
-      <TableCell className="text-muted-foreground">{new Date(req.createdAt).toLocaleDateString()}</TableCell>
+      <TableCell className="text-muted-foreground">
+        {new Date(req.createdAt).toLocaleDateString()}
+      </TableCell>
       {isTechnician && (
         <TableCell onClick={(e) => e.stopPropagation()}>
           {claimableItems.length > 0 && (

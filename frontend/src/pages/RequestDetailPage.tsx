@@ -13,15 +13,32 @@ import {
 import { useUsersQuery } from '@/features/users/hooks';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, User, Monitor, Clock, Wrench, Hand, UserX } from 'lucide-react';
+import {
+  ArrowLeft,
+  User,
+  Monitor,
+  Clock,
+  Wrench,
+  Hand,
+  UserX,
+} from 'lucide-react';
 import type { RequestStatusName, RequestEquipment } from '@/types';
 
-const statusVariantMap: Record<RequestStatusName, 'warning' | 'default' | 'success' | 'secondary'> = {
+const statusVariantMap: Record<
+  RequestStatusName,
+  'warning' | 'default' | 'success' | 'secondary'
+> = {
   open: 'warning',
   in_progress: 'default',
   resolved: 'success',
@@ -47,7 +64,9 @@ export default function RequestDetailPage() {
   const resolveMutation = useResolveItemMutation(Number(id));
 
   if (isLoading) {
-    return <p className="text-muted-foreground py-12 text-center">Loading...</p>;
+    return (
+      <p className="text-muted-foreground py-12 text-center">Loading...</p>
+    );
   }
 
   const request = requestData?.data;
@@ -63,18 +82,25 @@ export default function RequestDetailPage() {
     );
   }
 
-  const technicians = (usersData?.data ?? []).filter((u) => u.role.name === 'technician');
+  const technicians = (usersData?.data ?? []).filter(
+    (u) => u.role.name === 'technician',
+  );
   const isClosed = request.status.name === 'closed';
 
-  const assignmentEvents = request.assignmentLogs.map((log) => ({
-    key: `assign-${log.id}`,
-    color: 'bg-blue-500',
-    label:
-      log.actorId === log.technicianId
-        ? `${log.technician?.name ?? 'Technician'} claimed ${log.item?.equipment?.name ?? 'item'}`
-        : `${log.action} ${log.technician?.name ?? 'Technician'}${log.item?.equipment?.name ? ` → ${log.item.equipment.name}` : ''}`,
-    date: log.loggedAt,
-  }));
+  const assignmentEvents = request.assignmentLogs.map((log) => {
+    const suffix = log.item?.equipment?.name
+      ? ` → ${log.item.equipment.name}`
+      : '';
+    return {
+      key: `assign-${log.id}`,
+      color: 'bg-blue-500',
+      label:
+        log.actorId === log.technicianId
+          ? `${log.technician?.name ?? 'Technician'} claimed ${log.item?.equipment?.name ?? 'item'}`
+          : `${log.action} ${log.technician?.name ?? 'Technician'}${suffix}`,
+      date: log.loggedAt,
+    };
+  });
 
   const isPending =
     acceptMutation.isPending ||
@@ -85,14 +111,23 @@ export default function RequestDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/requests')}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate('/requests')}
+        >
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold">Request #{request.id}</h1>
-          <p className="text-sm text-muted-foreground">Created {new Date(request.createdAt).toLocaleString()}</p>
+          <p className="text-sm text-muted-foreground">
+            Created {new Date(request.createdAt).toLocaleString()}
+          </p>
         </div>
-        <Badge variant={statusVariantMap[request.status.name]} className="text-sm px-3 py-1">
+        <Badge
+          variant={statusVariantMap[request.status.name]}
+          className="text-sm px-3 py-1"
+        >
           {request.status.name.replace('_', ' ')}
         </Badge>
       </div>
@@ -105,7 +140,9 @@ export default function RequestDetailPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Description</p>
+              <p className="text-sm font-medium text-muted-foreground mb-1">
+                Description
+              </p>
               <p>{request.description}</p>
             </div>
 
@@ -126,10 +163,17 @@ export default function RequestDetailPage() {
                     currentUserId={user?.id}
                     technicians={technicians}
                     onAccept={(seqNo) => acceptMutation.mutate(seqNo)}
-                    onAssign={(seqNo, technicianId) => assignMutation.mutate({ seqNo, technicianId })}
+                    onAssign={(seqNo, technicianId) =>
+                      assignMutation.mutate({ seqNo, technicianId })
+                    }
                     onUnassign={(seqNo) => unassignMutation.mutate(seqNo)}
                     onResolve={(seqNo, partsUsed, repairSummary, note) =>
-                      resolveMutation.mutate({ seqNo, partsUsed, repairSummary, note })
+                      resolveMutation.mutate({
+                        seqNo,
+                        partsUsed,
+                        repairSummary,
+                        note,
+                      })
                     }
                     isPending={isPending}
                   />
@@ -150,8 +194,12 @@ export default function RequestDetailPage() {
             </CardHeader>
             <CardContent>
               <p className="font-medium">{request.requester.name}</p>
-              <p className="text-sm text-muted-foreground">{request.requester.email}</p>
-              <p className="text-sm text-muted-foreground">{request.requester.department.name}</p>
+              <p className="text-sm text-muted-foreground">
+                {request.requester.email}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {request.requester.department.name}
+              </p>
             </CardContent>
           </Card>
 
@@ -207,35 +255,45 @@ export default function RequestDetailPage() {
                     disabled={closeMutation.isPending}
                     onClick={() => closeMutation.mutate()}
                   >
-                    {closeMutation.isPending ? 'Closing...' : 'Force Close Request'}
+                    {closeMutation.isPending
+                      ? 'Closing...'
+                      : 'Force Close Request'}
                   </Button>
                 )}
-                {request.status.name !== 'resolved' && request.status.name !== 'closed' && (
-                  <p className="text-xs text-muted-foreground">Assign/unassign items individually above.</p>
-                )}
+                {request.status.name !== 'resolved' &&
+                  request.status.name !== 'closed' && (
+                    <p className="text-xs text-muted-foreground">
+                      Assign/unassign items individually above.
+                    </p>
+                  )}
               </CardContent>
             </Card>
           )}
 
           {/* User confirm */}
-          {request.status.name === 'resolved' && user?.id === request.requesterId && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">ยืนยันการซ่อม</CardTitle>
-                <CardDescription>กรุณายืนยันว่าการซ่อมเสร็จสมบูรณ์</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  className="w-full"
-                  size="sm"
-                  disabled={confirmMutation.isPending}
-                  onClick={() => confirmMutation.mutate()}
-                >
-                  {confirmMutation.isPending ? 'กำลังยืนยัน...' : 'ยืนยันรับงานซ่อม'}
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+          {request.status.name === 'resolved' &&
+            user?.id === request.requesterId && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">ยืนยันการซ่อม</CardTitle>
+                  <CardDescription>
+                    กรุณายืนยันว่าการซ่อมเสร็จสมบูรณ์
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    className="w-full"
+                    size="sm"
+                    disabled={confirmMutation.isPending}
+                    onClick={() => confirmMutation.mutate()}
+                  >
+                    {confirmMutation.isPending
+                      ? 'กำลังยืนยัน...'
+                      : 'ยืนยันรับงานซ่อม'}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
         </div>
       </div>
     </div>
@@ -245,17 +303,22 @@ export default function RequestDetailPage() {
 // ─── EquipmentItemCard ────────────────────────────────────────────────────────
 
 interface EquipmentItemCardProps {
-  item: RequestEquipment;
-  isClosed: boolean;
-  isAdmin: boolean;
-  isTechnician: boolean;
-  currentUserId?: number;
-  technicians: Array<{ id: number; name: string; role: { name: string } }>;
-  onAccept: (seqNo: number) => void;
-  onAssign: (seqNo: number, technicianId: number) => void;
-  onUnassign: (seqNo: number) => void;
-  onResolve: (seqNo: number, partsUsed?: string, repairSummary?: string, note?: string) => void;
-  isPending: boolean;
+  readonly item: RequestEquipment;
+  readonly isClosed: boolean;
+  readonly isAdmin: boolean;
+  readonly isTechnician: boolean;
+  readonly currentUserId?: number;
+  readonly technicians: Array<{ id: number; name: string; role: { name: string } }>;
+  readonly onAccept: (seqNo: number) => void;
+  readonly onAssign: (seqNo: number, technicianId: number) => void;
+  readonly onUnassign: (seqNo: number) => void;
+  readonly onResolve: (
+    seqNo: number,
+    partsUsed?: string,
+    repairSummary?: string,
+    note?: string,
+  ) => void;
+  readonly isPending: boolean;
 }
 
 function EquipmentItemCard({
@@ -276,7 +339,7 @@ function EquipmentItemCard({
   const [repairSummary, setRepairSummary] = useState('');
 
   const isMyItem = isTechnician && item.technicianId === currentUserId;
-  const itemStatusName = item.status.name as RequestStatusName;
+  const itemStatusName = item.status.name;
 
   function handleResolve() {
     onResolve(item.seqNo, partsUsed || undefined, repairSummary || undefined);
@@ -290,11 +353,15 @@ function EquipmentItemCard({
       {/* Header row */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono text-muted-foreground">#{item.seqNo}</span>
+          <span className="text-xs font-mono text-muted-foreground">
+            #{item.seqNo}
+          </span>
           <p className="font-medium">{item.equipment.name}</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">{item.equipment.serialNo}</span>
+          <span className="text-xs text-muted-foreground">
+            {item.equipment.serialNo}
+          </span>
           <Badge variant={statusVariantMap[itemStatusName]} className="text-xs">
             {itemStatusName.replace('_', ' ')}
           </Badge>
@@ -313,7 +380,8 @@ function EquipmentItemCard({
       {/* Technician info */}
       {item.technician && (
         <p className="text-xs text-muted-foreground">
-          <span className="font-medium">Technician:</span> {item.technician.name}
+          <span className="font-medium">Technician:</span>{' '}
+          {item.technician.name}
           {item.resolvedAt && (
             <span className="ml-2 text-emerald-600">
               · Resolved {new Date(item.resolvedAt).toLocaleDateString()}
@@ -328,9 +396,13 @@ function EquipmentItemCard({
           <p className="text-xs flex items-center gap-1 text-muted-foreground font-medium">
             <Wrench className="h-3 w-3" /> Repair Info
           </p>
-          {item.repairSummary && <p className="text-xs">{item.repairSummary}</p>}
+          {item.repairSummary && (
+            <p className="text-xs">{item.repairSummary}</p>
+          )}
           {item.partsUsed && (
-            <p className="text-xs text-muted-foreground">Parts: {item.partsUsed}</p>
+            <p className="text-xs text-muted-foreground">
+              Parts: {item.partsUsed}
+            </p>
           )}
         </div>
       )}
@@ -340,7 +412,12 @@ function EquipmentItemCard({
         <div className="flex flex-wrap gap-2 pt-1">
           {/* Technician: accept open item */}
           {isTechnician && itemStatusName === 'open' && (
-            <Button size="sm" variant="outline" disabled={isPending} onClick={() => onAccept(item.seqNo)}>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={isPending}
+              onClick={() => onAccept(item.seqNo)}
+            >
               <Hand className="mr-1 h-3 w-3" />
               Accept
             </Button>
@@ -348,7 +425,11 @@ function EquipmentItemCard({
 
           {/* Technician: resolve own in-progress item */}
           {isMyItem && itemStatusName === 'in_progress' && !showResolveForm && (
-            <Button size="sm" disabled={isPending} onClick={() => setShowResolveForm(true)}>
+            <Button
+              size="sm"
+              disabled={isPending}
+              onClick={() => setShowResolveForm(true)}
+            >
               Mark Resolved
             </Button>
           )}
@@ -373,7 +454,12 @@ function EquipmentItemCard({
 
           {/* Admin: unassign in-progress item */}
           {isAdmin && itemStatusName === 'in_progress' && (
-            <Button size="sm" variant="ghost" disabled={isPending} onClick={() => onUnassign(item.seqNo)}>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={isPending}
+              onClick={() => onUnassign(item.seqNo)}
+            >
               <UserX className="mr-1 h-3 w-3" />
               Unassign
             </Button>
@@ -412,7 +498,11 @@ function EquipmentItemCard({
             <Button size="sm" disabled={isPending} onClick={handleResolve}>
               {isPending ? 'Saving...' : 'Confirm Resolved'}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setShowResolveForm(false)}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setShowResolveForm(false)}
+            >
               Cancel
             </Button>
           </div>
