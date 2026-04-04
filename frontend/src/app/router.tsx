@@ -15,6 +15,7 @@ import UsersPage from '@/pages/UsersPage';
 import DepartmentsPage from '@/pages/DepartmentsPage';
 import RolesPage from '@/pages/RolesPage';
 import SystemLogsPage from '@/pages/SystemLogsPage';
+import EquipmentCategoriesPage from '@/pages/EquipmentCategoriesPage';
 
 export const router = createBrowserRouter([
   // Public routes
@@ -88,6 +89,7 @@ export const router = createBrowserRouter([
         element: <AppLayout />,
         children: [
           { path: '/roles', element: <RolesPage /> },
+          { path: '/equipment-categories', element: <EquipmentCategoriesPage /> },
           { path: '/logs', element: <SystemLogsPage /> },
         ],
       },

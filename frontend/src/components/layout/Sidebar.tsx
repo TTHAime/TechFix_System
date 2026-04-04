@@ -9,6 +9,7 @@ import {
   Shield,
   LogOut,
   ScrollText,
+  FolderOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -45,6 +46,11 @@ export function Sidebar() {
   // Departments — admin, hr
   if (hasRole('admin', 'hr')) {
     navItems.push({ to: '/departments', label: 'Departments', icon: <Building2 className="h-4 w-4" /> });
+  }
+
+  // Equipment Categories — admin only
+  if (hasRole('admin')) {
+    navItems.push({ to: '/equipment-categories', label: 'Categories', icon: <FolderOpen className="h-4 w-4" /> });
   }
 
   // Roles — admin only

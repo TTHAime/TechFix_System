@@ -1,5 +1,5 @@
 import { axiosInstance } from '@/lib/axios';
-import type { Equipment, EquipmentCategory } from '@/types';
+import type { Equipment } from '@/types';
 import type { PaginatedResponse, ApiResponse } from '@/types/api';
 
 export async function getEquipment(page = 1, limit = 20): Promise<PaginatedResponse<Equipment>> {
@@ -37,9 +37,3 @@ export async function deleteEquipment(id: number): Promise<ApiResponse<Equipment
   return data;
 }
 
-export async function getEquipmentCategories(): Promise<PaginatedResponse<EquipmentCategory>> {
-  const { data } = await axiosInstance.get<PaginatedResponse<EquipmentCategory>>('/equipment-categories', {
-    params: { page: 1, limit: 100 },
-  });
-  return data;
-}

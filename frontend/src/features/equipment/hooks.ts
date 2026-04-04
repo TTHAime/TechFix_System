@@ -1,18 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getEquipment, getEquipmentCategories, createEquipment, updateEquipment, deleteEquipment } from './api';
+import { getEquipment, createEquipment, updateEquipment, deleteEquipment } from './api';
 
 export function useEquipmentQuery(page = 1, limit = 20) {
   return useQuery({
     queryKey: ['equipment', page, limit],
     queryFn: () => getEquipment(page, limit),
-  });
-}
-
-export function useEquipmentCategoriesQuery(enabled = true) {
-  return useQuery({
-    queryKey: ['equipment-categories'],
-    queryFn: () => getEquipmentCategories(),
-    enabled,
   });
 }
 

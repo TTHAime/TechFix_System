@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import {
   useEquipmentQuery,
-  useEquipmentCategoriesQuery,
   useCreateEquipmentMutation,
   useUpdateEquipmentMutation,
   useDeleteEquipmentMutation,
 } from '@/features/equipment/hooks';
+import { useEquipmentCategoriesQuery } from '@/features/equipment-categories/hooks';
 import { useDepartmentsQuery } from '@/features/departments/hooks';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -62,7 +62,7 @@ export default function EquipmentPage() {
 
   const isAdmin = hasRole('admin');
   const { data: eqResponse, isLoading, isError } = useEquipmentQuery();
-  const { data: catResponse } = useEquipmentCategoriesQuery(isAdmin);
+  const { data: catResponse } = useEquipmentCategoriesQuery(1, 100, isAdmin);
   const { data: deptResponse } = useDepartmentsQuery(1, 20, isAdmin);
   const createMutation = useCreateEquipmentMutation();
 
