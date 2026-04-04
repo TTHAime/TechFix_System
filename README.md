@@ -83,114 +83,20 @@ frontend/src/
 
 ### 1. Email/Password Login
 
-```
-┌──────────┐              ┌──────────┐              ┌──────────┐
-│  Client  │              │  Backend │              │    DB    │
-└────┬─────┘              └────┬─────┘              └────┬─────┘
-     │                         │                         │
-     │  POST /auth/login        │                         │
-     │  { email, password }     │                         │
-     │────────────────────────►│                         │
-     │                         │  SELECT user BY email   │
-     │                         │────────────────────────►│
-     │                         │◄────────────────────────│
-     │                         │                         │
-     │                         │  ① isActive? → 401 if false
-     │                         │  ② lockedUntil? → 423 if locked
-     │                         │  ③ verifyPassword(Argon2id + Pepper)
-     │                         │     └─ fail → increment failedAttempts
-     │                         │     └─ 5th fail → lock 15 min → 423
-     │                         │  ④ reset failedAttempts on success
-     │                         │  ⑤ sign JWT { sub, email, roleId, roleName }
-     │                         │     expires: 15 min (HS512)
-     │                         │  ⑥ generate refresh token (40 bytes random)
-     │                         │     store SHA-256 hash, expires: 7 days
-     │                         │────────────────────────►│
-     │                         │                         │
-     │  { accessToken }        │                         │
-     │  Set-Cookie: refresh_token (httpOnly, 7d)         │
-     │◄────────────────────────│                         │
-```
+<img width="5180" height="4545" alt="Authentication Flow with-2026-04-04-050152" src="https://github.com/user-attachments/assets/9b4b93e7-4011-40c3-8b71-9fe0743b1270" />
+
 
 ### 2. Google OAuth 2.0 (SSO)
 
-```
-┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
-│  Client  │     │  Backend │     │  Google  │     │    DB    │
-└────┬─────┘     └────┬─────┘     └────┬─────┘     └────┬─────┘
-     │                │                │                 │
-     │  GET /auth/google               │                 │
-     │───────────────►│                │                 │
-     │                │  302 → Google consent screen     │
-     │◄───────────────│                │                 │
-     │                │                │                 │
-     │  User grants permission         │                 │
-     │───────────────────────────────►│                 │
-     │                │  GET /auth/google/callback?code= │
-     │                │◄───────────────│                 │
-     │                │                │                 │
-     │                │  exchange code → { id, email, displayName }
-     │                │◄───────────────│                 │
-     │                │                                  │
-     │                │  SELECT user BY email            │
-     │                │─────────────────────────────────►│
-     │                │◄─────────────────────────────────│
-     │                │                                  │
-     │                │  [not found] → 302 /login?error= │
-     │                │  [inactive]  → 302 /login?error= │
-     │                │  [ok] link providerUid if null   │
-     │                │        store refresh token hash  │
-     │                │─────────────────────────────────►│
-     │                │                                  │
-     │  302 → /auth/google/callback?token={accessToken}  │
-     │◄───────────────│                                  │
-     │                │                                  │
-     │  POST /auth/refresh (httpOnly cookie)             │
-     │───────────────►│                                  │
-     │  { accessToken (rotated) }                        │
-     │◄───────────────│                                  │
-     │                │                                  │
-     │  GET /auth/me (Bearer token)                      │
-     │───────────────►│                                  │
-     │  { data: User }│                                  │
-     │◄───────────────│                                  │
-     │                │                                  │
-     │  navigate → /dashboard                            │
-```
+<img width="7755" height="5920" alt="Authentication Flow with-2026-04-04-050220" src="https://github.com/user-attachments/assets/d97ac4bd-e3e4-4657-ab3f-ea6b987ddc62" />
+
 
 > **หมายเหตุ:** ผู้ใช้ต้องมี account ในระบบก่อน (สร้างโดย Admin/HR) จึงจะ login ผ่าน Google ได้ — ระบบจะ link `providerUid` กับ account ที่มีอยู่
 
 ### 3. Token Refresh (Silent Refresh)
 
-```
-┌──────────┐              ┌──────────┐              ┌──────────┐
-│  Client  │              │  Backend │              │    DB    │
-└────┬─────┘              └────┬─────┘              └────┬─────┘
-     │                         │                         │
-     │  [any request → 401]    │                         │
-     │  Axios interceptor intercepts                     │
-     │                         │                         │
-     │  POST /auth/refresh      │                         │
-     │  Cookie: refresh_token   │                         │
-     │────────────────────────►│                         │
-     │                         │  SELECT token BY hash   │
-     │                         │────────────────────────►│
-     │                         │◄────────────────────────│
-     │                         │                         │
-     │                         │  ① verify not expired / not revoked
-     │                         │  ② mark old token as revoked
-     │                         │  ③ sign new JWT (15 min)
-     │                         │  ④ generate new refresh token
-     │                         │     store new hash in DB
-     │                         │────────────────────────►│
-     │                         │                         │
-     │  { accessToken }        │                         │
-     │  Set-Cookie: refresh_token (rotated, httpOnly)    │
-     │◄────────────────────────│                         │
-     │                         │                         │
-     │  retry original request │                         │
-     │────────────────────────►│                         │
-```
+<img width="5900" height="4005" alt="Authentication Flow with-2026-04-04-050312" src="https://github.com/user-attachments/assets/7b4ed8de-1035-41ce-a54a-7523ee0c74c3" />
+
 
 - **Access Token:** เก็บใน memory (Zustand store) — ไม่เก็บใน localStorage
 - **Refresh Token:** เก็บใน httpOnly cookie — JavaScript เข้าถึงไม่ได้
