@@ -208,7 +208,7 @@ updateProfile(@Param('id') id: string, @Body() dto: UpdateProfileDto) { ... }
 |---|:---:|:---:|:---:|:---:|
 | `POST /users` (สร้าง user) | ✅ | — | — | — |
 | `POST /users/onboard` (onboard พนักงาน) | — | ✅ | — | — |
-| `PATCH /users/:id/profile` (แก้ profile คนอื่น) | ✅ | ✅ | — | — |
+| `PATCH /users/:id/profile` (แก้ profile คนอื่น) | ✅ | ✅ (ชื่อกับแผนก) | — | — |
 | `GET /users` (ดูรายชื่อทั้งหมด) | ✅ | ✅ | — | — |
 | `DELETE /users/:id` (ปิดการใช้งาน) | ✅ | ✅ | — | — |
 | `POST /repair-requests` (สร้างใบแจ้งซ่อม) | ✅ | ✅ | — | ✅ |
@@ -216,7 +216,7 @@ updateProfile(@Param('id') id: string, @Body() dto: UpdateProfileDto) { ... }
 | `PATCH /.../assign` (มอบหมายงาน) | ✅ | — | — | — |
 | `PATCH /.../accept` (รับงาน) | — | — | ✅ | — |
 | `PATCH /.../resolve` (แจ้งซ่อมเสร็จ) | — | — | ✅ | — |
-| `PATCH /.../confirm` (ยืนยันรับคืน) | — | — | — | ✅ |
+| `PATCH /.../confirm` (ยืนยันรับคืน) | ✅ (งานตัวเอง) | ✅ (งานตัวเอง) | — | ✅ (งานตัวเอง) |
 | `PATCH /.../close` (ปิดใบแจ้งซ่อม) | ✅ | — | — | — |
 | `GET /audit-logs` (ดู audit log) | ✅ | — | — | — |
 
