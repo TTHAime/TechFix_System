@@ -32,6 +32,7 @@ import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import { FormikInput } from '@/components/ui/FormikInput';
 import { FormikSelect } from '@/components/ui/FormikSelect';
+import { PasswordStrengthMeter } from '@/components/ui/PasswordStrengthMeter';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Plus, Pencil, KeyRound, UserX, UserCheck } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
@@ -58,6 +59,10 @@ const safeTextPattern = /^[^<>"';{}()|\\]*$/;
 const strongPasswordSchema = Yup.string()
   .min(15, 'Password must be at least 15 characters')
   .max(64, 'Password must not exceed 64 characters')
+  .matches(/[A-Z]/, 'Must contain at least one uppercase letter')
+  .matches(/[a-z]/, 'Must contain at least one lowercase letter')
+  .matches(/[0-9]/, 'Must contain at least one number')
+  .matches(/[^A-Za-z0-9]/, 'Must contain at least one special character')
   .required('Password is required');
 
 const adminCreateSchema = Yup.object({
@@ -86,7 +91,11 @@ const hrCreateSchema = Yup.object({
   deptId: Yup.string().required('Department is required'),
   password: Yup.string()
     .min(15, 'Password must be at least 15 characters')
-    .max(64, 'Password must not exceed 64 characters'),
+    .max(64, 'Password must not exceed 64 characters')
+    .matches(/[A-Z]/, 'Must contain at least one uppercase letter')
+    .matches(/[a-z]/, 'Must contain at least one lowercase letter')
+    .matches(/[0-9]/, 'Must contain at least one number')
+    .matches(/[^A-Za-z0-9]/, 'Must contain at least one special character'),
 });
 
 const adminEditSchema = Yup.object({
@@ -117,21 +126,6 @@ const resetPasswordSchema = Yup.object({
     .required('Please confirm the password'),
 });
 
-function PasswordPolicyHint() {
-  return (
-    <div className="rounded-md border-2 border-red-400 bg-red-50 p-3 text-xs text-red-900 dark:border-red-600 dark:bg-red-950 dark:text-red-100">
-      <p className="font-bold text-sm text-red-700 dark:text-red-300 mb-1.5 uppercase tracking-wide">
-        Password requirements
-      </p>
-      <ul className="list-disc list-inside space-y-0.5 font-medium">
-        <li>15–64 characters</li>
-        <li>
-          No common or easily guessable patterns (e.g. 1234, abcd, qwerty)
-        </li>
-      </ul>
-    </div>
-  );
-}
 
 function getDeactivateInfo(user: User | null, isPending: boolean) {
   const active = user?.isActive;
@@ -363,7 +357,7 @@ export default function UsersPage() {
                 );
               }}
             >
-              {({ isSubmitting }) => (
+              {({ isSubmitting, values }) => (
                 <Form className="space-y-4">
                   <FormikInput
                     name="name"
@@ -382,7 +376,7 @@ export default function UsersPage() {
                     type="password"
                     placeholder="15–64 characters"
                   />
-                  <PasswordPolicyHint />
+                  <PasswordStrengthMeter value={values.password} />
                   <FormikSelect
                     name="roleId"
                     label="Role"
@@ -434,7 +428,7 @@ export default function UsersPage() {
                 );
               }}
             >
-              {({ isSubmitting }) => (
+              {({ isSubmitting, values }) => (
                 <Form className="space-y-4">
                   <FormikInput
                     name="name"
@@ -453,6 +447,7 @@ export default function UsersPage() {
                     type="password"
                     placeholder="Min 15 characters"
                   />
+                  <PasswordStrengthMeter value={values.password} />
                   <FormikSelect
                     name="deptId"
                     label="Department"
@@ -654,15 +649,15 @@ export default function UsersPage() {
               );
             }}
           >
-            {({ isSubmitting }) => (
+            {({ isSubmitting, values }) => (
               <Form className="space-y-4">
-                <PasswordPolicyHint />
                 <FormikInput
                   name="newPassword"
                   label="New Password"
                   type="password"
                   placeholder="15–64 characters"
                 />
+                <PasswordStrengthMeter value={values.newPassword} />
                 <FormikInput
                   name="confirmPassword"
                   label="Confirm Password"
