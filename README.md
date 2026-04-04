@@ -265,9 +265,9 @@ updateProfile(@Param('id') id: string, @Body() dto: UpdateProfileDto) { ... }
 
 ## Security Measures (OWASP Mapping)
 
-การออกแบบความปลอดภัยของระบบ mapping กับ [OWASP Top 10 (2021)](https://owasp.org/Top10/)
+การออกแบบความปลอดภัยของระบบ mapping กับ [OWASP Top 10 (2025)](https://owasp.org/Top10/2025/)
 
-### A01:2021 — Broken Access Control
+### A01:2025 — Broken Access Control
 
 | มาตรการ | รายละเอียด |
 |---|---|
@@ -277,7 +277,26 @@ updateProfile(@Param('id') id: string, @Body() dto: UpdateProfileDto) { ... }
 | CORS restriction | อนุญาตเฉพาะ origin ที่กำหนดใน `CORS_ORIGIN` env |
 | Soft delete | ป้องกันการลบข้อมูลถาวรโดยไม่ตั้งใจ |
 
-### A02:2021 — Cryptographic Failures
+### A02:2025 — Security Misconfiguration
+
+| มาตรการ | รายละเอียด |
+|---|---|
+| Helmet.js | ตั้ง security headers อัตโนมัติ (X-Content-Type-Options, X-Frame-Options, HSTS ฯลฯ) |
+| CORS | จำกัด origin ที่อนุญาตผ่าน env variable |
+| Environment variables | Secrets ทั้งหมด (JWT_SECRET, PEPPER, DB password) อยู่ใน `.env` — ไม่ hardcode |
+| Docker isolation | แต่ละ service รันใน container แยก มี network isolation |
+| ValidationPipe strict mode | `forbidUnknownValues: true` — reject payload ที่มี field ไม่รู้จัก |
+
+### A03:2025 — Software Supply Chain Failures
+
+| มาตรการ | รายละเอียด |
+|---|---|
+| pnpm lockfile | `pnpm-lock.yaml` ล็อก dependency versions — ป้องกัน dependency confusion |
+| Docker pinned images | ใช้ image tag ที่ระบุ version ชัดเจน (เช่น `postgres:17-alpine`) |
+| Prisma migrations | Schema changes ผ่าน migration system — trackable และ reversible |
+| No user-controlled dependencies | ไม่รับ package name / URL จาก user input |
+
+### A04:2025 — Cryptographic Failures
 
 | มาตรการ | รายละเอียด |
 |---|---|
@@ -288,7 +307,7 @@ updateProfile(@Param('id') id: string, @Body() dto: UpdateProfileDto) { ... }
 | httpOnly cookie | Refresh token ส่งผ่าน httpOnly cookie เท่านั้น — JS เข้าถึงไม่ได้ |
 | Secure flag | ใช้ `secure: true` ใน production — ส่ง cookie ผ่าน HTTPS เท่านั้น |
 
-### A03:2021 — Injection
+### A05:2025 — Injection
 
 | มาตรการ | รายละเอียด |
 |---|---|
@@ -298,7 +317,7 @@ updateProfile(@Param('id') id: string, @Body() dto: UpdateProfileDto) { ... }
 | HTML Sanitization | ใช้ `sanitize-html` ผ่าน `@Sanitize()` decorator — ลบ HTML tags ทั้งหมดจาก input |
 | Email normalization | `.toLowerCase()` + `@IsEmail()` validation |
 
-### A04:2021 — Insecure Design
+### A06:2025 — Insecure Design
 
 | มาตรการ | รายละเอียด |
 |---|---|
@@ -308,17 +327,7 @@ updateProfile(@Param('id') id: string, @Body() dto: UpdateProfileDto) { ... }
 | Status & Assignment logs | บันทึกประวัติการเปลี่ยนสถานะและการมอบหมายงานทั้งหมด |
 | Separation of concerns | Business logic อยู่ใน service layer, controller เป็นแค่ thin layer |
 
-### A05:2021 — Security Misconfiguration
-
-| มาตรการ | รายละเอียด |
-|---|---|
-| Helmet.js | ตั้ง security headers อัตโนมัติ (X-Content-Type-Options, X-Frame-Options, HSTS ฯลฯ) |
-| CORS | จำกัด origin ที่อนุญาตผ่าน env variable |
-| Environment variables | Secrets ทั้งหมด (JWT_SECRET, PEPPER, DB password) อยู่ใน `.env` — ไม่ hardcode |
-| Docker isolation | แต่ละ service รันใน container แยก มี network isolation |
-| ValidationPipe strict mode | `forbidUnknownValues: true` — reject payload ที่มี field ไม่รู้จัก |
-
-### A07:2021 — Identification and Authentication Failures
+### A07:2025 — Authentication Failures
 
 | มาตรการ | รายละเอียด |
 |---|---|
@@ -328,7 +337,7 @@ updateProfile(@Param('id') id: string, @Body() dto: UpdateProfileDto) { ... }
 | Google OAuth 2.0 | รองรับ SSO — ลดความเสี่ยงจาก password reuse |
 | SameSite cookie | `sameSite: 'lax'` ป้องกัน CSRF attacks |
 
-### A08:2021 — Software and Data Integrity Failures
+### A08:2025 — Software or Data Integrity Failures
 
 | มาตรการ | รายละเอียด |
 |---|---|
@@ -336,7 +345,7 @@ updateProfile(@Param('id') id: string, @Body() dto: UpdateProfileDto) { ... }
 | Docker build | Deterministic builds ผ่าน Dockerfile — reproducible deployments |
 | pnpm lockfile | `pnpm-lock.yaml` ล็อก dependency versions |
 
-### A09:2021 — Security Logging and Monitoring Failures
+### A09:2025 — Security Logging and Alerting Failures
 
 | มาตรการ | รายละเอียด |
 |---|---|
@@ -346,12 +355,14 @@ updateProfile(@Param('id') id: string, @Body() dto: UpdateProfileDto) { ... }
 | Error logging | 5xx errors ถูก log พร้อม stack trace |
 | Log levels | ใช้ log level ที่เหมาะสม (info, warn, error) ตั้งค่าผ่าน `LOG_LEVEL` env |
 
-### A10:2021 — Server-Side Request Forgery (SSRF)
+### A10:2025 — Mishandling of Exceptional Conditions
 
 | มาตรการ | รายละเอียด |
 |---|---|
-| No outbound requests | Backend ไม่ fetch URL จาก user input — ลดความเสี่ยง SSRF |
-| Google OAuth fixed URL | OAuth callback URL กำหนดตายตัวใน env — ไม่รับ redirect URL จาก client |
+| Global exception filter | NestJS `HttpExceptionFilter` จัดการ error ทุกประเภท — ไม่ expose stack trace ใน production |
+| Consistent error response | ทุก error response ใช้ format เดียวกัน `{ statusCode, message }` — ไม่รั่วข้อมูล internal |
+| No outbound user-URL fetch | Backend ไม่ fetch URL จาก user input — ป้องกัน SSRF |
+| Google OAuth fixed callback | OAuth callback URL กำหนดตายตัวใน env — ไม่รับ redirect URL จาก client |
 | Nginx reverse proxy | Client ไม่เข้าถึง backend/database โดยตรง |
 
 ---
