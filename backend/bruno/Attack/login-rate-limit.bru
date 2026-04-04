@@ -1,0 +1,40 @@
+meta {
+  name: Login - Rate Limit (Throttle)
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{base_url}}/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "ratelimit@test.com",
+    "password": "wrong"
+  }
+}
+
+tests {
+  test("should return 429 when rate limit exceeded", function() {
+    expect(res.status).to.equal(429);
+  });
+}
+
+docs {
+  # Rate Limit Test (Global Throttle)
+  
+  ทดสอบว่า ThrottlerGuard บล็อก request เมื่อเกิน 60 req/min
+  
+  ## วิธีทดสอบ
+  1. ใช้ Bruno Runner รันไฟล์นี้ซ้ำ 65 ครั้ง (iterations = 65)
+  2. Request แรกๆ จะได้ 401 (Invalid credentials)
+  3. หลัง request ที่ 60 จะได้ 429 (Too Many Requests)
+  
+  หรือรัน bash ก่อนแล้วค่อยรันไฟล์นี้ 1 ครั้ง:
+  ```
+  for i in $(seq 1 60); do curl -s -o /dev/null -X POST http://localhost:3000/auth/login -H "Content-Type: application/json" -d '{"email":"x@x.com","password":"x"}'; done
+  ```
+}

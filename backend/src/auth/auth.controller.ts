@@ -13,6 +13,7 @@ import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
+import { CsrfOriginGuard } from 'src/common/guards/csrf-origin.guard';
 import type { JwtPayload } from 'src/common/interfaces/jwt-payload.interface';
 
 @Controller('auth')
@@ -21,7 +22,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(200)
-  @UseGuards(LocalAuthGuard)
+  @UseGuards(CsrfOriginGuard, LocalAuthGuard)
   login(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const user = req.user as {
       id: number;
@@ -42,6 +43,7 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(200)
+  @UseGuards(CsrfOriginGuard)
   refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const rawToken = req.cookies['refresh_token'] as string | undefined;
     if (!rawToken) throw new UnauthorizedException('No refresh token');

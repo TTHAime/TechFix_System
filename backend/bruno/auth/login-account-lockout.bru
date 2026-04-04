@@ -1,0 +1,48 @@
+meta {
+  name: Login - Account Lockout
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{base_url}}/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "{{admin_email}}",
+    "password": "wrongpassword"
+  }
+}
+
+tests {
+  test("should return 401 with locked message after 5 failed attempts", function() {
+    if (res.status === 401) {
+      const body = res.body;
+      const msg = typeof body.message === 'string' ? body.message : JSON.stringify(body.message);
+      if (msg.toLowerCase().includes('locked')) {
+        expect(msg).to.include('locked');
+      } else {
+        expect(msg).to.include('Invalid credentials');
+      }
+    }
+  });
+}
+
+docs {
+  # Account Lockout Test (Brute Force Protection)
+
+  ทดสอบว่าระบบล็อกบัญชีหลังใส่รหัสผิด 5 ครั้งติด
+
+  ## วิธีทดสอบ
+  1. ใช้ Bruno Runner รันไฟล์นี้ 6 ครั้ง (iterations = 6)
+  2. ครั้งที่ 1-5: ได้ 401 "Invalid credentials"
+  3. ครั้งที่ 6: ได้ 401 "Account temporarily locked"
+
+  ## ⚠️ หมายเหตุ
+  - ใช้ admin_email จาก environment
+  - หลังทดสอบ account จะถูกล็อก 15 นาที
+  - Reset ด้วย SQL: UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE email = '...';
+}

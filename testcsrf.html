@@ -1,0 +1,7 @@
+<!-- test-csrf.html — เปิดจาก file:// หรือ localhost:9999 -->
+<h1>CSRF Attack Test</h1>
+<form action="http://localhost:3000/auth/login" method="POST">
+  <input name="email" value="admin@techfix.com" />
+  <input name="password" value="test" />
+  <button type="submit">Attack!</button>
+</form>
