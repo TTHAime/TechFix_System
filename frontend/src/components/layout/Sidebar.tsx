@@ -1,5 +1,7 @@
-import { NavLink } from 'react-router';
+import { NavLink, useLocation } from 'react-router';
+import { useEffect } from 'react';
 import { useAuthStore } from '@/stores/auth';
+import { useSidebarStore } from '@/stores/sidebar';
 import {
   LayoutDashboard,
   Wrench,
@@ -10,6 +12,7 @@ import {
   LogOut,
   ScrollText,
   FolderOpen,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -22,43 +25,37 @@ interface NavItem {
   icon: React.ReactNode;
 }
 
-export function Sidebar() {
+function SidebarContent() {
   const { user, logout, hasRole } = useAuthStore();
+  const close = useSidebarStore((s) => s.close);
   if (!user) return null;
 
   const navItems: NavItem[] = [
     { to: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
   ];
 
-  // Repair requests — all roles can see (user sees own, tech sees assigned, admin/hr sees all)
   navItems.push({ to: '/requests', label: 'Repair Requests', icon: <Wrench className="h-4 w-4" /> });
 
-  // Equipment — admin, technician
   if (hasRole('admin', 'technician')) {
     navItems.push({ to: '/equipment', label: 'Equipment', icon: <Monitor className="h-4 w-4" /> });
   }
 
-  // Users — admin, hr
   if (hasRole('admin', 'hr')) {
     navItems.push({ to: '/users', label: 'Users', icon: <Users className="h-4 w-4" /> });
   }
 
-  // Departments — admin, hr
   if (hasRole('admin', 'hr')) {
     navItems.push({ to: '/departments', label: 'Departments', icon: <Building2 className="h-4 w-4" /> });
   }
 
-  // Equipment Categories — admin only
   if (hasRole('admin')) {
     navItems.push({ to: '/equipment-categories', label: 'Categories', icon: <FolderOpen className="h-4 w-4" /> });
   }
 
-  // Roles — admin only
   if (hasRole('admin')) {
     navItems.push({ to: '/roles', label: 'Roles', icon: <Shield className="h-4 w-4" /> });
   }
 
-  // System Logs — admin only
   if (hasRole('admin')) {
     navItems.push({ to: '/logs', label: 'System Logs', icon: <ScrollText className="h-4 w-4" /> });
   }
@@ -71,11 +68,21 @@ export function Sidebar() {
     .slice(0, 2);
 
   return (
-    <aside className="flex h-screen w-64 flex-col border-r bg-sidebar text-sidebar-foreground">
+    <>
       {/* Logo */}
-      <div className="flex h-16 items-center gap-2 px-6 font-bold text-lg">
-        <Wrench className="h-6 w-6 text-primary" />
-        TechFix
+      <div className="flex h-16 items-center justify-between px-6">
+        <div className="flex items-center gap-2 font-bold text-lg">
+          <Wrench className="h-6 w-6 text-primary" />
+          TechFix
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden"
+          onClick={close}
+        >
+          <X className="h-5 w-5" />
+        </Button>
       </div>
 
       <Separator />
@@ -86,6 +93,7 @@ export function Sidebar() {
           <NavLink
             key={item.to}
             to={item.to}
+            onClick={close}
             className={({ isActive }) =>
               cn(
                 'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
@@ -118,6 +126,38 @@ export function Sidebar() {
           </Button>
         </div>
       </div>
-    </aside>
+    </>
+  );
+}
+
+export function Sidebar() {
+  const { open, close } = useSidebarStore();
+  const location = useLocation();
+
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    close();
+  }, [location.pathname, close]);
+
+  return (
+    <>
+      {/* Desktop sidebar — always visible on md+ */}
+      <aside className="hidden md:flex h-screen w-64 flex-col border-r bg-sidebar text-sidebar-foreground">
+        <SidebarContent />
+      </aside>
+
+      {/* Mobile overlay */}
+      {open && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/50 md:hidden"
+            onClick={close}
+          />
+          <aside className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r bg-sidebar text-sidebar-foreground md:hidden animate-in slide-in-from-left duration-200">
+            <SidebarContent />
+          </aside>
+        </>
+      )}
+    </>
   );
 }
