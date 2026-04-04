@@ -181,6 +181,7 @@ updateProfile(@Param('id') id: string, @Body() dto: UpdateProfileDto) { ... }
 | Role-based data filtering | User/Technician เห็นเฉพาะข้อมูลที่เกี่ยวข้องกับตัวเอง |
 | Business rule enforcement | HR ไม่สามารถแก้ไข Admin, ตรวจสอบ ownership ก่อนทำ operation |
 | CORS restriction | อนุญาตเฉพาะ origin ที่กำหนดใน `CORS_ORIGIN` env |
+| CSRF Origin Guard | ตรวจ `Origin`/`Referer` header บน login/refresh endpoint — บล็อก cross-site form submission (OWASP recommended) |
 | Soft delete | ป้องกันการลบข้อมูลถาวรโดยไม่ตั้งใจ |
 
 ### A02:2025 — Security Misconfiguration
@@ -241,7 +242,8 @@ updateProfile(@Param('id') id: string, @Body() dto: UpdateProfileDto) { ... }
 | Short-lived access token | หมดอายุใน 15 นาที — ลด window of attack |
 | Token in memory only | Access token เก็บใน Zustand (memory) — ไม่เก็บใน localStorage/sessionStorage |
 | Google OAuth 2.0 | รองรับ SSO — ลดความเสี่ยงจาก password reuse |
-| SameSite cookie | `sameSite: 'lax'` ป้องกัน CSRF attacks |
+| SameSite cookie | `sameSite: 'lax'` ป้องกัน cross-site cookie transmission |
+| CSRF Origin Guard | `CsrfOriginGuard` ตรวจ `Origin`/`Referer` header บน endpoint ที่ไม่มี JWT (login, refresh) — บล็อก cross-site request forgery |
 
 ### A08:2025 — Software or Data Integrity Failures
 
