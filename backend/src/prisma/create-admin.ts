@@ -64,6 +64,19 @@ async function main() {
     });
   }
 
+  for (const categoryName of [
+    'คอมพิวเตอร์ / โน้ตบุ๊ก',
+    'เครื่องพิมพ์ / สแกนเนอร์',
+    'อุปกรณ์เครือข่าย',
+    'อุปกรณ์ต่อพ่วง',
+  ]) {
+    await prisma.equipmentCategory.upsert({
+      where: { name: categoryName },
+      update: {},
+      create: { name: categoryName },
+    });
+  }
+
   const itDept = await prisma.department.findFirstOrThrow({
     where: { name: 'ฝ่ายเทคโนโลยีสารสนเทศ' },
   });
