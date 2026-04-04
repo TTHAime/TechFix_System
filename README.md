@@ -18,9 +18,9 @@
 
 ## System Architecture
 
-```
 
-```
+<img width="1920" height="1080" alt="Practical (2)" src="https://github.com/user-attachments/assets/e542eb6f-b1b1-4de6-8b96-309abcd5b4a2" />
+
 
 ### Deployment Architecture
 
