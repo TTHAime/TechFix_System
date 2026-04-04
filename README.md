@@ -84,52 +84,78 @@ frontend/src/
 ### 1. Email/Password Login
 
 ```
-┌──────────┐         ┌──────────┐         ┌──────────┐
-│  Client   │         │  Backend  │         │    DB    │
-└────┬─────┘         └────┬─────┘         └────┬─────┘
-     │  POST /auth/login   │                    │
-     │  {email, password}  │                    │
-     │────────────────────►│                    │
-     │                     │  Find user by email│
-     │                     │───────────────────►│
-     │                     │◄───────────────────│
-     │                     │                    │
-     │                     │  ① Check account lock (5 attempts → lock 15 min)
-     │                     │  ② Verify password (Argon2id + Pepper)
-     │                     │  ③ Reset failed attempts on success
-     │                     │  ④ Generate JWT access token (15 min)
-     │                     │  ⑤ Generate refresh token (7 days)
-     │                     │  ⑥ Store refresh token hash (SHA-256) in DB
-     │                     │                    │
-     │  Access Token (JSON)│                    │
-     │  + Refresh Token    │                    │
-     │    (httpOnly cookie)│                    │
-     │◄────────────────────│                    │
+┌──────────┐              ┌──────────┐              ┌──────────┐
+│  Client  │              │  Backend │              │    DB    │
+└────┬─────┘              └────┬─────┘              └────┬─────┘
+     │                         │                         │
+     │  POST /auth/login        │                         │
+     │  { email, password }     │                         │
+     │────────────────────────►│                         │
+     │                         │  SELECT user BY email   │
+     │                         │────────────────────────►│
+     │                         │◄────────────────────────│
+     │                         │                         │
+     │                         │  ① isActive? → 401 if false
+     │                         │  ② lockedUntil? → 423 if locked
+     │                         │  ③ verifyPassword(Argon2id + Pepper)
+     │                         │     └─ fail → increment failedAttempts
+     │                         │     └─ 5th fail → lock 15 min → 423
+     │                         │  ④ reset failedAttempts on success
+     │                         │  ⑤ sign JWT { sub, email, roleId, roleName }
+     │                         │     expires: 15 min (HS512)
+     │                         │  ⑥ generate refresh token (40 bytes random)
+     │                         │     store SHA-256 hash, expires: 7 days
+     │                         │────────────────────────►│
+     │                         │                         │
+     │  { accessToken }        │                         │
+     │  Set-Cookie: refresh_token (httpOnly, 7d)         │
+     │◄────────────────────────│                         │
 ```
 
 ### 2. Google OAuth 2.0 (SSO)
 
 ```
 ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
-│  Client   │     │  Backend  │     │  Google   │     │    DB    │
+│  Client  │     │  Backend │     │  Google  │     │    DB    │
 └────┬─────┘     └────┬─────┘     └────┬─────┘     └────┬─────┘
-     │ GET /auth/google│               │                 │
-     │────────────────►│               │                 │
-     │                 │  Redirect     │                 │
-     │◄────────────────│  to Google    │                 │
-     │                 │  consent      │                 │
-     │  User logs in   │               │                 │
-     │────────────────────────────────►│                 │
-     │                 │  Callback     │                 │
-     │                 │  with profile │                 │
-     │                 │◄──────────────│                 │
-     │                 │                                 │
-     │                 │  Find/link user by email        │
-     │                 │  Link providerUid on first SSO  │
-     │                 │────────────────────────────────►│
-     │                 │                                 │
-     │  JWT + Refresh  │                                 │
-     │◄────────────────│                                 │
+     │                │                │                 │
+     │  GET /auth/google               │                 │
+     │───────────────►│                │                 │
+     │                │  302 → Google consent screen     │
+     │◄───────────────│                │                 │
+     │                │                │                 │
+     │  User grants permission         │                 │
+     │───────────────────────────────►│                 │
+     │                │  GET /auth/google/callback?code= │
+     │                │◄───────────────│                 │
+     │                │                │                 │
+     │                │  exchange code → { id, email, displayName }
+     │                │◄───────────────│                 │
+     │                │                                  │
+     │                │  SELECT user BY email            │
+     │                │─────────────────────────────────►│
+     │                │◄─────────────────────────────────│
+     │                │                                  │
+     │                │  [not found] → 302 /login?error= │
+     │                │  [inactive]  → 302 /login?error= │
+     │                │  [ok] link providerUid if null   │
+     │                │        store refresh token hash  │
+     │                │─────────────────────────────────►│
+     │                │                                  │
+     │  302 → /auth/google/callback?token={accessToken}  │
+     │◄───────────────│                                  │
+     │                │                                  │
+     │  POST /auth/refresh (httpOnly cookie)             │
+     │───────────────►│                                  │
+     │  { accessToken (rotated) }                        │
+     │◄───────────────│                                  │
+     │                │                                  │
+     │  GET /auth/me (Bearer token)                      │
+     │───────────────►│                                  │
+     │  { data: User }│                                  │
+     │◄───────────────│                                  │
+     │                │                                  │
+     │  navigate → /dashboard                            │
 ```
 
 > **หมายเหตุ:** ผู้ใช้ต้องมี account ในระบบก่อน (สร้างโดย Admin/HR) จึงจะ login ผ่าน Google ได้ — ระบบจะ link `providerUid` กับ account ที่มีอยู่
@@ -137,25 +163,33 @@ frontend/src/
 ### 3. Token Refresh (Silent Refresh)
 
 ```
-┌──────────┐         ┌──────────┐         ┌──────────┐
-│  Client   │         │  Backend  │         │    DB    │
-└────┬─────┘         └────┬─────┘         └────┬─────┘
-     │  Access token expired (401)         │
-     │                     │                    │
-     │  POST /auth/refresh │                    │
-     │  (httpOnly cookie)  │                    │
-     │────────────────────►│                    │
-     │                     │  Validate token    │
-     │                     │  hash in DB        │
-     │                     │───────────────────►│
-     │                     │                    │
-     │                     │  ① Revoke old refresh token
-     │                     │  ② Issue new access token
-     │                     │  ③ Issue new refresh token (rotation)
-     │                     │                    │
-     │  New Access Token   │                    │
-     │  + New Refresh Token│                    │
-     │◄────────────────────│                    │
+┌──────────┐              ┌──────────┐              ┌──────────┐
+│  Client  │              │  Backend │              │    DB    │
+└────┬─────┘              └────┬─────┘              └────┬─────┘
+     │                         │                         │
+     │  [any request → 401]    │                         │
+     │  Axios interceptor intercepts                     │
+     │                         │                         │
+     │  POST /auth/refresh      │                         │
+     │  Cookie: refresh_token   │                         │
+     │────────────────────────►│                         │
+     │                         │  SELECT token BY hash   │
+     │                         │────────────────────────►│
+     │                         │◄────────────────────────│
+     │                         │                         │
+     │                         │  ① verify not expired / not revoked
+     │                         │  ② mark old token as revoked
+     │                         │  ③ sign new JWT (15 min)
+     │                         │  ④ generate new refresh token
+     │                         │     store new hash in DB
+     │                         │────────────────────────►│
+     │                         │                         │
+     │  { accessToken }        │                         │
+     │  Set-Cookie: refresh_token (rotated, httpOnly)    │
+     │◄────────────────────────│                         │
+     │                         │                         │
+     │  retry original request │                         │
+     │────────────────────────►│                         │
 ```
 
 - **Access Token:** เก็บใน memory (Zustand store) — ไม่เก็บใน localStorage
