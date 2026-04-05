@@ -357,7 +357,12 @@ describe('UsersService', () => {
       mockPrisma.user.findUnique.mockResolvedValue(fakeUser);
       mockPrisma.user.update.mockResolvedValue(updatedUser);
 
-      const result = await service.hrUpdate(1, hrUpdateDto, actorId, Role.Admin);
+      const result = await service.hrUpdate(
+        1,
+        hrUpdateDto,
+        actorId,
+        Role.Admin,
+      );
 
       expect(result).toEqual(updatedUser);
     });
@@ -384,27 +389,27 @@ describe('UsersService', () => {
       mockPrisma.user.findUnique.mockResolvedValue(fakeUser);
       mockPrisma.user.update.mockRejectedValue(makePrismaError('P2025'));
 
-      await expect(service.hrUpdate(999, hrUpdateDto, actorId, Role.Admin)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.hrUpdate(999, hrUpdateDto, actorId, Role.Admin),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ConflictException when email is already in use (P2002)', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(fakeUser);
       mockPrisma.user.update.mockRejectedValue(makePrismaError('P2002'));
 
-      await expect(service.hrUpdate(1, hrUpdateDto, actorId, Role.Admin)).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(
+        service.hrUpdate(1, hrUpdateDto, actorId, Role.Admin),
+      ).rejects.toThrow(ConflictException);
     });
 
     it('should re-throw unexpected errors without wrapping', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(fakeUser);
       mockPrisma.user.update.mockRejectedValue(new Error('DB connection lost'));
 
-      await expect(service.hrUpdate(1, hrUpdateDto, actorId, Role.Admin)).rejects.toThrow(
-        'DB connection lost',
-      );
+      await expect(
+        service.hrUpdate(1, hrUpdateDto, actorId, Role.Admin),
+      ).rejects.toThrow('DB connection lost');
     });
   });
 

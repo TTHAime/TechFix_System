@@ -88,9 +88,7 @@ describe('RolesService', () => {
 
       await service.create(createDto, actorId);
 
-      expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining('created'),
-      );
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('created'));
     });
 
     it('should throw ConflictException when role name is duplicate (P2002)', async () => {
@@ -102,9 +100,7 @@ describe('RolesService', () => {
     });
 
     it('should log error and re-throw unexpected errors', async () => {
-      mockPrisma.role.create.mockRejectedValue(
-        new Error('DB connection lost'),
-      );
+      mockPrisma.role.create.mockRejectedValue(new Error('DB connection lost'));
       const errorSpy = jest.spyOn(service['logger'], 'error');
 
       await expect(service.create(createDto, actorId)).rejects.toThrow(
@@ -214,9 +210,7 @@ describe('RolesService', () => {
 
     it('should log error and re-throw unexpected errors', async () => {
       mockPrisma.role.findUnique.mockResolvedValue(fakeRole);
-      mockPrisma.role.update.mockRejectedValue(
-        new Error('DB connection lost'),
-      );
+      mockPrisma.role.update.mockRejectedValue(new Error('DB connection lost'));
       const errorSpy = jest.spyOn(service['logger'], 'error');
 
       await expect(service.update(1, updateDto, actorId)).rejects.toThrow(
@@ -273,9 +267,7 @@ describe('RolesService', () => {
 
     it('should log error and re-throw unexpected errors', async () => {
       mockPrisma.role.findUnique.mockResolvedValue(fakeRole);
-      mockPrisma.role.delete.mockRejectedValue(
-        new Error('DB connection lost'),
-      );
+      mockPrisma.role.delete.mockRejectedValue(new Error('DB connection lost'));
       const errorSpy = jest.spyOn(service['logger'], 'error');
 
       await expect(service.remove(1, actorId)).rejects.toThrow(

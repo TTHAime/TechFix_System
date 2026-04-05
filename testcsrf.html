@@ -1,7 +1,13 @@
 <!-- test-csrf.html — เปิดจาก file:// หรือ localhost:9999 -->
-<h1>CSRF Attack Test</h1>
+<h1>CSRF Attack Test Local</h1>
 <form action="http://localhost:3000/auth/login" method="POST">
   <input name="email" value="admin@techfix.com" />
   <input name="password" value="test" />
-  <button type="submit">Attack!</button>
+  <button type="submit">Attack! to Localhost</button>
+</form>
+
+<form action="https://techfixsystem.xyz/api/auth/login" method="POST">
+  <input name="email" value="admin@company.com" />
+  <input name="password" value="P@ssw0rd" />
+  <button type="submit">Attack to Production</button>
 </form>

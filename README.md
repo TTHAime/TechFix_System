@@ -238,7 +238,7 @@ updateProfile(@Param('id') id: string, @Body() dto: UpdateProfileDto) { ... }
 
 | มาตรการ | รายละเอียด |
 |---|---|
-| Strong password policy | ขั้นต่ำ 15 ตัวอักษร, สูงสุด 64, ตรวจ common password blacklist (48+ รายการ) |
+| Strong password policy | ขั้นต่ำ 15 ตัวอักษร, สูงสุด 64, ต้องมี uppercase + lowercase + ตัวเลข + อักขระพิเศษ, ตรวจความแข็งแกร่งด้วย zxcvbn (score ≥ 3) |
 | Short-lived access token | หมดอายุใน 15 นาที — ลด window of attack |
 | Token in memory only | Access token เก็บใน Zustand (memory) — ไม่เก็บใน localStorage/sessionStorage |
 | Google OAuth 2.0 | รองรับ SSO — ลดความเสี่ยงจาก password reuse |

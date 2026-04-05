@@ -90,9 +90,7 @@ describe('EquipmentCategoriesService', () => {
 
       await service.create(createDto, actorId);
 
-      expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining('created'),
-      );
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('created'));
     });
 
     it('should throw ConflictException when category name is duplicate (P2002)', async () => {

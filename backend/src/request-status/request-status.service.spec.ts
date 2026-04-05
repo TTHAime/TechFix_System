@@ -88,9 +88,7 @@ describe('RequestStatusService', () => {
 
       await service.create(createDto, actorId);
 
-      expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining('created'),
-      );
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('created'));
     });
 
     it('should throw ConflictException when status name is duplicate (P2002)', async () => {

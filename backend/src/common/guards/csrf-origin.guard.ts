@@ -20,9 +20,9 @@ export class CsrfOriginGuard implements CanActivate {
       throw new ForbiddenException('Missing origin header');
     }
 
-    const allowed = (
-      process.env.CORS_ORIGIN ?? 'http://localhost:5173'
-    ).split(',');
+    const allowed = (process.env.CORS_ORIGIN ?? 'http://localhost:5173').split(
+      ',',
+    );
 
     const isAllowed = allowed.some((o) => origin.startsWith(o.trim()));
 
