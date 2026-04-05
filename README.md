@@ -286,6 +286,7 @@ updateProfile(@Param('id') id: string, @Body() dto: UpdateProfileDto) { ... }
 | ORM | Prisma 7.5.0 |
 | Authentication | Passport.js (JWT + Local + Google OAuth 2.0) |
 | Password Hashing | Argon2id + Pepper |
+| Password Strength | zxcvbn (realistic entropy scoring) |
 | Security Headers | Helmet 8.1.0 |
 | Rate Limiting | @nestjs/throttler (60 req/60s) |
 | Validation | class-validator + class-transformer |
