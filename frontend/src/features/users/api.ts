@@ -5,9 +5,10 @@ import type { PaginatedResponse, ApiResponse } from '@/types/api';
 export async function getUsers(
   page = 1,
   limit = 20,
+  includeInactive = false,
 ): Promise<PaginatedResponse<User>> {
   const { data } = await axiosInstance.get<PaginatedResponse<User>>('/users', {
-    params: { page, limit },
+    params: { page, limit, ...(includeInactive && { includeInactive: 'true' }) },
   });
   return data;
 }
@@ -86,4 +87,18 @@ export async function deleteUser(id: number): Promise<ApiResponse<User>> {
     `/users/${id}`,
   );
   return data;
+}
+
+export async function generatePassword(): Promise<ApiResponse<string>> {
+  const { data } = await axiosInstance.get<ApiResponse<string>>(
+    '/users/generate-password',
+  );
+  return data;
+}
+
+export async function exportPendingPasswordExcel(): Promise<Blob> {
+  const { data } = await axiosInstance.get('/users/export-pending-password', {
+    responseType: 'blob',
+  });
+  return data as Blob;
 }

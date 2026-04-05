@@ -13,7 +13,10 @@ interface AuthState {
   accessToken: string | null;
   isAuthenticated: boolean;
   isInitializing: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (
+    email: string,
+    password: string,
+  ) => Promise<{ mustChangePassword: boolean }>;
   loginWithGoogle: () => void;
   logout: () => Promise<void>;
   fetchMe: () => Promise<void>;
@@ -28,12 +31,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isInitializing: true,
 
   login: async (email: string, password: string) => {
-    const { accessToken } = await loginApi(email, password);
+    const { accessToken, mustChangePassword } = await loginApi(
+      email,
+      password,
+    );
     set({ accessToken, isAuthenticated: true });
 
     // Fetch user profile after login
     const { data: user } = await getMeApi();
     set({ user });
+
+    return { mustChangePassword };
   },
 
   loginWithGoogle: () => {

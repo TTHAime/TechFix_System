@@ -16,7 +16,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, Hand, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { Plus, Hand, Loader2 } from 'lucide-react';
+import { Pagination } from '@/components/common/Pagination';
 import type { RequestStatusName, RepairRequest } from '@/types';
 
 const statusVariantMap: Record<
@@ -156,33 +157,13 @@ export default function RequestListPage() {
                 </TableBody>
               </Table>
 
-              {/* Pagination */}
-              {meta && meta.total > meta.limit && (
-                <div className="flex items-center justify-between pt-4">
-                  <p className="text-sm text-muted-foreground">
-                    Page {meta.page} of {Math.ceil(meta.total / meta.limit)}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={page <= 1}
-                      onClick={() => setPage((p) => p - 1)}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                      Previous
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={page >= Math.ceil(meta.total / meta.limit)}
-                      onClick={() => setPage((p) => p + 1)}
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+              {meta && (
+                <Pagination
+                  page={page}
+                  limit={meta.limit}
+                  total={meta.total}
+                  onPageChange={setPage}
+                />
               )}
             </>
           )}

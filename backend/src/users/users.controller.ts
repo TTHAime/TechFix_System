@@ -8,10 +8,13 @@ import {
   Delete,
   UseGuards,
   Req,
+  Res,
   Query,
   ParseIntPipe,
+  StreamableFile,
 } from '@nestjs/common';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
+import ExcelJS from 'exceljs';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -22,7 +25,8 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/enums/role.enum';
-import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { UserQueryDto } from './dto/user-query.dto';
+import { generatePassword } from 'src/common/utils/generate-password';
 import type { JwtPayload } from 'src/common/interfaces/jwt-payload.interface';
 
 @Controller('users')
@@ -47,6 +51,56 @@ export class UsersController {
   ) {
     const data = await this.usersService.updateProfile(req.user.sub, dto);
     return { data, message: 'Profile updated successfully' };
+  }
+
+  @Get('generate-password')
+  @Roles(Role.Admin, Role.HR)
+  generateUserPassword() {
+    return { data: generatePassword(), message: 'Password generated' };
+  }
+
+  @Get('export-pending-password')
+  @Roles(Role.Admin, Role.HR)
+  async exportPendingPassword(@Res() res: Response) {
+    const users = await this.usersService.findPendingPasswordChange();
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Pending Password Change');
+
+    sheet.columns = [
+      { header: 'ID', key: 'id', width: 8 },
+      { header: 'Name', key: 'name', width: 25 },
+      { header: 'Email', key: 'email', width: 30 },
+      { header: 'Role', key: 'role', width: 15 },
+      { header: 'Department', key: 'department', width: 20 },
+      { header: 'Created At', key: 'createdAt', width: 22 },
+    ];
+
+    // Style header row
+    sheet.getRow(1).font = { bold: true };
+
+    for (const u of users) {
+      sheet.addRow({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role.name,
+        department: u.department.name,
+        createdAt: new Date(u.createdAt).toLocaleString('th-TH'),
+      });
+    }
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename=pending-password-change.xlsx',
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
   }
 
   @Post('onboard')
@@ -86,8 +140,13 @@ export class UsersController {
 
   @Get()
   @Roles(Role.Admin, Role.HR)
-  async findAll(@Query() query: PaginationQueryDto) {
-    const result = await this.usersService.findAll(query);
+  async findAll(
+    @Req() req: Request & { user: JwtPayload },
+    @Query() query: UserQueryDto,
+  ) {
+    const isAdmin = req.user.roleName === Role.Admin;
+    const showInactive = isAdmin && query.includeInactive === true;
+    const result = await this.usersService.findAll(query, showInactive);
     return { ...result, message: 'Users retrieved successfully' };
   }
 

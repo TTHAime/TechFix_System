@@ -34,6 +34,7 @@ import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/error';
+import { Pagination } from '@/components/common/Pagination';
 
 interface EquipmentFormValues {
   name: string;
@@ -50,6 +51,7 @@ const equipmentSchema = Yup.object({
 });
 
 export default function EquipmentPage() {
+  const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -61,7 +63,7 @@ export default function EquipmentPage() {
   const { hasRole } = useAuthStore();
 
   const isAdmin = hasRole('admin');
-  const { data: eqResponse, isLoading, isError } = useEquipmentQuery();
+  const { data: eqResponse, isLoading, isError } = useEquipmentQuery(page, 20);
   const { data: catResponse } = useEquipmentCategoriesQuery(1, 100, isAdmin);
   const { data: deptResponse } = useDepartmentsQuery(1, 20, isAdmin);
   const createMutation = useCreateEquipmentMutation();
@@ -171,6 +173,14 @@ export default function EquipmentPage() {
               ))}
             </TableBody>
           </Table>
+          {eqResponse?.meta && (
+            <Pagination
+              page={page}
+              limit={eqResponse.meta.limit}
+              total={eqResponse.meta.total}
+              onPageChange={setPage}
+            />
+          )}
         </CardContent>
       </Card>
 

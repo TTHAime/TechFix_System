@@ -12,6 +12,7 @@ import { Plus, Pencil, MapPin, Trash2 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/error';
+import { Pagination } from '@/components/common/Pagination';
 
 interface DepartmentFormValues {
   name: string;
@@ -24,13 +25,14 @@ const departmentSchema = Yup.object({
 });
 
 export default function DepartmentsPage() {
+  const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedDept, setSelectedDept] = useState<Department | null>(null);
   const { hasRole } = useAuthStore();
 
-  const { data: response, isLoading, isError } = useDepartmentsQuery();
+  const { data: response, isLoading, isError } = useDepartmentsQuery(page, 20);
   const createMutation = useCreateDepartmentMutation();
   const updateMutation = useUpdateDepartmentMutation();
   const deleteMutation = useDeleteDepartmentMutation();
@@ -111,6 +113,14 @@ export default function DepartmentsPage() {
               ))}
             </TableBody>
           </Table>
+          {response?.meta && (
+            <Pagination
+              page={page}
+              limit={response.meta.limit}
+              total={response.meta.total}
+              onPageChange={setPage}
+            />
+          )}
         </CardContent>
       </Card>
 

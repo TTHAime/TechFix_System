@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Body,
   Req,
   Res,
   UseGuards,
@@ -10,6 +11,7 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
+import { ForceChangePasswordDto } from './dto/force-change-password.dto';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
@@ -29,6 +31,7 @@ export class AuthController {
       email: string;
       roleId: number;
       role: { name: string };
+      mustChangePassword: boolean;
     };
     return this.authService.login(
       {
@@ -36,6 +39,7 @@ export class AuthController {
         email: user.email,
         roleId: user.roleId,
         roleName: user.role.name,
+        mustChangePassword: user.mustChangePassword,
       },
       res,
     );
@@ -91,6 +95,18 @@ export class AuthController {
         error instanceof UnauthorizedException ? error.message : 'Login failed';
       res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(message)}`);
     }
+  }
+
+  @Post('force-change-password')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  async forceChangePassword(
+    @Req() req: Request,
+    @Body() dto: ForceChangePasswordDto,
+  ) {
+    const user = req.user as JwtPayload;
+    await this.authService.forceChangePassword(user.sub, dto.newPassword);
+    return { data: null, message: 'Password changed successfully' };
   }
 
   @Get('me')

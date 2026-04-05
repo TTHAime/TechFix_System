@@ -79,8 +79,15 @@ export default function LoginPage() {
             validationSchema={loginSchema}
             onSubmit={async (values, { setSubmitting, setFieldError }) => {
               try {
-                await login(values.email, values.password);
-                navigate('/dashboard');
+                const { mustChangePassword } = await login(
+                  values.email,
+                  values.password,
+                );
+                if (mustChangePassword) {
+                  navigate('/change-password');
+                } else {
+                  navigate('/dashboard');
+                }
               } catch (error) {
                 setFieldError('email', getLoginErrorMessage(error));
               }

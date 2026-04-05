@@ -1,10 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getUsers, createUser, onboardUser, updateUser, hrUpdateUser, deleteUser } from './api';
 
-export function useUsersQuery(page = 1, limit = 20, enabled = true) {
+export function useUsersQuery(page = 1, limit = 20, includeInactive = false, enabled = true) {
   return useQuery({
-    queryKey: ['users', page, limit],
-    queryFn: () => getUsers(page, limit),
+    queryKey: ['users', page, limit, includeInactive],
+    queryFn: () => getUsers(page, limit, includeInactive),
     enabled,
   });
 }

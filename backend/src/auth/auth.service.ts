@@ -69,7 +69,13 @@ export class AuthService {
   }
 
   async login(
-    user: { id: number; email: string; roleId: number; roleName: string },
+    user: {
+      id: number;
+      email: string;
+      roleId: number;
+      roleName: string;
+      mustChangePassword?: boolean;
+    },
     res: Response,
   ) {
     const accessToken = this.jwtService.sign({
@@ -92,7 +98,10 @@ export class AuthService {
 
     this.setRefreshCookie(res, rawRefreshToken);
     this.logger.log(`User logged in: ${user.id}`);
-    return { accessToken };
+    return {
+      accessToken,
+      mustChangePassword: user.mustChangePassword ?? false,
+    };
   }
 
   async refresh(rawToken: string, res: Response) {
@@ -193,6 +202,10 @@ export class AuthService {
       },
       res,
     );
+  }
+
+  async forceChangePassword(userId: number, newPassword: string) {
+    return this.usersService.forceChangePassword(userId, newPassword);
   }
 
   async getMe(userId: number) {

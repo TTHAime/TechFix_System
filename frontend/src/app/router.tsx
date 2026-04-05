@@ -3,6 +3,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { RequireAuth } from '@/components/layout/RequireAuth';
 
 import LoginPage from '@/pages/LoginPage';
+import ForceChangePasswordPage from '@/pages/ForceChangePasswordPage';
 import GoogleCallbackPage from '@/pages/GoogleCallbackPage';
 import UnauthorizedPage from '@/pages/UnauthorizedPage';
 import NotFoundPage from '@/pages/NotFoundPage';
@@ -22,6 +23,14 @@ export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   { path: '/auth/google/callback', element: <GoogleCallbackPage /> },
   { path: '/unauthorized', element: <UnauthorizedPage /> },
+
+  // Force change password — authenticated but must change password
+  {
+    element: <RequireAuth />,
+    children: [
+      { path: '/change-password', element: <ForceChangePasswordPage /> },
+    ],
+  },
 
   // Protected routes — all authenticated users
   {

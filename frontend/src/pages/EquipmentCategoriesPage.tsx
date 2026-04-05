@@ -30,6 +30,7 @@ import { FormikInput } from '@/components/ui/FormikInput';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/error';
+import { Pagination } from '@/components/common/Pagination';
 
 interface CategoryFormValues {
   name: string;
@@ -40,13 +41,14 @@ const categorySchema = Yup.object({
 });
 
 export default function EquipmentCategoriesPage() {
+  const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] =
     useState<EquipmentCategory | null>(null);
 
-  const { data: response, isLoading, isError } = useEquipmentCategoriesQuery();
+  const { data: response, isLoading, isError } = useEquipmentCategoriesQuery(page, 20);
   const createMutation = useCreateEquipmentCategoryMutation();
   const updateMutation = useUpdateEquipmentCategoryMutation();
   const deleteMutation = useDeleteEquipmentCategoryMutation();
@@ -132,6 +134,14 @@ export default function EquipmentCategoriesPage() {
               ))}
             </TableBody>
           </Table>
+          {response?.meta && (
+            <Pagination
+              page={page}
+              limit={response.meta.limit}
+              total={response.meta.total}
+              onPageChange={setPage}
+            />
+          )}
         </CardContent>
       </Card>
 

@@ -8,6 +8,7 @@ export interface User {
   roleId: number;
   deptId: number;
   provider: 'local' | 'google';
+  mustChangePassword: boolean;
   isActive: boolean;
   createdAt: string;
   role: Role;

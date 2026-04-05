@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { FileText, UserCheck } from 'lucide-react';
+import { Pagination } from '@/components/common/Pagination';
 
 type LogTab = 'audit' | 'assignment';
 
@@ -17,9 +18,11 @@ const actionVariantMap: Record<string, 'default' | 'success' | 'destructive' | '
 
 export default function SystemLogsPage() {
   const [activeTab, setActiveTab] = useState<LogTab>('audit');
+  const [auditPage, setAuditPage] = useState(1);
+  const [assignmentPage, setAssignmentPage] = useState(1);
 
-  const { data: auditData, isLoading: auditLoading } = useAuditLogsQuery(1, 100);
-  const { data: assignmentData, isLoading: assignmentLoading } = useAllAssignmentLogsQuery(1, 100);
+  const { data: auditData, isLoading: auditLoading } = useAuditLogsQuery(auditPage, 20);
+  const { data: assignmentData, isLoading: assignmentLoading } = useAllAssignmentLogsQuery(assignmentPage, 20);
 
   const auditLogs = auditData?.data ?? [];
   const assignmentLogs = assignmentData?.data ?? [];
@@ -123,6 +126,14 @@ export default function SystemLogsPage() {
                 </TableBody>
               </Table>
             )}
+            {auditData?.meta && (
+              <Pagination
+                page={auditPage}
+                limit={auditData.meta.limit}
+                total={auditData.meta.total}
+                onPageChange={setAuditPage}
+              />
+            )}
           </CardContent>
         </Card>
       )}
@@ -178,6 +189,14 @@ export default function SystemLogsPage() {
                   )}
                 </TableBody>
               </Table>
+            )}
+            {assignmentData?.meta && (
+              <Pagination
+                page={assignmentPage}
+                limit={assignmentData.meta.limit}
+                total={assignmentData.meta.total}
+                onPageChange={setAssignmentPage}
+              />
             )}
           </CardContent>
         </Card>

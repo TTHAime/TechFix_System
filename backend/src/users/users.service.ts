@@ -45,7 +45,11 @@ export class UsersService {
 
     try {
       const user = await this.prisma.user.create({
-        data: { ...rest, passwordHash },
+        data: {
+          ...rest,
+          passwordHash,
+          mustChangePassword: !!password,
+        },
         include: { role: true, department: true },
         omit: { passwordHash: true },
       });
@@ -73,20 +77,23 @@ export class UsersService {
     }
   }
 
-  async findAll(query: PaginationQueryDto) {
+  async findAll(query: PaginationQueryDto, includeInactive = false) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
 
+    const where = includeInactive ? {} : { isActive: true };
+
     const [data, total] = await Promise.all([
       this.prisma.user.findMany({
+        where,
         skip,
         take: limit,
         orderBy: { id: 'asc' },
         include: { role: true, department: true },
         omit: { passwordHash: true },
       }),
-      this.prisma.user.count(),
+      this.prisma.user.count({ where }),
     ]);
 
     return { data, meta: { page, limit, total } };
@@ -156,7 +163,12 @@ export class UsersService {
 
     try {
       const user = await this.prisma.user.create({
-        data: { ...rest, roleId: defaultRole.id, passwordHash },
+        data: {
+          ...rest,
+          roleId: defaultRole.id,
+          passwordHash,
+          mustChangePassword: !!password,
+        },
         include: { role: true, department: true },
         omit: { passwordHash: true },
       });
@@ -266,6 +278,43 @@ export class UsersService {
       );
       throw e;
     }
+  }
+
+  async forceChangePassword(userId: number, newPassword: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+    if (!user.mustChangePassword) {
+      throw new BadRequestException('Password change is not required');
+    }
+
+    const passwordHash = await this.hashService.hash(newPassword);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash, mustChangePassword: false },
+    });
+
+    this.logger.log(`User ${userId} completed forced password change`);
+    await this.auditLogsService.create({
+      actorId: userId,
+      entityType: 'user',
+      entityId: userId,
+      action: 'updated',
+      oldValue: { mustChangePassword: true },
+      newValue: { mustChangePassword: false },
+    });
+  }
+
+  async findPendingPasswordChange() {
+    const users = await this.prisma.user.findMany({
+      where: { mustChangePassword: true, isActive: true },
+      include: { role: true, department: true },
+      omit: { passwordHash: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    this.logger.log(
+      `Exported pending password change list: ${users.length} user(s)`,
+    );
+    return users;
   }
 
   async findByEmailForAuth(email: string) {

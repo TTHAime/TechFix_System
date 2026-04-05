@@ -43,6 +43,7 @@ model User {
   provider       String    @db.VarChar(20)   // 'google' | 'local'
   providerUid    String?   @map("provider_uid") @db.VarChar(100)
   passwordHash   String?   @map("password_hash")
+  mustChangePassword Boolean @default(false) @map("must_change_password")
   failedAttempts Int       @default(0) @map("failed_attempts")
   lockedUntil    DateTime? @map("locked_until") @db.Timestamptz
   isActive       Boolean   @default(true) @map("is_active")

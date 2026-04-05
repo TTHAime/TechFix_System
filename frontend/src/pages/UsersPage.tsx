@@ -34,10 +34,28 @@ import { FormikInput } from '@/components/ui/FormikInput';
 import { FormikSelect } from '@/components/ui/FormikSelect';
 import { PasswordStrengthMeter } from '@/components/ui/PasswordStrengthMeter';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Plus, Pencil, KeyRound, UserX, UserCheck } from 'lucide-react';
+import {
+  Plus,
+  Pencil,
+  KeyRound,
+  UserX,
+  UserCheck,
+  Wand2,
+  Download,
+  Copy,
+  Eye,
+  EyeOff,
+} from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/error';
+import {
+  generatePassword as generatePasswordApi,
+  exportPendingPasswordExcel,
+} from '@/features/users/api';
+import { usePendingCredentialsStore } from '@/stores/pending-credentials';
+import { exportCredentialsToExcel } from '@/lib/export-credentials';
+import { Pagination } from '@/components/common/Pagination';
 
 interface AdminCreateValues {
   name: string;
@@ -143,15 +161,22 @@ function getDeactivateInfo(user: User | null, isPending: boolean) {
 }
 
 export default function UsersPage() {
+  const [page, setPage] = useState(1);
+  const [showInactive, setShowInactive] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const { hasRole } = useAuthStore();
+  const {
+    credentials: pendingCredentials,
+    add: addCredential,
+    clear: clearCredentials,
+  } = usePendingCredentialsStore();
 
   const isAdmin = hasRole('admin');
-  const { data: usersResponse, isLoading, isError } = useUsersQuery();
+  const { data: usersResponse, isLoading, isError } = useUsersQuery(page, 20, isAdmin && showInactive);
   const { data: rolesResponse } = useRolesQuery(1, 20, isAdmin);
   const { data: deptsResponse } = useDepartmentsQuery();
   const createMutation = useCreateUserMutation();
@@ -201,10 +226,66 @@ export default function UsersPage() {
           </p>
         </div>
         {canManageUsers && (
-          <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            {isAdmin ? 'Add User' : 'Add Employee'}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {isAdmin && (
+              <Button
+                variant={showInactive ? 'default' : 'outline'}
+                onClick={() => {
+                  setShowInactive((v) => !v);
+                  setPage(1);
+                }}
+              >
+                {showInactive ? (
+                  <EyeOff className="mr-2 h-4 w-4" />
+                ) : (
+                  <Eye className="mr-2 h-4 w-4" />
+                )}
+                {showInactive ? 'Hide Inactive' : 'Show Inactive'}
+              </Button>
+            )}
+            {pendingCredentials.length > 0 && (
+              <Button
+                variant="default"
+                onClick={() => {
+                  exportCredentialsToExcel(pendingCredentials);
+                  clearCredentials();
+                  toast.success(
+                    'Credentials exported — passwords cleared from memory',
+                  );
+                }}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Export Credentials
+                <Badge variant="secondary" className="ml-2">
+                  {pendingCredentials.length}
+                </Badge>
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  const blob = await exportPendingPasswordExcel();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'pending-password-change.xlsx';
+                  a.click();
+                  URL.revokeObjectURL(url);
+                  toast.success('Excel exported');
+                } catch (err) {
+                  toast.error(getErrorMessage(err));
+                }
+              }}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Export Pending
+            </Button>
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              {isAdmin ? 'Add User' : 'Add Employee'}
+            </Button>
+          </div>
         )}
       </div>
 
@@ -258,9 +339,16 @@ export default function UsersPage() {
                     </TableCell>
                     <TableCell>{u.department.name}</TableCell>
                     <TableCell>
-                      <Badge variant={u.isActive ? 'success' : 'destructive'}>
-                        {u.isActive ? 'Active' : 'Inactive'}
-                      </Badge>
+                      <div className="flex flex-wrap gap-1">
+                        <Badge variant={u.isActive ? 'success' : 'destructive'}>
+                          {u.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                        {u.mustChangePassword && (
+                          <Badge variant="warning">
+                            Pending Password
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     {canManageUsers && (
                       <TableCell>
@@ -312,6 +400,14 @@ export default function UsersPage() {
               })}
             </TableBody>
           </Table>
+          {usersResponse?.meta && (
+            <Pagination
+              page={page}
+              limit={usersResponse.meta.limit}
+              total={usersResponse.meta.total}
+              onPageChange={setPage}
+            />
+          )}
         </CardContent>
       </Card>
 
@@ -337,16 +433,23 @@ export default function UsersPage() {
               }}
               validationSchema={adminCreateSchema}
               onSubmit={(values, { setSubmitting, resetForm }) => {
+                const submittedPassword = values.password;
                 createMutation.mutate(
                   {
                     name: values.name,
                     email: values.email,
-                    password: values.password,
+                    password: submittedPassword,
                     roleId: Number(values.roleId),
                     deptId: Number(values.deptId),
                   },
                   {
                     onSuccess: () => {
+                      addCredential({
+                        name: values.name,
+                        email: values.email,
+                        password: submittedPassword,
+                        createdAt: new Date().toLocaleString('th-TH'),
+                      });
                       toast.success('User created successfully');
                       resetForm();
                       setDialogOpen(false);
@@ -357,7 +460,7 @@ export default function UsersPage() {
                 );
               }}
             >
-              {({ isSubmitting, values }) => (
+              {({ isSubmitting, values, setFieldValue }) => (
                 <Form className="space-y-4">
                   <FormikInput
                     name="name"
@@ -370,12 +473,46 @@ export default function UsersPage() {
                     type="email"
                     placeholder="user@company.com"
                   />
-                  <FormikInput
-                    name="password"
-                    label="Password"
-                    type="password"
-                    placeholder="15–64 characters"
-                  />
+                  <div>
+                    <FormikInput
+                      name="password"
+                      label="Password"
+                      type="text"
+                      placeholder="15–64 characters"
+                    />
+                    <div className="mt-1.5 flex gap-1.5">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            const { data: pw } = await generatePasswordApi();
+                            setFieldValue('password', pw);
+                          } catch (err) {
+                            toast.error(getErrorMessage(err));
+                          }
+                        }}
+                      >
+                        <Wand2 className="mr-1.5 h-3.5 w-3.5" />
+                        Auto-generate
+                      </Button>
+                      {values.password && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(values.password);
+                            toast.success('Password copied to clipboard');
+                          }}
+                        >
+                          <Copy className="mr-1.5 h-3.5 w-3.5" />
+                          Copy
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                   <PasswordStrengthMeter value={values.password} />
                   <FormikSelect
                     name="roleId"
@@ -409,15 +546,24 @@ export default function UsersPage() {
               initialValues={{ name: '', email: '', deptId: '', password: '' }}
               validationSchema={hrCreateSchema}
               onSubmit={(values, { setSubmitting, resetForm }) => {
+                const submittedPassword = values.password;
                 onboardMutation.mutate(
                   {
                     name: values.name,
                     email: values.email,
                     deptId: Number(values.deptId),
-                    password: values.password || undefined,
+                    password: submittedPassword || undefined,
                   },
                   {
                     onSuccess: () => {
+                      if (submittedPassword) {
+                        addCredential({
+                          name: values.name,
+                          email: values.email,
+                          password: submittedPassword,
+                          createdAt: new Date().toLocaleString('th-TH'),
+                        });
+                      }
                       toast.success('Employee added successfully');
                       resetForm();
                       setDialogOpen(false);
@@ -428,7 +574,7 @@ export default function UsersPage() {
                 );
               }}
             >
-              {({ isSubmitting, values }) => (
+              {({ isSubmitting, values, setFieldValue }) => (
                 <Form className="space-y-4">
                   <FormikInput
                     name="name"
@@ -441,12 +587,46 @@ export default function UsersPage() {
                     type="email"
                     placeholder="user@company.com"
                   />
-                  <FormikInput
-                    name="password"
-                    label="Password (optional)"
-                    type="password"
-                    placeholder="Min 15 characters"
-                  />
+                  <div>
+                    <FormikInput
+                      name="password"
+                      label="Password (optional)"
+                      type="text"
+                      placeholder="Min 15 characters"
+                    />
+                    <div className="mt-1.5 flex gap-1.5">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            const { data: pw } = await generatePasswordApi();
+                            setFieldValue('password', pw);
+                          } catch (err) {
+                            toast.error(getErrorMessage(err));
+                          }
+                        }}
+                      >
+                        <Wand2 className="mr-1.5 h-3.5 w-3.5" />
+                        Auto-generate
+                      </Button>
+                      {values.password && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(values.password);
+                            toast.success('Password copied to clipboard');
+                          }}
+                        >
+                          <Copy className="mr-1.5 h-3.5 w-3.5" />
+                          Copy
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                   <PasswordStrengthMeter value={values.password} />
                   <FormikSelect
                     name="deptId"

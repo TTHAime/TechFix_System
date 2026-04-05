@@ -4,6 +4,7 @@ import type { ApiResponse } from '@/types/api';
 
 interface LoginResponse {
   accessToken: string;
+  mustChangePassword: boolean;
 }
 
 export async function loginApi(email: string, password: string): Promise<LoginResponse> {
@@ -18,6 +19,12 @@ export async function refreshTokenApi(): Promise<LoginResponse> {
 
 export async function logoutApi(): Promise<void> {
   await axiosInstance.post('/auth/logout');
+}
+
+export async function forceChangePasswordApi(
+  newPassword: string,
+): Promise<void> {
+  await axiosInstance.post('/auth/force-change-password', { newPassword });
 }
 
 export async function getMeApi(): Promise<ApiResponse<User>> {
